@@ -22,56 +22,57 @@
 !    Jason Milbrandt (jason.milbrandt@canada.ca)                                           !
 !__________________________________________________________________________________________!
 !                                                                                          !
-! Version:       2.8.4_b13                                                                 !
-! Last updated:  2017-11-16                                                                !
+! Version:       2.9.1                                                                     !
+! Last updated:  2018-03-01                                                                !
 !__________________________________________________________________________________________!
 
  MODULE MODULE_MP_P3
 
  implicit none
 
- public  :: mp_p3_wrapper_wrf,mp_p3_wrapper_wrf_2cat,mp_p3_wrapper_gem,p3_main,polysvp1
+ private
+ public  :: mp_p3_wrapper_wrf,mp_p3_wrapper_wrf_2cat,mp_p3_wrapper_gem,p3_main,polysvp1,p3_init
 
- private :: gamma,derf,find_lookupTable_indices_1a,find_lookupTable_indices_1b,          &
-            find_lookupTable_indices_2,find_lookupTable_indices_3,get_cloud_dsd2,        &
-            get_rain_dsd2,calc_bulkRhoRime,impose_max_total_Ni,check_values,qv_sat
+ integer, parameter :: STATUS_ERROR  = -1
+ integer, parameter :: STATUS_OK     = 0
+ integer, save      :: global_status = STATUS_OK
 
 ! ice microphysics lookup table array dimensions
- integer, private, parameter :: isize        = 50
- integer, private, parameter :: iisize       = 25
- integer, private, parameter :: zsize        = 20  ! size of mom6 array in lookup_table (for future 3-moment)
- integer, private, parameter :: densize      =  5
- integer, private, parameter :: rimsize      =  4
- integer, private, parameter :: rcollsize    = 30
- integer, private, parameter :: tabsize      = 12  ! number of quantities used from lookup table
- integer, private, parameter :: colltabsize  =  2  ! number of ice-rain collection  quantities used from lookup table
- integer, private, parameter :: collitabsize =  2  ! number of ice-ice collection  quantities used from lookup table
+ integer, parameter :: isize        = 50
+ integer, parameter :: iisize       = 25
+ integer, parameter :: zsize        = 20  ! size of mom6 array in lookup_table (for future 3-moment)
+ integer, parameter :: densize      =  5
+ integer, parameter :: rimsize      =  4
+ integer, parameter :: rcollsize    = 30
+ integer, parameter :: tabsize      = 12  ! number of quantities used from lookup table
+ integer, parameter :: colltabsize  =  2  ! number of ice-rain collection  quantities used from lookup table
+ integer, parameter :: collitabsize =  2  ! number of ice-ice collection  quantities used from lookup table
 
- real, private, parameter    :: real_rcollsize = real(rcollsize)
+ real, parameter    :: real_rcollsize = real(rcollsize)
 
- real, private, dimension(densize,rimsize,isize,tabsize) :: itab   !ice lookup table values
+ real, dimension(densize,rimsize,isize,tabsize) :: itab   !ice lookup table values
 
 !ice lookup table values for ice-rain collision/collection
- double precision, private, dimension(densize,rimsize,isize,rcollsize,colltabsize)    :: itabcoll
+ double precision, dimension(densize,rimsize,isize,rcollsize,colltabsize)    :: itabcoll
 ! separated into itabcolli1 and itabcolli2, due to max of 7 dimensional arrays on some FORTRAN compilers
- double precision, private, dimension(iisize,rimsize,densize,iisize,rimsize,densize) :: itabcolli1
- double precision, private, dimension(iisize,rimsize,densize,iisize,rimsize,densize) :: itabcolli2
+ double precision, dimension(iisize,rimsize,densize,iisize,rimsize,densize) :: itabcolli1
+ double precision, dimension(iisize,rimsize,densize,iisize,rimsize,densize) :: itabcolli2
 
 ! integer switch for warm rain autoconversion/accretion schemes
- integer, private :: iparam
+ integer :: iparam
 
 ! droplet spectral shape parameter for mass spectra, used for Seifert and Beheng (2001)
 ! warm rain autoconversion/accretion option only (iparam = 1)
- real, private, dimension(16) :: dnu
+ real, dimension(16) :: dnu
 
 ! lookup table values for rain shape parameter mu_r
- real, private, dimension(150) :: mu_r_table
+ real, dimension(150) :: mu_r_table
 
 ! lookup table values for rain number- and mass-weighted fallspeeds and ventilation parameters
- real, private, dimension(300,10) :: vn_table,vm_table,revap_table
+ real, dimension(300,10) :: vn_table,vm_table,revap_table
 
  ! physical and mathematical constants
- real, private  :: rhosur,rhosui,ar,br,f1r,f2r,ecr,rhow,kr,kc,bimm,aimm,rin,mi0,nccnst,  &
+ real           :: rhosur,rhosui,ar,br,f1r,f2r,ecr,rhow,kr,kc,bimm,aimm,rin,mi0,nccnst,  &
                    eci,eri,bcn,cpw,e0,cons1,cons2,cons3,cons4,cons5,cons6,cons7,         &
                    inv_rhow,qsmall,nsmall,bsmall,zsmall,cp,g,rd,rv,ep_2,inv_cp,mw,osm,   &
                    vi,epsm,rhoa,map,ma,rr,bact,inv_rm1,inv_rm2,sig1,nanew1,f11,f21,sig2, &
@@ -82,7 +83,7 @@
 
 !==================================================================================================!
 
- SUBROUTINE p3_init(lookup_file_dir,nCat)
+ subroutine p3_init(lookup_file_dir,nCat,stat)
 
 !------------------------------------------------------------------------------------------!
 ! This subroutine initializes all physical constants and parameters needed by the P3       !
@@ -93,35 +94,44 @@
   implicit none
 
 ! Passed arguments:
- character*(*), intent(in)    :: lookup_file_dir                   !directory of the lookup tables
- integer,       intent(in)    :: nCat                              !number of free ice categories
+ character*(*), intent(in)            :: lookup_file_dir            !directory of the lookup tables
+ integer,       intent(in)            :: nCat                       !number of free ice categories
+ integer,       intent(out), optional :: stat                       !return status of subprogram
 
 ! Local variables and parameters:
- character(len=16), parameter :: version_p3              = '2.8.4' !version number of P3
- character(len=16), parameter :: version_correct_table_1 = '3'     !lookupTable_1 version used for this P3 version
- character(len=16), parameter :: version_correct_table_2 = '3'     !lookupTable_2 version used for this P3 version
- character(len=1024)          :: version_header_table_1            !version number from header, table 1
- character(len=1024)          :: version_header_table_2            !version number from header, table 2
- character(len=1024)          :: lookup_file_1                     !lookup table, main
- character(len=1024)          :: lookup_file_2                     !lookup table for ice-ice interactions
+ logical, save :: is_init = .false.
+ character(len=16), parameter :: version_p3               = '2.9.1' !version number of P3
+ character(len=16), parameter :: version_intended_table_1 = '3'     !lookupTable_1 version intended for this P3 version
+ character(len=16), parameter :: version_intended_table_2 = '3'     !lookupTable_2 version intended for this P3 version
+ character(len=1024)          :: version_header_table_1             !version number read from header, table 1
+ character(len=1024)          :: version_header_table_2             !version number read from header, table 2
+ character(len=1024)          :: lookup_file_1                      !lookup table, main
+ character(len=1024)          :: lookup_file_2                      !lookup table for ice-ice interactions
  character(len=1024)          :: dumstr
- integer                      :: i,j,k,ii,jj,kk,jjj,jjj2,jjjj,jjjj2
+ integer                      :: i,j,k,ii,jj,kk,jjj,jjj2,jjjj,jjjj2,end_status
  real                         :: lamr,mu_r,lamold,dum,initlamr,dm,dum1,dum2,dum3,dum4,dum5,  &
                                  dum6,dd,amg,vt,dia,vn,vm
 
 
  !------------------------------------------------------------------------------------------!
 
- lookup_file_1 = trim(lookup_file_dir)//'/'//'p3_lookup_table_1.dat'
- lookup_file_2 = trim(lookup_file_dir)//'/'//'p3_lookup_table_2.dat'
+ lookup_file_1 = trim(lookup_file_dir)//'/'//'p3_lookup_table_1.dat-v'//trim(version_intended_table_1)
+ lookup_file_2 = trim(lookup_file_dir)//'/'//'p3_lookup_table_2.dat-v'//trim(version_intended_table_2)
 
 !-- override for local path/filenames:
- lookup_file_1 = trim(lookup_file_dir)//'/'//'p3_lookup_table_1.dat-v2.8.3'  !TEMPORARY -- FORCE USE OF THIS TABLE
- lookup_file_2 = trim(lookup_file_dir)//'/'//'p3_lookup_table_2.dat-v2.8.3'  !TEMPORARY -- FORCE USE OF THIS TABLE
-!lookup_file_1 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_1.dat'
-!lookup_file_2 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_2.dat'
+!lookup_file_1 = trim(lookup_file_dir)//'/'//'p3_lookup_table_1.dat-v2.8.3'  !TEMPORARY -- FORCE USE OF THIS TABLE
+!lookup_file_2 = trim(lookup_file_dir)//'/'//'p3_lookup_table_2.dat-v2.8.3'  !TEMPORARY -- FORCE USE OF THIS TABLE
+! lookup_file_1 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_1.dat-v'//trim(version_intended_table_1)
+! lookup_file_2 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_2.dat-v'//trim(version_intended_table_2)
+!==
 
 !------------------------------------------------------------------------------------------!
+
+ end_status = STATUS_ERROR
+ if (is_init) then
+    if (present(stat)) stat = STATUS_OK
+    return
+ endif
 
 ! mathematical/optimization constants
  pi    = 3.14159265
@@ -256,23 +266,25 @@
 
  print*
  print*, ' P3 microphysics: v',version_p3
- print*, '   P3_INIT (reading/creating look-up tables) ...'
+ print*, '   P3_INIT (reading/creating look-up tables [v',trim(version_intended_table_1), &
+         ', v',trim(version_intended_table_2),']) ...'
 
  open(unit=10,file=lookup_file_1, status='old')
 
  !-- check that table version is correct:
- !   note:  to override and use a different lookup table, simply comment out the 'stop' below
+ !   note:  to override and use a different lookup table, simply comment out the 'return' below
  read(10,*) dumstr,version_header_table_1
- if (trim(version_correct_table_1) /= trim(version_header_table_1)) then
+ if (trim(version_intended_table_1) /= trim(version_header_table_1)) then
     print*
     print*, '***********   WARNING in P3_INIT   *************'
     print*, ' Loading lookupTable_1: v',trim(version_header_table_1)
     print*, ' P3 v',trim(version_p3),' is intended to use lookupTable_1: v',    &
-            trim(version_correct_table_1)
+            trim(version_intended_table_1)
 !   print*, '               -- ABORTING -- '
     print*, '************************************************'
     print*
-!   stop
+    global_status = STATUS_ERROR
+    return
  endif
  read(10,*)
 
@@ -311,18 +323,19 @@
     open(unit=10,file=lookup_file_2,status='old')
 
     !--check that table version is correct:
-    !  note:  to override and use a different lookup table, simply comment out the 'stop' below
+    !  note:  to override and use a different lookup table, simply comment out the 'return' below
     read(10,*) dumstr,version_header_table_2
-    if (trim(version_correct_table_2) /= trim(version_header_table_2)) then
+    if (trim(version_intended_table_2) /= trim(version_header_table_2)) then
        print*
        print*, '***********   WARNING in P3_INIT   *************'
        print*, ' Loading lookupTable_2 version: ',trim(version_header_table_2)
        print*, ' P3 v',trim(version_p3),' is intended to use lookupTable_2: v', &
-               trim(version_correct_table_2)
+               trim(version_intended_table_2)
 !      print*, '               -- ABORTING -- '
        print*, '************************************************'
        print*
-!      stop
+       global_status = STATUS_ERROR
+       return
     endif
     read(10,*)
 
@@ -470,7 +483,12 @@
  print*, '   P3_INIT DONE.'
  print*
 
-END SUBROUTINE P3_INIT
+ end_status = STATUS_OK
+ if (present(stat)) stat = end_status
+ is_init = .true.
+
+ return
+END subroutine p3_init
 
 
 !==================================================================================================!
@@ -859,7 +877,7 @@ END SUBROUTINE P3_INIT
 
 !==================================================================================================!
 
- SUBROUTINE mp_p3_wrapper_gem(qvap_m,qvap,temp_m,temp,dt,dt_max,ww,psfc,gztherm,sigma,kount,      &
+ function mp_p3_wrapper_gem(qvap_m,qvap,temp_m,temp,dt,dt_max,ww,psfc,gztherm,sigma,kount,      &
                               trnch,ni,nk,prt_liq,prt_sol,prt_drzl,prt_rain,prt_crys,prt_snow,    &
                               prt_grpl,prt_pell,prt_hail,prt_sndp,diag_Zet,diag_Zec,diag_effc,    &
                               qc,nc,qr,nr,n_iceCat,n_diag_2d,diag_2d,n_diag_3d,diag_3d,cloud_bin, &
@@ -867,7 +885,8 @@ END SUBROUTINE P3_INIT
                               qitot_1,qirim_1,nitot_1,birim_1,diag_effi_1,                        &
                               qitot_2,qirim_2,nitot_2,birim_2,diag_effi_2,                        &
                               qitot_3,qirim_3,nitot_3,birim_3,diag_effi_3,                        &
-                              qitot_4,qirim_4,nitot_4,birim_4,diag_effi_4)
+                              qitot_4,qirim_4,nitot_4,birim_4,diag_effi_4) &
+                              result(end_status)
 
 !------------------------------------------------------------------------------------------!
 ! This wrapper subroutine is the main GEM interface with the P3 microphysics scheme.  It   !
@@ -948,6 +967,7 @@ END SUBROUTINE P3_INIT
  real, intent(out),   dimension(ni,nk)  :: cloud_bin             ! cloud fraction (0 or 1)
 
  logical, intent(in)                    :: debug_on              ! logical switch for internal debug checks
+ integer :: end_status
 
 
 !----------------------------------------------------------------------------------------!
@@ -987,6 +1007,8 @@ END SUBROUTINE P3_INIT
 !----------------------------------------------------------------------------------------!
 
 !#include "tdpack_const.hf"  !No longer used .. commented code kept in for now
+
+   end_status = STATUS_ERROR
 
    i_strt = 1  ! beginning index of slab
    k_strt = 1  ! beginning index of column
@@ -1088,6 +1110,7 @@ END SUBROUTINE P3_INIT
                    clbfact_sub,debug_on,prt_drzl,prt_rain,prt_crys,prt_snow,prt_grpl,         &
                    prt_pell,prt_hail,prt_sndp,cloud_bin)
       endif
+      if (global_status /= STATUS_OK) return
 
      !convert back to temperature:
      !temp = theta*(pres*1.e-5)**0.286
@@ -1165,7 +1188,9 @@ END SUBROUTINE P3_INIT
       diag_Zec(i) = maxval(diag_Zet(i,:))
    enddo
 
- END SUBROUTINE mp_p3_wrapper_gem
+   end_status = STATUS_OK
+   return
+ end function mp_p3_wrapper_gem
 
 !==========================================================================================!
 
@@ -1399,7 +1424,7 @@ END SUBROUTINE P3_INIT
  integer                                  :: ktop_typeDiag
 
 ! to be added as namelist parameters (future)
- logical, parameter :: debug_ABORT  = .false.  !.true. will result in forced abort in s/r 'check_values'
+ logical, parameter :: debug_ABORT  = .true.  !.true. will result in forced abort in s/r 'check_values'
 
 !-----------------------------------------------------------------------------------!
 !  End of variables/parameters declarations
@@ -1424,6 +1449,28 @@ END SUBROUTINE P3_INIT
 !   diag_2d(i,1) = maxval(qr(i,:))  !column-maximum qr
 !-----------------------------------------------------------------------------------!
 
+!-----------------------------------------------------------------------------------!
+! The following code blocks can be instered for debugging (all within the main i-loop):
+!
+!    !-- call to s/r 'check_values' WITHIN k loops:
+!     if (debug_on) then
+!        tmparr1(i,k) = th(i,k)*(pres(i,k)*1.e-5)**(rd*inv_cp)
+!        call check_values(qv(i,k:k),tmparr1(i,k:k),qc(i,k:k),nc(i,k:k),qr(i,k:k),nr(i,k:k),     &
+!             qitot(i,k:k,:),qirim(i,k:k,:),nitot(i,k:k,:),birim(i,k:k,:),i,it,debug_ABORT,555)
+!        if (global_status /= STATUS_OK) return
+!     endif
+!    !==
+!
+!    !-- call to s/r 'check_values' OUTSIDE k loops:
+!     if (debug_on) then
+!        tmparr1(i,:) = th(i,:)*(pres(i,:)*1.e-5)**(rd*inv_cp)
+!        call check_values(qv(i,:),tmparr1(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),qitot(i,:,:),  &
+!                          qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,debug_ABORT,666)
+!        if (global_status /= STATUS_OK) return
+!     endif
+!    !==
+!-----------------------------------------------------------------------------------!
+
  ! direction of vertical leveling:
  if (trim(model)=='GEM' .or. trim(model)=='KIN1D') then
     ktop = kts        !k of top level
@@ -1435,13 +1482,17 @@ END SUBROUTINE P3_INIT
     kdir = 1          !(k: 1=bottom, nk=top)
  endif
 
- if (trim(model)=='GEM' .and. typeDiags_ON==.false.) then
-   !If typeDiags_ON is .false., uninitialized arrays (prt_drzl etc.) will be passed back.
-   !(The coding of this will be refined later)
-    print*, '*** ABORT in P3_MAIN ***'
-    print*, '* typeDiags_ON must be set to .TRUE. for GEM'
-    stop
+ if (trim(model)=='GEM') then
+   if (typeDiags_ON .eqv. .false.) then
+      !If typeDiags_ON is .false., uninitialized arrays (prt_drzl etc.) will be passed back.
+      !(The coding of this will be refined later)
+       print*, '*** ABORT in P3_MAIN ***'
+       print*, '* typeDiags_ON must be set to .TRUE. for GEM'
+       global_status = STATUS_ERROR
+       return
+    endif
  endif
+
 
 ! Determine threshold size difference [m] as a function of nCat
 ! (used for destination category upon ice initiation)
@@ -1507,9 +1558,12 @@ END SUBROUTINE P3_INIT
 !-----------------------------------------------------------------------------------!
  i_loop_main: do i = its,ite  ! main i-loop (around the entire scheme)
 
-    if (debug_on) call check_values(qv(i,:),T(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),      &
-                                    qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:), &
-                                    i,it,debug_ABORT,100)
+    if (debug_on) then
+       call check_values(qv(i,:),T(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),qitot(i,:,:),    &
+!                        qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,debug_ABORT,100)
+                         qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,.false.,100)
+       if (global_status /= STATUS_OK) return
+    endif
 
     log_hydrometeorsPresent = .false.
     log_nucleationPossible  = .false.
@@ -1604,6 +1658,7 @@ END SUBROUTINE P3_INIT
        call check_values(qv(i,:),tmparr1(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),          &
                          qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,      &
                          debug_ABORT,200)
+       if (global_status /= STATUS_OK) return
     endif
 
    !jump to end of i-loop if log_nucleationPossible=.false.  (i.e. skip everything)
@@ -1834,7 +1889,7 @@ END SUBROUTINE P3_INIT
            ! note: f1pr08 and logn0r are already calculated as log_10
              qrcol(iice) = 10.**(f1pr08+logn0r(i,k))*rho(i,k)*rhofaci(i,k)*eri*nitot(i,k,iice)
              nrcol(iice) = 10.**(f1pr07+logn0r(i,k))*rho(i,k)*rhofaci(i,k)*eri*nitot(i,k,iice)
-       endif
+          endif
 
      ! for T > 273.15, assume collected rain number is shed as
      ! 1 mm drops
@@ -2096,6 +2151,7 @@ END SUBROUTINE P3_INIT
              D_new = ((Q_nuc*6.)/(pi*dum1*N_nuc))**thrd
              call icecat_destination(qitot(i,k,:),diam_ice(i,k,:),D_new,deltaD_init,     &
                                      iice_dest)
+             if (global_status /= STATUS_OK) return
           else
              iice_dest = 1
           endif
@@ -2119,6 +2175,7 @@ END SUBROUTINE P3_INIT
              D_new = ((Q_nuc*6.)/(pi*dum1*N_nuc))**thrd
              call icecat_destination(qitot(i,k,:),diam_ice(i,k,:),D_new,deltaD_init,     &
                                iice_dest)
+             if (global_status /= STATUS_OK) return
            else
               iice_dest = 1
            endif
@@ -2137,6 +2194,7 @@ END SUBROUTINE P3_INIT
              D_new = 10.e-6 !assumes ice crystals from rime splintering are tiny
              call icecat_destination(qitot(i,k,:),diam_ice(i,k,:),D_new,deltaD_init,     &
                                   iice_dest)
+             if (global_status /= STATUS_OK) return
           else
              iice_dest = 1
           endif
@@ -2338,6 +2396,7 @@ END SUBROUTINE P3_INIT
                 D_new = ((Q_nuc*6.)/(pi*dum1*N_nuc))**thrd
                 call icecat_destination(qitot(i,k,:),diam_ice(i,k,:),D_new,deltaD_init,   &
                                      iice_dest)
+                if (global_status /= STATUS_OK) return
              else
                 iice_dest = 1
              endif
@@ -2407,26 +2466,6 @@ END SUBROUTINE P3_INIT
           qccon  = dums/(1.+xxlv(i,k)**2*dumqvs/(cp*rv*dumt**2))*odt
           qccon  = max(0.,qccon)
           if (qccon.le.1.e-7) qccon = 0.
-       endif
-
-
-!................................................................
-! limit total condensation (incl. activation) and evaporation to saturation adjustment
-       dumqvs = qv_sat(t(i,k),pres(i,k),0)
-       qcon_satadj  = (qv(i,k)-dumqvs)/(1.+xxlv(i,k)**2*dumqvs/(cp*rv*t(i,k)**2))*odt
-       tmp1 = qccon+qrcon+qcnuc
-       if (tmp1.gt.0. .and. tmp1.gt.qcon_satadj) then
-          ratio = max(0.,qcon_satadj)/tmp1
-          ratio = min(1.,ratio)
-          qccon = qccon*ratio
-          qrcon = qrcon*ratio
-          qcnuc = qcnuc*ratio
-          ncnuc = ncnuc*ratio
-       elseif (qcevp+qrevp.gt.0.) then
-          ratio = max(0.,-qcon_satadj)/(qcevp+qrevp)
-          ratio = min(1.,ratio)
-          qcevp = qcevp*ratio
-          qrevp = qrevp*ratio
        endif
 
 
@@ -2566,6 +2605,26 @@ END SUBROUTINE P3_INIT
 ! The microphysical process rates are computed above, based on the environmental conditions.
 ! The rates are adjusted here (where necessary) such that the sum of the sinks of mass cannot
 ! be greater than the sum of the sources, thereby resulting in overdepletion.
+
+
+   !-- Limit total condensation (incl. activation) and evaporation to saturation adjustment
+       dumqvs = qv_sat(t(i,k),pres(i,k),0)
+       qcon_satadj  = (qv(i,k)-dumqvs)/(1.+xxlv(i,k)**2*dumqvs/(cp*rv*t(i,k)**2))*odt
+       tmp1 = qccon+qrcon+qcnuc
+       if (tmp1.gt.0. .and. tmp1.gt.qcon_satadj) then
+          ratio = max(0.,qcon_satadj)/tmp1
+          ratio = min(1.,ratio)
+          qccon = qccon*ratio
+          qrcon = qrcon*ratio
+          qcnuc = qcnuc*ratio
+          ncnuc = ncnuc*ratio
+       elseif (qcevp+qrevp.gt.0.) then
+          ratio = max(0.,-qcon_satadj)/(qcevp+qrevp)
+          ratio = min(1.,ratio)
+          qcevp = qcevp*ratio
+          qrevp = qrevp*ratio
+       endif
+
 
    !-- Limit ice process rates to prevent overdepletion of sources such that
    !   the subsequent adjustments are done with maximum possible rates for the
@@ -2802,6 +2861,7 @@ END SUBROUTINE P3_INIT
        call check_values(qv(i,:),tmparr1(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),          &
                          qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,      &
                          debug_ABORT,300)
+       if (global_status /= STATUS_OK) return
     endif
 
     if (.not. log_hydrometeorsPresent) goto 333
@@ -3228,6 +3288,7 @@ END SUBROUTINE P3_INIT
    if (debug_on) call check_values(qv(i,:),T(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),       &
                          qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,       &
                          debug_ABORT,600)
+   if (global_status /= STATUS_OK) return
 
 !------------------------------------------------------------------------------------------!
 ! End of sedimentation section
@@ -3258,6 +3319,7 @@ END SUBROUTINE P3_INIT
              D_new = ((Q_nuc*6.)/(pi*dum1*N_nuc))**thrd
              call icecat_destination(qitot(i,k,:),diam_ice(i,k,:),D_new,deltaD_init,     &
                                   iice_dest)
+             if (global_status /= STATUS_OK) return
           else
              iice_dest = 1
           endif
@@ -3279,6 +3341,7 @@ END SUBROUTINE P3_INIT
              D_new = ((Q_nuc*6.)/(pi*dum1*N_nuc))**thrd
              call icecat_destination(qitot(i,k,:),diam_ice(i,k,:),D_new,deltaD_init,     &
                                   iice_dest)
+             if (global_status /= STATUS_OK) return
           else
              iice_dest = 1
           endif
@@ -3296,6 +3359,7 @@ END SUBROUTINE P3_INIT
     if (debug_on) call check_values(qv(i,:),T(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),       &
                          qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,        &
                          debug_ABORT,700)
+    if (global_status /= STATUS_OK) return
 
 !...................................................
 ! final checks to ensure consistency of mass/number
@@ -3369,6 +3433,7 @@ END SUBROUTINE P3_INIT
                                               qirim(i,k,iice),999.,rhop)
                                              !qirim(i,k,iice),zitot(i,k,iice),rhop)
 
+             call access_lookup_table(dumjj,dumii,dumi, 2,dum1,dum4,dum5,f1pr02)
              call access_lookup_table(dumjj,dumii,dumi, 6,dum1,dum4,dum5,f1pr06)
              call access_lookup_table(dumjj,dumii,dumi, 7,dum1,dum4,dum5,f1pr09)
              call access_lookup_table(dumjj,dumii,dumi, 8,dum1,dum4,dum5,f1pr10)
@@ -3389,6 +3454,7 @@ END SUBROUTINE P3_INIT
   !==
 
   ! note that reflectivity from lookup table is normalized, so we need to multiply by N
+             diag_vmi(i,k,iice)   = f1pr02*rhofaci(i,k)
              diag_effi(i,k,iice)  = f1pr06 ! units are in m
              diag_di(i,k,iice)    = f1pr15
              diag_rhoi(i,k,iice)  = f1pr16
@@ -3444,6 +3510,7 @@ END SUBROUTINE P3_INIT
     if (debug_on) call check_values(qv(i,:),T(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),       &
                          qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,        &
                          debug_ABORT,800)
+    if (global_status /= STATUS_OK) return
 
 !..............................................
 ! merge ice categories with similar properties
@@ -3497,6 +3564,7 @@ END SUBROUTINE P3_INIT
        call check_values(qv(i,:),tmparr1(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),           &
                          qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,       &
                          debug_ABORT,900)
+       if (global_status /= STATUS_OK) return
     endif
 
 !.....................................................
@@ -3524,7 +3592,8 @@ END SUBROUTINE P3_INIT
        print*,'***  ABORT IN P3_MAIN ***'
        print*,'*  typeDiags_ON = .true. but prt_drzl, etc. are not passed into P3_MAIN'
        print*,'*************************'
-       stop
+       global_status = STATUS_ERROR
+       return
     endif
     prt_drzl = 0.
     prt_rain = 0.
@@ -3612,7 +3681,8 @@ END SUBROUTINE P3_INIT
                    endif
                 else
                    print*, 'STOP -- unrealistic rime fraction: ',tmp1
-                   stop
+                   global_status = STATUS_ERROR
+                   return
                 endif
              endif !qitot>0
 
@@ -4832,8 +4902,8 @@ SUBROUTINE access_lookup_table_coll(dumjj,dumii,dumj,dumi,index,dum1,dum3,      
  endif
 
  print*, 'ERROR in s/r icecat_destination -- made it to end'
- stop
-
+ global_status = STATUS_ERROR
+ return
 
  end subroutine icecat_destination
 
@@ -5345,7 +5415,6 @@ SUBROUTINE access_lookup_table_coll(dumjj,dumii,dumj,dumi,index,dum1,dum3,      
 
  return
  end function qv_sat
-
 !===========================================================================================
 
  subroutine check_values(Qv,T,Qc,Nc,Qr,Nr,Qitot,Qirim,Nitot,Birim,i,timestepcount,          &
@@ -5375,7 +5444,7 @@ SUBROUTINE access_lookup_table_coll(dumjj,dumii,dumj,dumi,index,dum1,dum3,      
   integer,              intent(in) :: source_ind,i,timestepcount
   logical,              intent(in) :: force_abort         !.TRUE. = forces abort if value violation is detected
 
- !logical,                intent(in) :: check_consistency   !.TRUE. = check for sign consistency between Qx and Nx
+ !logical,              intent(in) :: check_consistency   !.TRUE. = check for sign consistency between Qx and Nx
 
  !Local variables:
   real, parameter :: T_low  = 173.
@@ -5383,8 +5452,6 @@ SUBROUTINE access_lookup_table_coll(dumjj,dumii,dumj,dumi,index,dum1,dum3,      
   real, parameter :: Q_high = 40.e-3
   real, parameter :: N_high = 1.e+20
   real, parameter :: B_high = Q_high*1.e-3
-  real, parameter :: x_high = 1.e+30
-  real, parameter :: x_low  = 0.
   integer         :: k,iice,ni,nk,ncat
   logical         :: badvalue_found
 
@@ -5429,25 +5496,44 @@ SUBROUTINE access_lookup_table_coll(dumjj,dumii,dumj,dumi,index,dum1,dum3,      
          endif
       enddo
 
-   ! check unrealistic values Qc,Nc,Qr,Nr
-     if (.not.(Qc(k) >= x_low .and. Qc(k) < Q_high .and.            &
-               Nc(k) >= x_low .and. Nc(k) < N_high .and.            &
-               Qr(k) >= x_low .and. Qr(k) < Q_high .and.            &
-               Nr(k) >= x_low .and. Nr(k) < N_high).and.            &
-               source_ind /= 300 ) then
-        write(6,'(a48,4i5,4e15.6)') '*C WARNING IN P3_MAIN -- src,i,k,step,Qc,Qr,Nr: ', &
-           source_ind,i,k,timestepcount,Qc(k),Qr(k),Nr(k)
+   ! check unrealistic values Qc,Nc
+     if ( .not.(Qc(k)==0. .and. Nc(k)==0.) .and.                               &  !ignore for all zeroes
+           ( ((Qc(k)>0..and.Nc(k)<=0.) .or. (Qc(k)<=0..and.Nc(k)>0.))          &  !inconsistency
+            .or. Qc(k)<0. .or. Qc(k)>Q_high                                    &
+            .or. Nc(k)<0. .or. Nc(k)>N_high  )                                 &  !unrealistic values
+            .and. source_ind /= 100                                            &  !skip trap for this source_ind
+            .and. source_ind /= 200                                            &  !skip trap for this source_ind
+            .and. source_ind /= 300 ) then                                        !skip trap for this source_ind
+        write(6,'(a45,4i5,4e15.6)') '*C WARNING IN P3_MAIN -- src,i,k,stepQc,Nc: ', &
+           source_ind,i,k,timestepcount,Qc(k),Nc(k)
+        badvalue_found = .true.
+     endif
+
+   ! check unrealistic values Qr,Nr
+     if ( .not.(Qr(k)==0. .and. Nr(k)==0.) .and.                               &  !ignore for all zeroes
+           ( ((Qr(k)>0..and.Nr(k)<=0.) .or. (Qr(k)<=0..and.Nr(k)>0.))          &  !inconsistency
+            .or. Qr(k)<0. .or. Qr(k)>Q_high                                    &
+            .or. Nr(k)<0. .or. Nr(k)>N_high  )                                 &  !unrealistic values
+            .and. source_ind /= 100                                            &  !skip trap for this source_ind
+            .and. source_ind /= 200                                            &  !skip trap for this source_ind
+            .and. source_ind /= 300 ) then                                        !skip trap for this source_ind
+        write(6,'(a45,4i5,4e15.6)') '*C WARNING IN P3_MAIN -- src,i,k,stepQr,Nr: ', &
+           source_ind,i,k,timestepcount,Qr(k),Nr(k)
         badvalue_found = .true.
      endif
 
    ! check unrealistic values Qitot,Qirim,Nitot,Birim
      do iice = 1,ncat
-        if (.not.(Qitot(k,iice) >= x_low .and. Qitot(k,iice) < Q_high .and.             &
-                  Qirim(k,iice) >= x_low .and. Qirim(k,iice) < Q_high .and.             &
-                  Nitot(k,iice) >= x_low .and. Nitot(k,iice) < N_high .and.             &
-                  Birim(k,iice) >= x_low .and. Birim(k,iice) < B_high).and.             &
-                  source_ind /= 300 ) then
-           write(6,'(a68,5i5,4e15.6)') '*D WARNING IN P3_MAIN -- src,i,k,step,iice,Qitot,Qirim,Nitot,Birim: ',  &
+        if ( .not.(Qitot(k,iice)==0..and.Qirim(k,iice)==0..and.Nitot(k,iice)==0..and.Birim(k,iice)==0.).and.  &  !ignore for all zeroes
+             ( ((Qitot(k,iice)>0..and.Nitot(k,iice)<=0.) .or. (Qitot(k,iice)<=0..and.Nitot(k,iice)>0.) )      &  !inconsistency
+               .or. Qitot(k,iice)<0. .or. Qitot(k,iice)>Q_high                                                &  !unrealistic values
+               .or. Qirim(k,iice)<0. .or. Qirim(k,iice)>Q_high                                                &
+               .or. Nitot(k,iice)<0. .or. Nitot(k,iice)>N_high                                                &
+               .or. Birim(k,iice)<0. .or. Birim(k,iice)>B_high )                                              &  !skip trap for this source_ind
+               .and. source_ind /= 100                                                                        &  !skip trap for this source_ind
+               .and. source_ind /= 200                                                                        &  !skip trap for this source_ind
+               .and. source_ind /= 300 ) then
+           write(6,'(a68,5i5,4e15.6)') '*D WARNING IN P3_MAIN -- src,i,k,step,iice,Qitot,Qirim,Nitot,Birim: ', &
               source_ind,i,k,timestepcount,iice,Qitot(k,iice),Qirim(k,iice),Nitot(k,iice),Birim(k,iice)
            badvalue_found = .true.
         endif
@@ -5459,7 +5545,8 @@ SUBROUTINE access_lookup_table_coll(dumjj,dumii,dumj,dumi,index,dum1,dum3,      
      print*
      print*,'** DEBUG TRAP IN P3_MAIN, s/r CHECK_VALUES -- source: ',source_ind
      print*
-     if (source_ind/=100) stop
+     global_status = STATUS_ERROR
+     return
   endif
 
  end subroutine check_values

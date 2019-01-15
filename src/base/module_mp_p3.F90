@@ -23,7 +23,7 @@
 !__________________________________________________________________________________________!
 !                                                                                          !
 ! Version:       2.11.0                                                                    !
-! Last updated:  2018-06-24                                                                !
+! Last updated:  2018-06-27                                                                !
 !__________________________________________________________________________________________!
 
  MODULE MODULE_MP_P3
@@ -886,8 +886,8 @@ END subroutine p3_init
                               trnch,ni,nk,prt_liq,prt_sol,prt_drzl,prt_rain,prt_crys,prt_snow,  &
                               prt_grpl,prt_pell,prt_hail,prt_sndp,diag_Zet,diag_Zec,diag_effc,  &
                               qc,nc,qr,nr,n_iceCat,n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type, &
-                              cloud_bin,clbfact_dep,clbfact_sub,debug_on,                       &
-                              diag_hcb,diag_hsn,diag_vis,diag_vis1,diag_vis2,diag_vis3,         &
+                              cloud_bin,clbfact_dep,clbfact_sub,debug_on,diag_hcb,              &
+                              diag_hsn,diag_vis,diag_vis1,diag_vis2,diag_vis3,diag_slw,         &
                               qitot_1,qirim_1,nitot_1,birim_1,diag_effi_1,                      &
                               qitot_2,qirim_2,nitot_2,birim_2,diag_effi_2,                      &
                               qitot_3,qirim_3,nitot_3,birim_3,diag_effi_3,                      &
@@ -979,6 +979,7 @@ END subroutine p3_init
  real, intent(out),   dimension(ni,nk)  :: diag_vis1             ! visibility through liquid fog       m
  real, intent(out),   dimension(ni,nk)  :: diag_vis2             ! visibility through rain             m
  real, intent(out),   dimension(ni,nk)  :: diag_vis3             ! visibility through snow             m
+ real, intent(out),   dimension(ni,nk)  :: diag_slw              ! supercooled LWC                     kg m-3
 
  logical, intent(in)                    :: debug_on              ! logical switch for internal debug checks
  integer :: end_status
@@ -1200,15 +1201,17 @@ END subroutine p3_init
    prt_liq = prt_liq*1000.
    prt_sol = prt_sol*1000.
 
-  !compute composite (column-maximum) reflectivity:
-   do i = 1,ni
-      diag_Zec(i) = maxval(diag_Zet(i,:))
-   enddo
 
-  !determine diagnostic heights:
+  !--- diagnostics:
    diag_hcb(:) = -1.
    diag_hsn(:) = -1.
+
    do i = 1,ni
+
+    !composite (column-maximum) reflectivity:
+      diag_Zec(i) = maxval(diag_Zet(i,:))
+
+    !diagnostic heights:
       log_tmp1 = .false.  !cloud base height found
       log_tmp2 = .false.  !snow level height found
       do k = nk,2,-1
@@ -1223,10 +1226,22 @@ END subroutine p3_init
             log_tmp2 = .true.
          endif
       enddo
-   enddo
+
+    !supercooled LWC:
+      do k = 1,nk
+         if (temp(i,k)<273.15) then
+            tmp1 = pres(i,k)/(287.15*temp(i,k))  !air density
+            diag_slw(i,k) = tmp1*(qc(i,k)+qr(i,k))
+         else
+            diag_slw(i,k) = 0.
+         endif
+      enddo
+
+   enddo  !i-loop
 
    end_status = STATUS_OK
    return
+
  end function mp_p3_wrapper_gem
 
 !==========================================================================================!
@@ -1411,7 +1426,7 @@ END subroutine p3_init
 
  real, dimension(its:ite,kts:kte)      :: inv_dzq,inv_rho,ze_ice,ze_rain,prec,rho,       &
             rhofacr,rhofaci,acn,xxls,xxlv,xlf,qvs,qvi,sup,supi,ss,vtrmi1,vtrnitot,       &
-            tmparr1
+            tmparr1,mflux_r,mflux_i
 
  real, dimension(kts:kte) :: dum_qit,dum_qr,dum_nit,dum_qir,dum_bir,dum_zit,dum_nr,      &
             dum_qc,dum_nc,V_qr,V_qit,V_nit,V_nr,V_qc,V_nc,V_zit,flux_qr,flux_qit,        &
@@ -1577,6 +1592,8 @@ END subroutine p3_init
 
  prt_liq   = 0.
  prt_sol   = 0.
+ mflux_r   = 0.
+ mflux_i   = 0.
  prec      = 0.
  mu_r      = 0.
  diag_ze   = -99.
@@ -3145,10 +3162,13 @@ END subroutine p3_init
           endif
 
           !-- calculate fluxes
+!!          mflux_r(i,:) = 0.
           do k = k_temp,k_qxtop,kdir
              flux_qx(k) = V_qr(k)*qr(i,k)*rho(i,k)
              flux_nx(k) = V_nr(k)*nr(i,k)*rho(i,k)
+             mflux_r(i,k) = flux_qx(k)  !store mass flux for use in visibility diagnostic)
           enddo
+
 
           !accumulated precip during time step
           if (k_qxbot.eq.kbot) prt_accum = prt_accum + flux_qx(kbot)*dt_sub
@@ -3272,12 +3292,14 @@ END subroutine p3_init
              endif
 
              !-- calculate fluxes
+! !              mflux_i(i,:) = 0.
              do k = k_temp,k_qxtop,kdir
                 flux_qit(k) = V_qit(k)*qitot(i,k,iice)*rho(i,k)
                 flux_nit(k) = V_nit(k)*nitot(i,k,iice)*rho(i,k)
                 flux_qir(k) = V_qit(k)*qirim(i,k,iice)*rho(i,k)
                 flux_bir(k) = V_qit(k)*birim(i,k,iice)*rho(i,k)
                !flux_zit(k) = V_zit(k)*zitot(i,k,iice)*rho(i,k)
+                mflux_i(i,k) = flux_qit(k)  !store mass flux for use in visibility diagnostic)
              enddo
 
              !accumulated precip during time step
@@ -3330,10 +3352,11 @@ END subroutine p3_init
 !------------------------------------------------------------------------------------------!
 
 
-   if (debug_on) call check_values(qv(i,:),T(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),       &
-                         qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,       &
-                         debug_ABORT,600)
-   if (global_status /= STATUS_OK) return
+! Commented -- debug check here will detect qx>0 & nx=0, but this gets corrected in next section.
+!    if (debug_on) call check_values(qv(i,:),T(i,:),qc(i,:),nc(i,:),qr(i,:),nr(i,:),       &
+!                          qitot(i,:,:),qirim(i,:,:),nitot(i,:,:),birim(i,:,:),i,it,       &
+!                          debug_ABORT,600)
+!    if (global_status /= STATUS_OK) return
 
 !------------------------------------------------------------------------------------------!
 ! End of sedimentation section
@@ -3616,24 +3639,12 @@ END subroutine p3_init
    !..............................................
    !Diagnostics -- visibility:
 
-    if (trim(model) == 'GEM') then
+    if (present(diag_vis)) then   !it is assumed that all diag_vis{x} will either be present or all not present
 
        diag_vis(i,:)  = 3.*maxVIS
        diag_vis1(i,:) = 3.*maxVIS
        diag_vis2(i,:) = 3.*maxVIS
        diag_vis3(i,:) = 3.*maxVIS
-
-      !VIS2: component through rain;  based on Gultepe and Milbrandt, 2008, Table 2 eqn (1)
-       tmp1= prt_liq(i)*3.6e+6                                    !rain rate [mm h-1]
-       if (tmp1>0.01) then
-          diag_vis2(i,kbot)= max(minVIS,1000.*(-4.12*tmp1**0.176+9.01))   ![m]
-       endif
-
-      !VIS3: component through snow;  based on Gultepe and Milbrandt, 2008, Table 2 eqn (6)
-       tmp1= prt_sol(i)*3.6e+6                                    !snow rate, liq-eq [mm h-1]
-       if (tmp1>0.01) then
-          diag_vis3(i,kbot)= max(minVIS,1000.*(1.10*tmp1**(-0.701)))      ![m]
-       endif
 
        do k = kbot,ktop,kdir
           !VIS1:  component through liquid cloud (fog); based on Gultepe and Milbrandt, 2007)
@@ -3643,6 +3654,19 @@ END subroutine p3_init
              diag_vis1(i,k)= max(minVIS,1000.*(1.13*(tmp1*tmp2)**(-0.51))) !based on FRAM [GM2007, eqn (4)
             !diag_vis1(i,k)= max(minVIS,min(maxVIS, (tmp1*tmp2)**(-0.65))) !based on RACE [GM2007, eqn (3)
           endif
+
+      !VIS2: component through rain;  based on Gultepe and Milbrandt, 2008, Table 2 eqn (1)
+       tmp1 = mflux_r(i,k)*inv_rhow*3.6e+6                                    !rain rate [mm h-1]
+       if (tmp1>0.01) then
+          diag_vis2(i,k)= max(minVIS,1000.*(-4.12*tmp1**0.176+9.01))   ![m]
+       endif
+
+      !VIS3: component through snow;  based on Gultepe and Milbrandt, 2008, Table 2 eqn (6)
+       tmp1 = mflux_i(i,k)*inv_rhow*3.6e+6                                    !snow rate, liq-eq [mm h-1]
+       if (tmp1>0.01) then
+          diag_vis3(i,k)= max(minVIS,1000.*(1.10*tmp1**(-0.701)))      ![m]
+       endif
+
           !VIS:  visibility due to reduction from all components 1, 2, and 3
           !      (based on sum of extinction coefficients and Koschmieders's Law)
           diag_vis(i,k) = min(maxVIS, 1./(1./diag_vis1(i,k) + 1./diag_vis2(i,k) + 1./diag_vis3(i,k)))
@@ -3651,7 +3675,7 @@ END subroutine p3_init
           diag_vis3(i,k)= min(maxVIS, diag_vis3(i,k))
        enddo !k-loop
 
-    endif  !model==GEM
+    endif  !if present(diag_vis)
 !.....................................................
 
  enddo i_loop_main

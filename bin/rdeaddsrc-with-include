@@ -35,6 +35,7 @@ RDE_BASE_ARCH=${CONST_RDE_BASE_ARCH}
 RDE_BASE_ARCH_EQUIV=${CONST_RDE_BASE_ARCH_EQUIV}
 myforce=0
 myreset=0
+myinclude=0
 mykeep=0
 mymaxdepth=0
 DIRLIST=''
@@ -51,6 +52,7 @@ while [[ $# -gt 0 ]] ; do
       (--reset) myreset=1;;
       (--arch) myarch=${RDE_BASE_ARCH_EQUIV}; mykeep=1;;
       (--topdirs) mytopdirs=$2 ; shift;;
+      (--include) myinclude=1;;
       (--) shift ; break;;
       (-*) myerror "Option Not recognized: $1";;
         *) 
@@ -85,9 +87,9 @@ if [[ x$myarch != x ]] ; then
    export ORDENV_PLAT_F=${BASE_ARCH_F}
    RESTRICT_LIST="${BASE_ARCH_F} ${EC_ARCH_F} ${ORDENV_PLAT_F} ${ORDENV_PLAT_F}/${COMP_ARCH}"
 fi
-eval $(rdevar -k srcpath srcpath_r srcpath_maxdepth)
+eval $(rdevar -k srcpath srcpath_r srcpath_maxdepth srcpath_include)
 SRCPATH="${CONTS_SRCPATH}"
-SRCPATH_R="${CONTS_SRCPATH_R}"
+SRCPATH_INCLUDE="${CONTS_SRCPATH_INCLUDE}"
 if [[ x$myreset == x0 ]] ; then
    mymaxdepth0="${CONTS_SRCPATH_MAXDEPTH}"
    if [[ x$mymaxdepth0 != x ]] ; then
@@ -96,11 +98,20 @@ if [[ x$myreset == x0 ]] ; then
       fi
       mymaxdepth=$mymaxdepth0
    fi
-   mystderr 1 "Previous SRCPATH=$SRCPATH"
+   if [[ x$myinclude == x0 ]] ; then
+      mystderr 1 "Previous SRCPATH=$SRCPATH"
+   else
+      mystderr 1 "Previous SRCPATH_INCLUDE=$SRCPATH_INCLUDE"
+   fi
 else
-   mystderr 1 "Ignoring/Replacing Previous SRCPATH=$SRCPATH"
-   SRCPATH=""
-   SRCPATH_R=""
+   if [[ x$myinclude == x0 ]] ; then
+      mystderr 1 "Ignoring/Replacing Previous SRCPATH=$SRCPATH"
+      SRCPATH=""
+      SRCPATH_R=""
+   else
+      mystderr 1 "Ignoring/Replacing Previous SRCPATH_INCLUDE=$SRCPATH_INCLUDE"
+      SRCPATH_INCLUDE=""
+   fi
 fi
 
 SRCPATH1=""
@@ -118,8 +129,13 @@ for mydir in $DIRLIST; do
    fi
    SRCPATH1="$SRCPATH1 $mydir"
 done
-SRCPATH_R="$SRCPATH_R $SRCPATH1"
-SRCPATH="\$SRCPATH_R"
+if [[ x$myinclude == x0 ]] ; then
+   SRCPATH_R="$SRCPATH_R $SRCPATH1"
+   SRCPATH="\$SRCPATH_R"
+else
+   SRCPATH_R="$SRCPATH_INCLUDE $SRCPATH1"
+   SRCPATH="\$SRCPATH_R"
+fi
 
 if [[ x$mymaxdepth != x0 ]] ; then
    SRCPATH1=""
@@ -143,6 +159,8 @@ if [[ x$mymaxdepth != x0 ]] ; then
    # done
    SRCPATH_INCLUDE="$(rdefind --type d -L --maxdepth 0 --notempty $SRCPATH1)"
    #TODO: remove empty inc dir
+else
+   SRCPATH_INCLUDE="$SRCPATH_R"
 fi
 
 
@@ -150,8 +168,12 @@ if [[ x$mykeep == x0 ]] ; then
    rm -f $SRC_PATH_FILE
 fi
 mystderr 1 "Updating SRC_PATH_FILE with"
-mystderr 1 "SRCPATH=\"$SRCPATH\""
-mystderr 1 "SRCPATH_INCLUDE=\"$SRCPATH_INCLUDE\""
+if [[ x$myinclude == x0 ]] ; then
+   mystderr 1 "SRCPATH=\"$SRCPATH\""
+   mystderr 1 "SRCPATH_INCLUDE=\"$SRCPATH_INCLUDE\""
+else
+   mystderr 1 "SRCPATH_INCLUDE=\"$SRCPATH_INCLUDE\""
+fi
 if [[ x$myarch != x ]] ; then
 #TODO: update to add all equiv arch also
 cat >> $SRC_PATH_FILE <<EOF
@@ -159,18 +181,23 @@ SRCPATH_ARCH_LIST="\$SRCPATH_ARCH_LIST $myarch"
 if [[ x\${RDE_BASE_ARCH:-NIL} == x$myarch || x\${RDE_BASE_ARCH_EQUIV:-NIL} == x$myarch || x\${RDE_ARCH:-NIL} == x$myarch || x\$BASE_ARCH == x$myarch || x\$EC_ARCH == x$myarch || x\$COMP_ARCH == x$myarch || x\$ORDENV_PLAT == x$myarch || x\$ORDENV_PLAT/\$COMP_ARCH == x$myarch ]] ; then
 EOF
 fi
-cat >> $SRC_PATH_FILE <<EOF
+
+if [[ x$myinclude == x0 ]] ; then
+   cat >> $SRC_PATH_FILE <<EOF
 SRCPATH_MAXDEPTH=$mymaxdepth
 SRCPATH_R="$SRCPATH_R"
 SRCPATH="$SRCPATH"
 SRCPATH_TOPDIRS="${mytopdirs}"
 SRCPATH_INCLUDE="${SRCPATH_INCLUDE}"
 EOF
+else
+   cat >> $SRC_PATH_FILE <<EOF
+SRCPATH_INCLUDE="${SRCPATH_INCLUDE}"
+EOF
+fi
+
 if [[ x$myarch != x ]] ; then
 cat >> $SRC_PATH_FILE <<EOF
 fi
 EOF
 fi
-
-# Invalidate the rdevar cache
-rm -f ${CONST_SH_CONST_WILD} ${CONST_MAKEFILE_CONST_WILD} || true

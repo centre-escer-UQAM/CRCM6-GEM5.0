@@ -77,15 +77,19 @@ subroutine phyexe(e, d, f, v, esiz, dsiz, fsiz, vsiz, trnch, kount, ni, nk)
 
    if (radia /= 'NIL') &
         call apply_tendencies1(d, dsiz, v, vsiz, f, fsiz, tplus, trad, ni, nk-1)
-
+ 
    call turbulence1(d, f, v, dsiz, fsiz, vsiz, ficebl, seloc, cdt1, kount, &
         trnch, icpu, ni, nk )
-
+ 
    call shallconv3(d, dsiz, f, fsiz, v, vsiz, kount, trnch, cdt1, ni, nk)
 
-   Call precipitation(d, dsiz, f, fsiz, v, vsiz, dt, ni, nk, kount, trnch, icpu)
-
-   call prep_cw2(f, fsiz, d, dsiz, v, vsiz, ficebl, kount, trnch, icpu, ni, nk)
+   call precipitation(d, dsiz, f, fsiz, v, vsiz, dt, ni, nk, kount, trnch, icpu)
+ 
+   if (stcond(1:3)=='MP_') then
+     call prep_cw_MP(f, fsiz, d, dsiz, v, vsiz, ficebl, kount, trnch, icpu, ni, nk-1)
+   else
+      call prep_cw2(f, fsiz, d, dsiz, v, vsiz, ficebl, kount, trnch, icpu, ni, nk)
+   endif
 
    call tendency4(uplus0, vplus0, wplus0, tplus0, huplus0, qcplus0, v, d, &
         rcdt1, vsiz, dsiz, kount, ni, nk)
@@ -93,12 +97,14 @@ subroutine phyexe(e, d, f, v, esiz, dsiz, fsiz, vsiz, trnch, kount, ni, nk)
    call ens_ptp1(d, v, f, dsiz, fsiz, vsiz, ni, nk, kount)
 
    call calcdiag(d, f, v, dsiz, fsiz, vsiz, dt, trnch, kount, ni, nk)
+
    call sfc_calcdiag2(f, v, fsiz, vsiz, moyhr, acchr, dt, trnch, kount, step_driver, ni, nk)
 
    call chm_exe(e, d, f, v, esiz, dsiz, fsiz, vsiz, dt, trnch, kount, &
         icpu, ni, nk)
 
    call diagnosurf3(ni, ni, nk, trnch, icpu, kount)
+
    call extdiag2(d, f, v, dsiz,fsiz, vsiz, kount, trnch, icpu, ni, nk)
 
    !----------------------------------------------------------------

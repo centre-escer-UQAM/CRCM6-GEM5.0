@@ -146,6 +146,7 @@
 
       real dummy1(n),dummy2(n),dummy3(n),dummy4(n)
       real, dimension(n) :: vmod2,vdir,th_air,my_tdiag,my_udiag,my_vdiag
+      integer mpcat
 
 !
 ! isccp
@@ -248,14 +249,24 @@ include "cccmarad_ptr_as.cdk"
 !...    such as cloud cover, effective and true; cloud top temp and pressure
 !...    called every timestep
 !
-        call cldoppro3 (taucs, omcs, gcs, taucl, omcl, gcl, &
+        if (stcond(1:3)=='MP_') then
+           if (stcond(1:5)=='MP_P3') mpcat=p3_ncat
+           if (stcond(1:6)=='MP_MY2') mpcat=3
+           call cldoppro_MP (d, dsiz, f, fsiz, v, vsiz , &
+                          taucs, omcs, gcs, taucl, omcl, gcl, &
+                          liqwcin, icewcin, &
+                          liqwpin, icewpin, cldfrac, &
+                          temp, sig, ps, m, &
+                          n, nk, nkp, mpcat, kount)
+        else
+           call cldoppro3 (taucs, omcs, gcs, taucl, omcl, gcl, &
                        f(topthw), f(topthi), f(ecc),f(tcc), &
                        f(eccl), f(eccm), f(ecch), &
                        v(ctp), v(ctt), liqwcin, icewcin, &
                        liqwpin, icewpin, cldfrac, &
                        temp, sig, ps, f(mg), f(ml), m, &
                        n, nk, nkp)
-
+        endif
 
 !...  pour les pas de temps radiatifs
       if (kount == 0 .or. mod(kount-1, kntrad) .eq. 0)          then
@@ -591,6 +602,7 @@ include "cccmarad_ptr_as.cdk"
       call serxst2(v(iv)    , 'iv',  trnch, n,  1, 0.0, 1.0, -1)
       call serxst2(p1       , 'nr',  trnch, n,  1, 0.0, 1.0, -1)
       call serxst2(f(tcc)   , 'tcc', trnch, n,  1, 0.0, 1.0, -1)
+      call serxst2(f(nt)    , 'nt',  trnch, n,  1, 0.0, 1.0,-1)
       call serxst2(f(ecc)   , 'ecc', trnch, n,  1, 0.0, 1.0, -1)
       call serxst2(f(eccl)  , 'eccl',trnch, n,  1, 0.0, 1.0, -1)
       call serxst2(f(eccm)  , 'eccm',trnch, n,  1, 0.0, 1.0, -1)

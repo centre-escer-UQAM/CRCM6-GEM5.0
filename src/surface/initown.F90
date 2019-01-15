@@ -92,10 +92,14 @@ subroutine initown2(ni, nk, trnch)
       end do
       zhc_roof (i,1)    = max(zhc_roofen(i,1), 1.e6)
 
-      zh_industry  (i) = zh_industryen  (i)
-      zh_traffic   (i) = zh_trafficen   (i)
-      zle_industry (i) = zle_industryen (i)
-      zle_traffic  (i) = zle_trafficen  (i)
+!      zh_industry  (i) = zh_industryen  (i)
+!      zh_traffic   (i) = zh_trafficen   (i)
+!      zle_industry (i) = zle_industryen (i)
+!      zle_traffic  (i) = zle_trafficen  (i)
+      zh_industry  (i) = zbld (i)*  0.0
+      zh_traffic   (i) = zpav (i)*  0.0
+      zle_industry (i) = zbld (i)*  0.0
+      zle_traffic  (i) = zpav (i)*  0.0
 
 
 

@@ -16,7 +16,7 @@
 
 !/@*
 subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
-   use sfclayer_mod,   only : sl_prelim,sl_sfclayer
+   use sfclayer_mod,   only : sl_prelim,sl_sfclayer,SL_OK
    use modd_town,      only : nni, xtown,                            &
         xq_town,                               &
         xu_canyon,                             &
@@ -81,8 +81,10 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
 
    !@Author Aude Lemonsu (April 2004)
    !*@/
+   ! Revisions :: 2017 :: Sylvie Leroyer 
 
    include "tebcst.cdk"
+! surface pointer and bus : definition
    include "town_ptr.cdk"
 
    integer surflen
@@ -103,26 +105,10 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    real                   :: ptime       ! current time
    real                   :: ptstep      ! timestep   
 
-   real, pointer, dimension(:)     :: ptsun       ! solar time
-   real, pointer, dimension(:)     :: pzenith     ! solar zenithal angle
-   real, pointer, dimension(:)     :: pazim       ! solar azimuthal angle (rad from n, clock)
    real,          dimension(1)     :: psw_bands   ! middle wavelength of each band
-   real, pointer, dimension(:,:)   :: pdir_sw     ! direct ingoing solar radiation
-   real,          dimension(n,1)   :: psca_sw     ! diffuse ingoing solar radiation
-   real, pointer, dimension(:)     :: plw         ! ingoing longwave radiation
-   real, pointer, dimension(:)     :: pta         ! air temperature at forcing level
-   real, pointer, dimension(:)     :: pqa         ! air specific humidity at forcing level
    real,          dimension(n)     :: prhoa       ! air density at forcing level
-   real, pointer, dimension(:)     :: pu          ! zonal wind component       
-   real, pointer, dimension(:)     :: pv          ! meridional wind component       
-   real, pointer, dimension(:)     :: pps         ! surface pressure 
-   real, pointer, dimension(:)     :: ppa         ! air pressure at forcing level
    real,          dimension(n)     :: psnow       ! snow rate
    real,          dimension(n)     :: prain       ! rain rate
-   real, pointer, dimension(:)     :: pzref       ! height of forcing level for t and q
-   real, pointer, dimension(:)     :: puref       ! height of forcing level for the wind
-   real, pointer, dimension(:)     :: plat        ! latitude
-   real,          dimension(n)     :: psfth       ! flux of heat 
    real,          dimension(n)     :: psftq       ! flux of water vapor    
    real,          dimension(n)     :: psfu        ! zonal momentum flux         
    real,          dimension(n)     :: psfv        ! meridional momentum flux       
@@ -130,7 +116,8 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    real,          dimension(n)     :: ptrad       ! radiative temperature
    real,          dimension(n,1)   :: pdir_alb    ! direct albedo for each band
    real,          dimension(n,1)   :: psca_alb    ! diffuse albedo for each band
-   real,          dimension(n)     :: ztvi        ! virtual temperature
+   real,          dimension(n,1)   :: zdir_sw    ! direct sw for each band
+   real,          dimension(n,1)   :: zsca_sw    ! diffuse sw for each band
    real,          dimension(n)     :: zvdir       ! direction of the wind
    real,          dimension(n)     :: zvmod       ! module of the wind
    real,          dimension(n)     :: ribn
@@ -140,11 +127,14 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    real,          dimension(n)     :: fh
    real,          dimension(n)     :: dfm
    real,          dimension(n)     :: dfh
-   real,          dimension(n)     :: geop
    real,          dimension(n)     :: lat,lon     ! latitude and longitude
+   real,          dimension(n)     :: zuzu
    !     variables pour le calcul des angles solaires
-   real, target, dimension(n) ::  zday, zheure, zmin, &
-        xtsun, xzenith, xazimsol
+!   real, target, dimension(n) ::  zday, zheure, zmin, &
+!        xtsun, xzenith, xazimsol
+   real, target, dimension(n) ::  zday, zheure, zmin
+      LOGICAL diagnostic
+            diagnostic=.false.
 !---------------------------------------------------------------------------
 
    !# in  offline mode the t-step 0 is (correctly) not performed
@@ -152,6 +142,7 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
 
    surflen = m
 
+! surface pointer and bus : link to bus
 #include "town_ptr_as.cdk"
 
    nroof_layer = roof_layer
@@ -159,9 +150,8 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    nwall_layer = wall_layer
 
    
-   !     Allocation
-   !     ----------
-   !     6. Diagnostic variables :
+! TEB specific pointer and bus : allocate
+!     6. Diagnostic variables :
    allocate( xq_town      (n)             , stat=alloc_status(40) )
    allocate( xles_roof    (n)             , stat=alloc_status(45) )
    allocate( xrunoff_roof (n)             , stat=alloc_status(47) )
@@ -185,11 +175,8 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    allocate( xz0_roof     (n)             , stat=alloc_status(77) )
    allocate( xz0_road     (n)             , stat=alloc_status(78) )
 
-   !------------------------------------------------------------------------
-
-   !     Initialisation
-   !     --------------
-   !     6. Diagnostic variables : 
+! TEB specific pointer and bus : Initialisation
+!     6. Diagnostic variables : 
    xq_town         = xundef
    xles_roof       = xundef
    xrunoff_roof    = xundef
@@ -210,12 +197,10 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    xch             = xundef
    xri             = xundef
    xustar          = xundef
-   !-------------------------------------------------------------------------
 
    call ini_csts
 
-   !     Time
-   !     ----
+!  Time 
    julien       = juliand(dt,kount,date)
    ptime        = date(5)*3600. + date(6)/100. + dt*(kount)
    kday         = date(3) + int(ptime/86400.)
@@ -225,11 +210,9 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    ptstep       = dt
    psw_bands    = 0.
 
-   !-------------------------------------------------------------------------
-
-!     Calcul de l'angle zenithal
-!     --------------------------
-      do i=1,n
+!   Zenithal angle computation
+!   zdlat in rad 
+     do i=1,n
         lat(i) = zdlat(i)*180./XPI
         lon(i) = zdlon(i)*180./XPI
       end do
@@ -237,40 +220,19 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
       zheure(:) = int(ptime/3600.)*1.
       zmin(:)   = (ptime/3600.-int(ptime/3600.))*60.
 
-      call sunpos(kyear,kmonth,kday,ptime,lon,lat,xtsun,xzenith,xazimsol)
+      call sunpos(kyear,kmonth,kday,ptime,lon,lat,ztsun,zzenith,zazim)
 
-!---------------------------------------------------------------------------
-
-      ptsun  (1:n)     => xtsun   (1:n)
-      pzenith(1:n)     => xzenith (1:n)
-      pazim  (1:n)     => xazimsol(1:n)
-      pta    (1:n)     => bus(x(tmoins       ,1,nk) :)
-      pqa    (1:n)     => bus(x(humoins      ,1,nk) :)
-      pu     (1:n)     => bus(x(umoins       ,1,nk) :)
-      pv     (1:n)     => bus(x(vmoins       ,1,nk) :)
-      ppa    (1:n)     => bus(x(pmoins       ,1,1 ) :)
-      pps    (1:n)     => bus(x(pmoins       ,1,1 ) :)
-      pdir_sw(1:n,1:1) => bus(x(fdss         ,1,1 ) :)
-      plw    (1:n)     => bus(x(fdsi         ,1,1 ) :)
-      pzref  (1:n)     => bus(x(ztsl         ,1,1 ) :)
-      puref  (1:n)     => bus(x(zusl         ,1,1 ) :)
-      plat   (1:n)     => bus(x(dlat         ,1,1 ) :)
-
+! convert snow and rain rates
       do i=1,n
         psnow         (i) = zsnowrate(i) *1000.
         prain         (i) = zrainrate(i) *1000.
-        psca_sw       (i,1) = 0.
-        ztvi          (i) = pta(i)*(1+((XRV/XRD)-1)*pqa(i))
-        prhoa         (i) = pps(i)/XRD/ztvi(i)
       enddo
+
 !       General variables 
 !       -----------------
-      xzs    (1:n)     => bus(x(gztherm      ,1,nk) :)
-      xtown  (1:n)     => bus(x(urban        ,1,1 ) :)
-      geop = xzs * 9.81  !lowest level height to geopotential
+!      geop = xzs * 9.81  !lowest level height to geopotential
 
-!     Urban parameters
-!     ----------------
+! TEB specific pointer and bus : link to bus
 !     1. Geometric parameters :
       xbld          (1:n) => bus(x(bld         ,1,1) : )
       xbld_height   (1:n) => bus(x(bld_height  ,1,1) : )
@@ -291,7 +253,7 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
 !     4. Anthropogenic fluxes :
       xh_traffic    (1:n) => bus(x(h_traffic   ,1,1) : )
       xle_traffic   (1:n) => bus(x(le_traffic  ,1,1) : )
-      xh_industry   (1:n) => bus(x(h_industry  ,1,1) : )
+      xh_industry  (1:n) => bus(x(h_industry  ,1,1) : )
       xle_industry  (1:n) => bus(x(le_industry ,1,1) : )
 !     4. Pronostic variables :
       xws_roof      (1:n) => bus(x(ws_roof     ,1,1) : )
@@ -345,27 +307,48 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
       xgflux_wall (1:n) => bus(x( g_wall  ,1,1)  : )
 
 
+      do i=1,n
+!        ztsun  (i) = ptsun  (i)
+!        zzenith(i) = pzenith(i)
+!        zazim  (i) = pazim  (i)
+    !# in  offline mode no forcing of diffuse (scattered) radiation
+    if (fluvert.eq.'SURFACE') then 
+        zdir_sw  (i,1) = 0.85*psol_sw(i,1)
+        zsca_sw  (i,1) = 0.15*psol_sw(i,1)
+    else 
+        zdir_sw  (i,1) = pdir_sw(i,1)
+        zsca_sw  (i,1) = psca_sw(i,1)
+    endif
+    enddo
+
        ! coherence between solar zenithal angle and radiation
        !
-       where (sum(pdir_sw+psca_sw,2)>0.)
-         pzenith = min (pzenith,xpi/2.-0.01)
+       where (sum(zdir_sw+zsca_sw,2)>0.)
+         zzenith = min (zzenith,xpi/2.-0.01)
        elsewhere
-         pzenith = max (pzenith,xpi/2.)
+         zzenith = max (zzenith,xpi/2.)
        end where
 
-      do i=1,n
-        ztsun  (i) = ptsun  (i)
-        zzenith(i) = pzenith(i)
-        zazim  (i) = pazim  (i)
-      enddo
+   !     PRELIM
+   !     ----
+      I = SL_PRELIM(PTA,PQA,PU,PV,PPS,PUREF,MIN_WIND_SPEED=1E-4,SPD_AIR=ZVMOD,DIR_AIR=ZVDIR, &
+           RHO_AIR=PRHOA)
+
+   IF (I /= SL_OK) THEN
+      PRINT*, 'ABORTING IN TEB() BECAUSE OF ERROR RETURNED BY SL_PRELIM()'
+      STOP
+   endif
+
 !-----------------------------------------------------------------------------
 
       call    coupling_teb2 (ptstep, kyear, kmonth, kday, ptime,            &
-              ptsun, pzenith, pazim, pzref, puref, xzs, pu, pv, pqa, pta,   &
-              prhoa, prain, psnow, plw, pdir_sw, psca_sw, psw_bands, pps,   &
-              ppa, psftq, psfth, psfu, psfv,                                &
-              ptrad, pdir_alb, psca_alb, pemis, plat                        )
+              ztsun, zzenith, zazim, pzref, puref, xzs, pu, pv, pqa, pta,   &
+              prhoa, prain, psnow, plw, zdir_sw, zsca_sw, psw_bands, pps,   &
+              ppa, psftq,  zfc, psfu, psfv,                                &
+              ptrad, pdir_alb, psca_alb, pemis, zdlat                        )
 
+!             ppa, psftq, psfth, psfu, psfv,                                &
+!              ptrad, pdir_alb, psca_alb, pemis, plat                        )
 !-----------------------------------------------------------------------------
 
       do i=1,n
@@ -384,33 +367,29 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
         ztsrad (i) = ptrad      (i)
         zqsurf (i) = xq_town    (i)
         zalvis (i) = pdir_alb   (i,1)
-        zsnodp (i) = 0. 
-        zfc    (i) = psfth      (i)
+        zsnodp (i) = xbld(i)      * (xwsnow_roof(i)/xrsnow_roof(i))  +   &
+                    (1.-xbld(i))  * (xwsnow_road(i)/xrsnow_road(i)) 
+!        zfc    (i) = psfth      (i)
         zfv    (i) = psftq      (i) * xlvtt
       end do
 
 !-----------------------------------------------------------------------------
-!   Diagnostics (tdiag, qdiag at z=zh/2; udiag, vdiag at z=zu above roof level)
+!   Compute town surface layer var. (for alfat alfaq ctu...)
 !-----------------------------------------------------------------------------
-      i = sl_prelim(bus(x(thetaa,1,1):x(thetaa,1,1)+n-1),bus(x(humoins,1,nk):x(humoins,1,nk)+n-1), &
-           zumoins,zvmoins,pps,bus(x(zusl,1,1):x(zusl,1,1)+n-1),min_wind_speed=1e-4,spd_air=zvmod,dir_air=zvdir)
-      i = sl_sfclayer(bus(x(thetaa,1,1):x(thetaa,1,1)+n-1),bus(x(humoins,1,nk):x(humoins,1,nk)+n-1),&
-           zvmod,zvdir,bus(x(zusl,1,1):x(zusl,1,1)+n-1),bus(x(ztsl,1,1):x(ztsl,1,1)+n-1), &
-           bus(x(tsurf,1,1):x(tsurf,1,1)+n-1),bus(x(qsurf,1,indx_urb):x(qsurf,1,indx_urb)+n-1), &
-           bus(x(z0,1,indx_urb):x(z0,1,indx_urb)+n-1),bus(x(z0t,1,indx_urb):x(z0t,1,indx_urb)+n-1), &
-           bus(x(dlat,1,1):x(dlat,1,1)+n-1),bus(x(fcor,1,1):x(fcor,1,1)+n-1),optz0=0,hghtm_diag=zu,hghtt_diag=zt, &
-           ilmo=bus(x(ilmo,1,indx_urb):x(ilmo,1,indx_urb)+n-1),h=bus(x(hst,1,indx_urb):x(hst,1,indx_urb)+n-1), &
-           ue=bus(x(frv,1,indx_urb):x(frv,1,indx_urb)+n-1),flux_t=bus(x(ftemp,1,indx_urb):x(ftemp,1,indx_urb)+n-1), &
-           flux_q=bus(x(fvap,1,indx_urb):x(fvap,1,indx_urb)+n-1),coefm=bus(x(bm,1,1):x(bm,1,1)+n-1), &
-           coeft=bus(x(bt,1,1):x(bt,1,1)+n-1))
+   !# Compute town surface layer var. (for alfat alfaq ctu...)
+   i = sl_sfclayer(pthetaa,pqa,zvmod,zvdir,puref,pzref,ztsurf,zqsurf, &
+        zz0,zz0t,zdlat,zfcor,optz0=0,hghtm_diag=zu,hghtt_diag=zt,      &
+        ilmo=zilmo,h=zhst,ue=zfrv,flux_t=zftemp,flux_q=zfvap,         &
+        coefm=zbm,coeft=zbt,u_diag=zudiag,v_diag=zvdiag) 
+
+   if (i /= SL_OK) then
+      print*, 'Aborting in TEB() because of error returned by sl_sfclayer()'
+      stop
+   endif
 
       do i=1,n
-         ztdiag(i) = zt_canyon(i)
-         zqdiag(i) = zq_canyon(i)
-
-         zalfat(i) = -psfth(i)/(xcpd*prhoa(i))
+         zalfat(i) = -zfc(i)/(xcpd*prhoa(i))
          zalfaq(i) = -psftq(i)
-
         if (.not.impflx) zbt(i) = 0.
         if (impflx) then
          zalfat(i) = - zbt(i) * ztsurf(i) 
@@ -418,6 +397,56 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
         endif
       end do
 
+!-----------------------------------------------------------------------------
+!   Sreen-level Diagnostics
+!-----------------------------------------------------------------------------
+! sl_sfclayer between  road and mid-canyon for zt => compute ztdiag
+     i = sl_sfclayer(xt_canyon,xq_canyon,xu_canyon,zvdir,xbld_height/2.0,xbld_height/2.0,xt_road(:,1),xq_canyon, &
+        xz0_road,xz0_road/10.0,zdlat,zfcor,optz0=8,hghtm_diag=zu,hghtt_diag=zt,      &
+        t_diag=ztdiag) 
+
+      if (i /= SL_OK) then
+      print*, 'Aborting in TOWN(3) because of error returned by sl_sfclayer()'
+      endif
+
+! special conditions 
+      do i=1,n
+! => humidity
+        zqdiag(i) = xq_canyon(i)
+! => temperature
+      if (xbld_height(i) .le. (zt*2.0) ) then 
+        ztdiag(i) = xt_canyon(i)
+      endif
+! => wind, careful, udiag from above sl_sfclayer for tests...
+! => wind
+! if bldh>15m => u_canyon 
+      if (xbld_height(i) .ge. (zu*3.0/2.0) ) then 
+        zudiag(i) = xu_canyon(i) *COS(zvdir(i))
+        zvdiag(i) = xu_canyon(i) *SIN(zvdir(i))
+     endif
+
+      if(diagnostic) then
+!  linear interpolation between two cases du/dz=Utop-Ucan / H-2H/3
+!                               => Uz U10 = (30/H-2) Utop + 3/H(H-10) Ucan
+      if( xbld_height(i) .gt. zu .and. xbld_height(i) .lt. (zu*3.0/2.0) )  then 
+        zuzu(i) =  (3.0 * zu /xbld_height(i) -2.) * zvmod(i)                  &
+           * LOG( (     zu    - 2 * xbld_height(i)/3.) / xz0_town (i))   &
+           / LOG( (zvmod(i) + 1.* xbld_height(i)/3.) / xz0_town   (i))   &
+           + (3.* ( xbld_height(i) -zu )/ xbld_height(i) ) * xu_canyon(i)
+        zudiag(i) = zuzu(i) *COS(zvdir(i))
+        zvdiag(i) = zuzu(i) *SIN(zvdir(i))
+      elseif (xbld_height(i) .le. 10.0 ) then
+!                            => log law. above roof level -  same as in urban_drag
+  zuzu(i) =  zvmod(i)                                                   &
+           * LOG( (     zu    - 2 * xbld_height(i)/3.) / xz0_town(i))   &
+           / LOG( ( puref(i)  + 1.* xbld_height(i)/3.) / xz0_town(i))
+        zudiag(i) = zuzu(i) *COS(zvdir(i))
+        zvdiag(i) = zuzu(i) *SIN(zvdir(i))
+
+      endif
+      endif       
+
+      end do
 
       call fillagg ( bus, bussiz, ptsurf, ptsurfsiz, indx_urb, surflen )
 

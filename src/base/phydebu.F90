@@ -21,7 +21,7 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
    use phy_options
    use phybus, only: entbus, perbus, dynbus, volbus
    use phybusalloc_mod
-   use mp_p3, only: p3_init
+   use module_mp_p3, only: p3_init
    implicit none
 #include <arch_specific.hf>
    !@Object Init physics at the beginning of each execution of the model
@@ -180,7 +180,7 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
          endif
       enddo
    endif
-   
+
    !# lecture des tableaux de radiation
    IF_RADIA: if (any(radia(1:8) == (/'NEWRAD  ','CCCMARAD'/))) then
       if (.not.okinit) then
@@ -229,8 +229,7 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
    ! - - - - - - - - - - - - - - - - - - - - - - - - - - -
    if (stcond == 'MP_P3') then
       path = trim(F_path_S)//'MODEL_INPUT/'
-      call p3_init(trim(path)//'p3_lookup_table_1b.dat',  &
-           trim(path)//'p3_lookup_table_2b.dat')
+      call p3_init(trim(path),p3_ncat)
    endif
 
    ! CONSTRUCTION OF THE 4 MAIN BUSES DICTIONARIES:

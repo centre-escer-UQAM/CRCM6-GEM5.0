@@ -100,7 +100,7 @@ subroutine sfc_businit(moyhr,n,nk)
    call gesdict(n, nk, tnolim,       'VN=tnolim       ;ON=TNOL;VD=screen level temp without max on gradient      ;VS=row                    ;VB=p0')
    call gesdict(n, nk, twater,       'VN=twater       ;ON=TM  ;VD=sea surface temperature                        ;VS=row                    ;VB=p0')
    call gesdict(n, nk, twateren,     'VN=twateren     ;ON=8A  ;VD=SST temperature (E)                            ;VS=row                    ;VB=e1;IN=TM  ;')
-   call gesdict(n, nk, urban,        'VN=urban        ;ON=UR  ;VD=urban mask                                     ;VS=row                    ;VB=p0')
+   call gesdict(n, nk, urban,        'VN=urban        ;ON=URBF;VD=urban fraction in the grid cell                ;VS=row                    ;VB=p0')
 
    call gesdict(n, nk, z0en,         'VN=z0en         ;ON=2B  ;VD=roughness length (E)                           ;VS=row                    ;VB=e1;IN=ZP  ;')
 

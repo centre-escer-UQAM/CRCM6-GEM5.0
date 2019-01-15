@@ -68,7 +68,7 @@
 !
     Logical               :: integrate=.False.
     Integer               :: i,k,ik
-    Real                  :: tcel,frac,airdenm1
+    Real                  :: tcel,frac
     Real,Dimension(ni)    :: temp1,temp2
     Real,Dimension(ni,nk) :: liquid, solid
 !
@@ -110,13 +110,6 @@
        integrate=.True.
        Do k=1,nk
           Do i=1,ni
-             ik = (k-1)*ni+i-1
-             airdenm1    = rgasd *tt(i,k)/(sigma(i,k)*ps(i))
-             If ((qc(i,k)+qi(i,k)+qnp(i,k)) .Gt. airdenm1*1.e-5) Then
-                fbus(fxp+ik)= 1.
-             Else
-                fbus(fxp+ik)= 0.
-             Endif
              liquid(i,k) = qc(i,k)
              !note: for stcond=mp_p3, qnp is passed in zero and qi is the sum of all qitot for all ice categories
              solid(i,k)  = qi(i,k)+qnp(i,k)

@@ -132,7 +132,7 @@ include "thermoconsts.inc"
    real :: iwpinmps(lmx,nk), iwcinmps(lmx,nk)
 
    real, pointer, dimension(:,:) :: zqcmoins, zqimoins, zqnmoins, zqgmoins
-   real, pointer, dimension(:,:) :: zi1qtm, zi2qtm, zi3qtm, zi4qtm
+   real, pointer, dimension(:,:) :: zqti1m, zqti2m, zqti3m, zqti4m
    real, pointer, dimension(:,:) :: zeffradc, zeffradi1 , zeffradi2 , zeffradi3 , zeffradi4
    real, pointer, dimension(:) :: ztopthw,ztopthi,ztcc,zecc,zeccl,zeccm,zecch,znt
    real, pointer, dimension(:) :: zmg,zml,zctp,zctt
@@ -153,10 +153,10 @@ include "thermoconsts.inc"
    nullify(zqnmoins); if (qnmoins > 0) zqnmoins(1:lmx,1:nk) => d(qnmoins:)
    nullify(zqgmoins); if (qgmoins > 0) zqgmoins(1:lmx,1:nk) => d(qgmoins:)
 
-   nullify(zi1qtm); if (i1qtmoins > 0) zi1qtm(1:lmx,1:nk) => d(i1qtmoins:)
-   nullify(zi2qtm); if (i2qtmoins > 0) zi2qtm(1:lmx,1:nk) => d(i2qtmoins:)
-   nullify(zi3qtm); if (i3qtmoins > 0) zi3qtm(1:lmx,1:nk) => d(i3qtmoins:)
-   nullify(zi4qtm); if (i4qtmoins > 0) zi4qtm(1:lmx,1:nk) => d(i4qtmoins:)
+   nullify(zqti1m); if (qti1moins > 0) zqti1m(1:lmx,1:nk) => d(qti1moins:)
+   nullify(zqti2m); if (qti2moins > 0) zqti2m(1:lmx,1:nk) => d(qti2moins:)
+   nullify(zqti3m); if (qti3moins > 0) zqti3m(1:lmx,1:nk) => d(qti3moins:)
+   nullify(zqti4m); if (qti4moins > 0) zqti4m(1:lmx,1:nk) => d(qti4moins:)
 
    nullify(zhumoins); if (humoins > 0) zhumoins  (1:lmx,1:nk) => d(humoins:)
    nullify(ztmoins);  if (tmoins > 0)  ztmoins   (1:lmx,1:nk) => d(tmoins:)
@@ -250,10 +250,10 @@ include "thermoconsts.inc"
       enddo
 
    elseif ( (stcond=='MP_P3') .and. &
-        (any(dyninread_list_s == 'i1qt') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i1qt:p')) )then
+        (any(dyninread_list_s == 'qti1') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti1:p')) )then
 
       readfield_L = .true.
-      zqi_cat1(1:lmx,1:nk) => d(i1qtplus:)
+      zqi_cat1(1:lmx,1:nk) => d(qti1plus:)
       !ziwc = zqi_cat1
       do k=1,nk
          do i=1,lmx
@@ -262,9 +262,9 @@ include "thermoconsts.inc"
       enddo
 
       if ( (p3_ncat >= 2).and. &
-           (any(dyninread_list_s == 'i2qt') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i2qt:p')) )then
+           (any(dyninread_list_s == 'qti2') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti2:p')) )then
 
-         zqi_cat2(1:lmx,1:nk) => d(i2qtplus:)
+         zqi_cat2(1:lmx,1:nk) => d(qti2plus:)
          !ziwc = ziwc + zqi_cat2
          do k=1,nk
             do i=1,lmx
@@ -273,8 +273,8 @@ include "thermoconsts.inc"
          enddo
 
          if ( (p3_ncat >= 3).and. &
-              (any(dyninread_list_s == 'i3qt') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i3qt:p')) )then
-            zqi_cat3(1:lmx,1:nk) => d(i3qtplus:)
+              (any(dyninread_list_s == 'qti3') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti3:p')) )then
+            zqi_cat3(1:lmx,1:nk) => d(qti3plus:)
             !ziwc = ziwc + zqi_cat3
             do k=1,nk
                do i=1,lmx
@@ -283,8 +283,8 @@ include "thermoconsts.inc"
             enddo
 
             if ( (p3_ncat >= 4).and. &
-                 (any(dyninread_list_s == 'i4qt') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i4qt:p')) )then
-               zqi_cat4(1:lmx,1:nk) => d(i4qtplus:)
+                 (any(dyninread_list_s == 'qti4') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti4:p')) )then
+               zqi_cat4(1:lmx,1:nk) => d(qti4plus:)
                !ziwc = ziwc + zqi_cat4
                do k=1,nk
                   do i=1,lmx
@@ -361,30 +361,30 @@ include "thermoconsts.inc"
    if (stcond(1:5)=='MP_P3') then
       do k=1,nk
          do i=1,lmx
-            iwcinmp(i,k,1) = max(zi1qtm(i,k),   0.)
+            iwcinmp(i,k,1) = max(zqti1m(i,k),   0.)
             effradi(i,k,1) = max(zeffradi1(i,k),0.)
          enddo
       enddo
-      if(p3_ncat == 2) then
+      if(p3_ncat >= 2) then
          do k=1,nk
             do i=1,lmx
-               iwcinmp(i,k,2) = max(zi2qtm(i,k),   0.)
+               iwcinmp(i,k,2) = max(zqti2m(i,k),   0.)
                effradi(i,k,2) = max(zeffradi2(i,k),0.)
             enddo
          enddo
       endif
-      if(p3_ncat == 3) then
+      if(p3_ncat >= 3) then
          do k=1,nk
             do i=1,lmx
-               iwcinmp(i,k,3) = max(zi3qtm(i,k),   0.)
+               iwcinmp(i,k,3) = max(zqti3m(i,k),   0.)
                effradi(i,k,3) = max(zeffradi3(i,k),0.)
             enddo
          enddo
       endif
-      if(p3_ncat == 4) then
+      if(p3_ncat >= 4) then
          do k=1,nk
             do i=1,lmx
-               iwcinmp(i,k,4) = max(zi4qtm(i,k),   0.)
+               iwcinmp(i,k,4) = max(zqti4m(i,k),   0.)
                effradi(i,k,4) = max(zeffradi4(i,k),0.)
             enddo
          enddo

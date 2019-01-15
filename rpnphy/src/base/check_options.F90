@@ -120,8 +120,8 @@ function check_options2() result(F_istat)
 
 
    if (LIGHTNING_DIAG) then
-      if (STCOND(1:6) /= 'MP_MY2')   then
-         call msg(MSG_ERROR,'(check_options) option mismatch: with LIGHTNING_DIAG you have to use STCOND=MP_MY2_OLD, MP_MY2')
+      if (STCOND(1:3) /= 'MP_')   then
+         call msg(MSG_ERROR,'(check_options) option mismatch: with LIGHTNING_DIAG you have to use STCOND=MP_MY2_OLD, MP_MY2, MP_P3')
          return
       endif
    endif

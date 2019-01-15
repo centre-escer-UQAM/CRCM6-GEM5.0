@@ -38,29 +38,29 @@ module phybus
    integer :: effradi3=0
    integer :: effradi4=0
 
-   integer :: i1qtplus=0
-   integer :: i1qtmoins=0
-   integer :: i1qmplus=0
-   integer :: i1ntplus=0
-   integer :: i1bmplus=0
+   integer :: qti1plus=0
+   integer :: qti1moins=0
+   integer :: qmi1plus=0
+   integer :: nti1plus=0
+   integer :: bmi1plus=0
 
-   integer :: i2qtplus=0
-   integer :: i2qtmoins=0
-   integer :: i2qmplus=0
-   integer :: i2ntplus=0
-   integer :: i2bmplus=0
+   integer :: qti2plus=0
+   integer :: qti2moins=0
+   integer :: qmi2plus=0
+   integer :: nti2plus=0
+   integer :: bmi2plus=0
 
-   integer :: i3qtplus=0
-   integer :: i3qtmoins=0
-   integer :: i3qmplus=0
-   integer :: i3ntplus=0
-   integer :: i3bmplus=0
+   integer :: qti3plus=0
+   integer :: qti3moins=0
+   integer :: qmi3plus=0
+   integer :: nti3plus=0
+   integer :: bmi3plus=0
 
-   integer :: i4qtplus=0
-   integer :: i4qtmoins=0
-   integer :: i4qmplus=0
-   integer :: i4ntplus=0
-   integer :: i4bmplus=0
+   integer :: qti4plus=0
+   integer :: qti4moins=0
+   integer :: qmi4plus=0
+   integer :: nti4plus=0
+   integer :: bmi4plus=0
 
    integer :: ae=0
    integer :: afoudre=0
@@ -401,6 +401,12 @@ module phybus
    integer :: qhphytd=0
    integer :: qhmoins=0
    integer :: qhplus=0
+   integer :: qi_1=0
+   integer :: qi_2=0
+   integer :: qi_3=0
+   integer :: qi_4=0
+   integer :: qi_5=0
+   integer :: qi_6=0
    integer :: qiphytd=0
    integer :: qimoins=0
    integer :: qiplus=0

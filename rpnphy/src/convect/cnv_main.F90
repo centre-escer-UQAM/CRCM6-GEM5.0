@@ -130,7 +130,7 @@ subroutine cnv_main(d, dsiz, f, fsiz, v, vsiz, t0, q0, qc0, ilab, bett, ccfcp,&
    real, pointer, dimension(:,:) :: ncp, nip, qcm, qcp, qip, qrp, qqm, qqp, &
         sigma, ttm, ttp, uu, vv, ww, zfdc, zgztherm, zhufcp, zhushal, &
         zprcten, zpriten, zqckfc, ztfcp, ztshal, ztusc, ztvsc, zufcp, zvfcp, &
-        i1qtp, i1ntp
+        qti1p, nti1p
    real :: ncp_prescribed
 
 #define ASSIGN_PTR1D(ptr,bus,idx,n1)    nullify(ptr); if (idx > 0) ptr(1:n1) => bus(idx:idx+n1-1)
@@ -176,8 +176,8 @@ subroutine cnv_main(d, dsiz, f, fsiz, v, vsiz, t0, q0, qc0, ilab, bett, ccfcp,&
    nullify(ztvsc); if (tvsc > 0) ztvsc(1:ni,1:nk) => v(tvsc:)
    nullify(zufcp); if (ufcp > 0) zufcp(1:ni,1:nk) => f(ufcp:)
    nullify(zvfcp); if (vfcp > 0) zvfcp(1:ni,1:nk) => f(vfcp:)
-   nullify(i1qtp); if (i1qtplus > 0) i1qtp(1:ni,1:nk) => d(i1qtplus:)
-   nullify(i1ntp); if (i1ntplus > 0) i1ntp(1:ni,1:nk) => d(i1ntplus:)
+   nullify(qti1p); if (qti1plus > 0) qti1p(1:ni,1:nk) => d(qti1plus:)
+   nullify(nti1p); if (nti1plus > 0) nti1p(1:ni,1:nk) => d(nti1plus:)
 
    cdt1  = dt
    rcdt1 = 1./cdt1
@@ -404,21 +404,21 @@ subroutine cnv_main(d, dsiz, f, fsiz, v, vsiz, t0, q0, qc0, ilab, bett, ccfcp,&
          do k = 1,nk
             do i = 1,ni
                if (zpriten(i,k) > 0.) then
-                  if (i1qtp(i,k) > 1.e-9 .and. i1ntp(i,k) > 1.e-3) then
+                  if (qti1p(i,k) > 1.e-9 .and. nti1p(i,k) > 1.e-3) then
                      !assume mean size of the detrained ice is the same size as in the pre-existing "anvil"
-                     i1ntp(i,k) = i1ntp(i,k) + (i1ntp(i,k)/i1qtp(i,k))*tdmask2d(i,k)*zpriten(i,k)
-                     i1ntp(i,k) = min(i1ntp(i,k), 1.e+7)
+                     nti1p(i,k) = nti1p(i,k) + (nti1p(i,k)/qti1p(i,k))*tdmask2d(i,k)*zpriten(i,k)
+                     nti1p(i,k) = min(nti1p(i,k), 1.e+7)
                   else
                      !initialize ice number mixing ratio based on Cooper (1986)
-                     i1ntp(i,k) = 5.*exp(0.304*(TRPL-max(233.,ttp(i,k))))
-                     i1ntp(i,k) = min(i1ntp(i,k), 1.e+7)
+                     nti1p(i,k) = 5.*exp(0.304*(TRPL-max(233.,ttp(i,k))))
+                     nti1p(i,k) = min(nti1p(i,k), 1.e+7)
                   endif
                endif
             enddo
          enddo
 
         !ice crystals (mass):
-         i1qtp(:,:) = i1qtp(:,:) + tdmask2d(:,:)*zpriten(:,:)
+         qti1p(:,:) = qti1p(:,:) + tdmask2d(:,:)*zpriten(:,:)
 
       endif IF_MP_MY2
 

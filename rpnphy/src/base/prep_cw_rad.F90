@@ -123,22 +123,22 @@ subroutine prep_cw_rad2 (f, fsiz, d, dsiz, v, vsiz, &
             ziwc = zqiplus + zsnow
 
          elseif ( (stcond=='MP_P3') .and. &
-              (any(dyninread_list_s == 'I1QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i1qt:p')) )then
-            zqi_cat1(1:ni,1:nk) => d(i1qtplus:)
+              (any(dyninread_list_s == 'I1QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti1:p')) )then
+            zqi_cat1(1:ni,1:nk) => d(qti1plus:)
             ziwc = zqi_cat1
             if ( (p3_ncat >= 2).and. &
-                 (any(dyninread_list_s == 'I2QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i2qt:p')) )then
-               zqi_cat2(1:ni,1:nk) => d(i2qtplus:)
+                 (any(dyninread_list_s == 'I2QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti2:p')) )then
+               zqi_cat2(1:ni,1:nk) => d(qti2plus:)
                ziwc = ziwc + zqi_cat2
             endif
             if ( (p3_ncat >= 3).and. &
-                 (any(dyninread_list_s == 'I3QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i3qt:p')) )then
-               zqi_cat3(1:ni,1:nk) => d(i3qtplus:)
+                 (any(dyninread_list_s == 'I3QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti3:p')) )then
+               zqi_cat3(1:ni,1:nk) => d(qti3plus:)
                ziwc = ziwc + zqi_cat3
             endif
             if ( (p3_ncat >= 4).and. &
-                 (any(dyninread_list_s == 'I4QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i4qt:p')) )then
-               zqi_cat4(1:ni,1:nk) => d(i4qtplus:)
+                 (any(dyninread_list_s == 'I4QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/qti4:p')) )then
+               zqi_cat4(1:ni,1:nk) => d(qti4plus:)
                ziwc = ziwc + zqi_cat4
             endif
          endif
@@ -279,7 +279,7 @@ subroutine prep_cw_rad2 (f, fsiz, d, dsiz, v, vsiz, &
                cloud(i,k) = 0.0
             endif
          endif
-         
+
          if (cloud(i,k) .lt. 0.01) then
             liqwcin(i,k) = 0.
             icewcin(i,k) = 0.

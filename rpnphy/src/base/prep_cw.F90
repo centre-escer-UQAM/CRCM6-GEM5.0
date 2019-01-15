@@ -140,18 +140,18 @@ subroutine prep_cw2 (f, fsiz, d, dsiz, v, vsiz, &
         ziwc = zqiplus + zsnow
      elseif (stcond=='MP_P3') then
         zlwc = zqcplus
-        zqi_cat1(1:ni,1:nk) => d(i1qtplus:)
+        zqi_cat1(1:ni,1:nk) => d(qti1plus:)
         ziwc = zqi_cat1
         if (p3_ncat >= 2) then
-           zqi_cat2(1:ni,1:nk) => d(i2qtplus:)
+           zqi_cat2(1:ni,1:nk) => d(qti2plus:)
            ziwc = ziwc + zqi_cat2
         endif
         if (p3_ncat >= 3) then
-           zqi_cat3(1:ni,1:nk) => d(i3qtplus:)
+           zqi_cat3(1:ni,1:nk) => d(qti3plus:)
            ziwc = ziwc + zqi_cat3
         endif
         if (p3_ncat >= 4) then
-           zqi_cat4(1:ni,1:nk) => d(i4qtplus:)
+           zqi_cat4(1:ni,1:nk) => d(qti4plus:)
            ziwc = ziwc + zqi_cat4
         endif
      endif

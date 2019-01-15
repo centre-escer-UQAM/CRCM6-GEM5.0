@@ -23,7 +23,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
    use phy_options
    use my_dmom_mod,  only: mydmom_main
    use mp_my2_mod,   only: mp_my2_main
-   use module_mp_p3, only: mp_p3_wrapper_gem
+   use module_mp_p3, only: mp_p3_wrapper_gem,n_qiType
    use phybus
 
    implicit none
@@ -89,12 +89,12 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
    logical, parameter               :: nk_BOTTOM = .true.   !(.T. for nk at bottom)
    integer, parameter               :: n_diag_2d = 20       !number of diagnostic 2D fields  (diag_2d)
    integer, parameter               :: n_diag_3d = 20       !number of diagnostic 3D fields  (SS)
-   integer, parameter               :: aeroact   = 1        !default aerosol activation (for mp_my2)
+   integer, parameter               :: aeroact   = 1        !default aerosol activation    (mp_my2, mp_p3)
    integer                          :: istat1               !error status (for mp_p3)
    real, dimension(ni,n_diag_2d)    :: diag_2d              !diagnostic 2D fields
    real, dimension(ni,nk,n_diag_3d) :: diag_3d              !diagnostic 3D fields
-   real, dimension(ni,nk)           :: Naero                !aerosol number concentration (for mp_my2)
-
+   real, dimension(ni,nk)           :: Naero                !aerosol number concentration  (mp_my2, mp_p3)
+   real, dimension(ni,nk,n_qiType)  :: qi_type              !diagnostic ice particle type  (mp_p3)
 
    !# cnd_ptr_as.cdk has ptr association, should be included after declarations
    real, pointer, dimension(:) :: a_h_cb, a_h_m2, a_h_ml, a_h_sn, a_tls, &
@@ -105,9 +105,9 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
         a_d2d11,a_d2d12,a_d2d13,a_d2d14,a_d2d15,a_d2d16,a_d2d17,a_d2d18,a_d2d19,a_d2d20
 
    real, pointer, dimension(:,:) :: a_effradc, a_effradi1, a_effradi2, a_effradi3, &
-        a_effradi4, a_fxp, i1qtp, i1qtm, i1qmp, i1ntp, &
-        i1bmp, i2qtp, i2qtm, i2qmp, i2ntp, i2bmp, i3qtp, i3qtm, i3qmp, i3ntp, i3bmp, i4qtp, &
-        i4qtm, i4qmp, i4ntp, i4bmp, a_dm_c, a_dm_r, a_dm_i, a_dm_s, a_dm_g, a_dm_h, &
+        a_effradi4, a_fxp, qti1p, qti1m, qmi1p, nti1p, &
+        bmi1p, qti2p, qti2m, qmi2p, nti2p, bmi2p, qti3p, qti3m, qmi3p, nti3p, bmi3p, qti4p, &
+        qti4m, qmi4p, nti4p, bmi4p, a_dm_c, a_dm_r, a_dm_i, a_dm_s, a_dm_g, a_dm_h, &
         a_slw, a_ss01, a_ss02, a_ss03, a_ss04, a_ss05, a_ss06, a_ss07, a_ss08, &
         a_ss09, a_ss10, a_ss11, a_ss12, a_ss13, a_ss14, a_ss15, a_ss16, &
         a_ss17, a_ss18, a_ss19, a_ss20, a_vis, a_vis1, a_vis2, a_vis3, a_zet, &
@@ -117,7 +117,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
         qrm, qrp, qrtend, qqm, qqp, qtend, sigma, ttend, &
         ttm, ttp, ww, zcqe_, zcte_, zfbl, zfdc, zgztherm, zhushal, zprcten, &
         zqtde, zsqe_, zste_, ztqcx, ztshal, zzcqcem, zzcqem, zzctem, zzsqcem, &
-        zzsqem, zzstem
+        zzsqem, zzstem, a_qi_1, a_qi_2, a_qi_3, a_qi_4, a_qi_5, a_qi_6
 
 
    include "cnd_ptr_as.cdk"
@@ -224,7 +224,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
 
       Naero = 0.  !(not used on this version)
       !# Milbrandt-Yau 2-moment microphysics (MY2; v3.2.0)
-      call mp_my2_main(ww,ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,i1bmp,Naero,   &
+      call mp_my2_main(ww,ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,bmi1p,Naero,   &
             psp, sigma, a_tls_rn1, a_tls_rn2, a_tls_fr1, a_tls_fr2, a_tss_sn1, a_tss_sn2,        &
             a_tss_sn3, a_tss_pe1, a_tss_pe2, a_tss_pe2l, a_tss_snd,dt, ni, nk, 1, kount,aeroact, &
             my_ccntype, my_diagon, my_sedion, my_warmon, my_rainon, my_iceon,                    &
@@ -254,12 +254,12 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
                   a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
-                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
-                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1)
+                  qti1p,qmi1p,nti1p,bmi1p,a_effradi1)
          if (istat1 >= 0) then
-            iwc_total = i1qtp
-            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
+            iwc_total = qti1p
+            where (qti1p(:,1:nk)<1.e-14) a_effradi1 = 0.
          endif
 
       elseif (p3_ncat == 2) then
@@ -268,14 +268,14 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
                   a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
-                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
-                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                                    &
-                  i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2)
+                  qti1p,qmi1p,nti1p,bmi1p,a_effradi1,                                    &
+                  qti2p,qmi2p,nti2p,bmi2p,a_effradi2)
          if (istat1 >= 0) then
-            iwc_total = i1qtp + i2qtp
-            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
-            where (i2qtp(:,1:nk)<1.e-14) a_effradi2 = 0.
+            iwc_total = qti1p + qti2p
+            where (qti1p(:,1:nk)<1.e-14) a_effradi1 = 0.
+            where (qti2p(:,1:nk)<1.e-14) a_effradi2 = 0.
          endif
 
       elseif (p3_ncat == 3) then
@@ -284,16 +284,16 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
                   a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
-                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
-                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                                    &
-                  i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                                    &
-                  i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3)
+                  qti1p,qmi1p,nti1p,bmi1p,a_effradi1,                                    &
+                  qti2p,qmi2p,nti2p,bmi2p,a_effradi2,                                    &
+                  qti3p,qmi3p,nti3p,bmi3p,a_effradi3)
          if (istat1 >= 0) then
-            iwc_total = i1qtp + i2qtp + i3qtp
-            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
-            where (i2qtp(:,1:nk)<1.e-14) a_effradi2 = 0.
-            where (i3qtp(:,1:nk)<1.e-14) a_effradi3 = 0.
+            iwc_total = qti1p + qti2p + qti3p
+            where (qti1p(:,1:nk)<1.e-14) a_effradi1 = 0.
+            where (qti2p(:,1:nk)<1.e-14) a_effradi2 = 0.
+            where (qti3p(:,1:nk)<1.e-14) a_effradi3 = 0.
          endif
 
       elseif (p3_ncat == 4) then
@@ -302,24 +302,24 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
                   a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
-                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
-                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                                    &
-                  i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                                    &
-                  i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3,                                    &
-                  i4qtp,i4qmp,i4ntp,i4bmp,a_effradi4)
+                  qti1p,qmi1p,nti1p,bmi1p,a_effradi1,                                    &
+                  qti2p,qmi2p,nti2p,bmi2p,a_effradi2,                                    &
+                  qti3p,qmi3p,nti3p,bmi3p,a_effradi3,                                    &
+                  qti4p,qmi4p,nti4p,bmi4p,a_effradi4)
          if (istat1 >= 0) then
-            iwc_total = i1qtp + i2qtp + i3qtp + i4qtp
-            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
-            where (i2qtp(:,1:nk)<1.e-14) a_effradi2 = 0.
-            where (i3qtp(:,1:nk)<1.e-14) a_effradi3 = 0.
-            where (i4qtp(:,1:nk)<1.e-14) a_effradi4 = 0.
+            iwc_total = qti1p + qti2p + qti3p + qti4p
+            where (qti1p(:,1:nk)<1.e-14) a_effradi1 = 0.
+            where (qti2p(:,1:nk)<1.e-14) a_effradi2 = 0.
+            where (qti3p(:,1:nk)<1.e-14) a_effradi3 = 0.
+            where (qti4p(:,1:nk)<1.e-14) a_effradi4 = 0.
          endif
 
       endif
 
       if (istat1 < 0) then
-         print*, 'ABORT (condensation) Problem in P3'
+         print*, 'ERROR (condensation) Problem in P3'
          stop
       endif
 
@@ -327,6 +327,15 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
      !(but currently it is still done inside microphyics scheme for MY2)
       a_tls_fr1 = 0.
       a_tls_fr2 = 0.
+
+     !diagnostic ice particle types:
+      a_qi_1 = qi_type(:,:,1)  !small ice crystals
+      a_qi_2 = qi_type(:,:,2)  !unrimed snow crystals
+      a_qi_3 = qi_type(:,:,3)  !lightly rimed snow
+      a_qi_4 = qi_type(:,:,4)  !graupel
+      a_qi_5 = qi_type(:,:,5)  !hail
+      a_qi_6 = qi_type(:,:,6)  !ice pellets
+
 
       if (.true.) then  ! namelist switch to be added
          a_d2d01 = diag_2d(:,1);    a_d2d08 = diag_2d(:, 8);    a_d2d15 = diag_2d(:,15)

@@ -49,7 +49,7 @@
       nullify(zflusolis); if (flusolis > 0) zflusolis(1:ni) => f( flusolis  : )
       nullify(zfneige1d); if (fneige > 0) zfneige1d(1:ni) => v( fneige    : )
       nullify(zfnsi); if (fnsi > 0) zfnsi(1:ni) => v( fnsi      : )
-      nullify(zfoudre); if (foudre > 0) zfoudre(1:ni) => f( foudre      : )
+      nullify(zfoudre); if (foudre > 0) zfoudre(1:ni) => v( foudre      : )
       nullify(zfq); if (fq > 0) zfq(1:ni) => f( fq        : )
       nullify(zfqaf); if (fqaf > 0) zfqaf(1:ni) => f( fqaf      : )
       nullify(zfsaf); if (fsaf > 0) zfsaf(1:ni) => f( fsaf      : )

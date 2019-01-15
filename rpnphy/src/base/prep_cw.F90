@@ -142,15 +142,15 @@ subroutine prep_cw2 (f, fsiz, d, dsiz, v, vsiz, &
         zlwc = zqcplus
         zqi_cat1(1:ni,1:nk) => d(i1qtplus:)
         ziwc = zqi_cat1
-        if (mp_p3_ncat >= 2) then
+        if (p3_ncat >= 2) then
            zqi_cat2(1:ni,1:nk) => d(i2qtplus:)
            ziwc = ziwc + zqi_cat2
         endif
-        if (mp_p3_ncat >= 3) then
+        if (p3_ncat >= 3) then
            zqi_cat3(1:ni,1:nk) => d(i3qtplus:)
            ziwc = ziwc + zqi_cat3
         endif
-        if (mp_p3_ncat >= 4) then
+        if (p3_ncat >= 4) then
            zqi_cat4(1:ni,1:nk) => d(i4qtplus:)
            ziwc = ziwc + zqi_cat4
         endif

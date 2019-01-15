@@ -52,20 +52,23 @@ subroutine radiation2(d,dsiz,f,fsiz,v,vsiz,e,esiz,seloc,&
    real :: hz0, hz, hz3i, julien, heurser
    real, dimension(ni,nk) :: cldfrac,liqwcin,icewcin,liqwp,icewp,trav2d
 
+
    if (radia /= 'NIL') then
 
       !     call init_radiation(e, esiz, f, fsiz, kount, trnch, ni, nk)
 
-      call prep_cw_rad2(f, fsiz, d, dsiz, v, vsiz, &
-           d(tmoins), d(humoins),f(pmoins), d(sigw), &
-           cldfrac, liqwcin, icewcin, liqwp, icewp, &
-           trav2d,seloc, &
-           kount, trnch, icpu, ni, ni, nk-1)
+      if ( any(trim(stcond) == (/'NEWSUND','CONSUN '/)) ) then
+         call prep_cw_rad2(f, fsiz, d, dsiz, v, vsiz, &
+              d(tmoins), d(humoins),f(pmoins), d(sigw), &
+              cldfrac, liqwcin, icewcin, liqwp, icewp, &
+              trav2d,seloc, &
+              kount, trnch, icpu, ni, ni, nk-1)
 
-      call diagno_cw_rad(f, fsiz, d,dsiz, v, vsiz, &
-           liqwcin, icewcin, liqwp, icewp, &
-           cldfrac, heurser, &
-           kount, trnch, icpu, ni, nk)
+         call diagno_cw_rad(f, fsiz, d,dsiz, v, vsiz, &
+              liqwcin, icewcin, liqwp, icewp, &
+              cldfrac, heurser, &
+              kount, trnch, icpu, ni, nk)
+      endif
 
       if (radia == 'CCCMARAD') then
          call cccmarad(d, dsiz, f, fsiz, v, vsiz, &
@@ -90,10 +93,12 @@ subroutine radiation2(d,dsiz,f,fsiz,v,vsiz,e,esiz,seloc,&
       endif
    endif
 
+
    !     date(5)=the hour of the day at the start of the run.
    !     date(6)=hundreds of a second of the day at the start of the run.
 
    hz0 = date(5) + float(date(6))/360000.0
+
    hz = amod ( hz0+(float(kount)*delt)/3600. , 24. )
    julien = juliand(delt,kount,date)
 

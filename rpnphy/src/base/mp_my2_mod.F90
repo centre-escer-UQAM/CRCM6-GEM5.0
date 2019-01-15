@@ -998,10 +998,11 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
 !_______________________________________________________________________________________!
 
- SUBROUTINE mp_my2_main(WZ,T,Q,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,PS,                    &
+ SUBROUTINE mp_my2_main(WZ,T,Q,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,PS,              & 
      sigma,RT_rn1,RT_rn2,RT_fr1,RT_fr2,RT_sn1,RT_sn2,RT_sn3,RT_pe1,RT_pe2,RT_peL,RT_snd,  &
      dt,NI,NK,J,KOUNT,CCNtype,precipDiag_ON,sedi_ON,warmphase_ON,autoconv_ON,icephase_ON, &
-     snow_ON,Dm_c,Dm_r,Dm_i,Dm_s,Dm_g,Dm_h,ZET,ZEC,SS,reff_c,reff_i,nk_bottom)
+     snow_ON,Dm_c,Dm_r,Dm_i,Dm_s,Dm_g,Dm_h,ZET,ZEC,SS,reff_c,reff_i1,reff_i2,reff_i3,     &
+     reff_i4,cloud_bin,nk_bottom)
 
   implicit none
 
@@ -1013,7 +1014,9 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
                                           RT_sn3,RT_pe1,RT_pe2,RT_peL,ZEC,RT_snd
   real, dimension(:,:),  intent(in)    :: WZ,sigma
   real, dimension(:,:),  intent(inout) :: T,Q,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH
-  real, dimension(:,:),  intent(out)   :: ZET,reff_c,reff_i,Dm_c,Dm_r,Dm_i,Dm_s,Dm_g,Dm_h
+  real, dimension(:,:),  intent(out)   :: ZET,reff_c,reff_i1,reff_i2,reff_i3,reff_i4,    &
+  			 	          Dm_c,Dm_r,Dm_i,Dm_s,Dm_g,Dm_h
+  real, dimension(NI,NK),intent(out)   :: cloud_bin             ! cloud fraction (0 or 1)     
   real, dimension(:,:,:),intent(out)   :: SS
   logical,               intent(in)    :: precipDiag_ON,sedi_ON,icephase_ON,snow_ON,     &
                                           warmphase_ON,autoconv_ON,nk_BOTTOM
@@ -1166,7 +1169,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        iLAMi,iLAMi2,iLAMi3,iLAMi4,iLAMi5,iLAMiB0,iLAMiB1,iLAMiB2,iLAMr6,iLAMh2,     &
        iLAMs,iLAMs2,iLAMsB0,iLAMsB1,iLAMsB2,iLAMr,iLAMr2,iLAMr3,iLAMr4,iLAMr5,      &
        iLAMc2,iLAMc3,iLAMc4,iLAMc5,iLAMc6,iQC,iQR,iQI,iQN,iQG,iQH,iEih,iEsh,        &
-       N_c,N_r,N_i,N_s,N_g,N_h,fluxV_i,fluxV_g,fluxV_s,rhos_mlt,fracLiq
+       N_c,N_r,N_i,N_s,N_g,N_h,fluxV_i,fluxV_g,fluxV_s,rhos_mlt,fracLiq,            &
+       cloudliq,cloudice,cloudsnow
 
  !Variables that only need to be calulated on the first step (and saved):
   real, save :: idt,iMUc,cmr,cmi,cms,cmg,cmh,icmr,icmi,icmg,icms,icmh,idew,idei,    &
@@ -1348,7 +1352,6 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
  !real, dimension(:,:), allocatable              :: DE_sub,iDE_sub,iDP_sub,pres_sub,     &
  !==                                                DZ_sub,zheight_sub,iDZ_sub,gamfact_sub
 
-
   !==================================================================================!
 
   !----------------------------------------------------------------------------------!
@@ -1358,7 +1361,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   !Switch on here later, once it is certain that calling routine is not supposed to
   !pass negative values of tracers.
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,100)
-
+  
   if (nk_BOTTOM) then
 !    !GEM / kin_1d:
      ktop  = 1          !k of top level
@@ -1398,7 +1401,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   ! appropriate place.  It can then be output as a 3-D physics variable by adding
   ! SS01 to the sortie_p list in 'outcfgs.out'
   SS= 0.
-
+  
  !Compute diagnostic values only every 'outfreq' minutes:
  !calcDiag= (mod(DT*float(KOUNT),outfreq)==0.)
   calcDiag = .true.  !compute diagnostics every step (for time-series output)
@@ -3009,7 +3012,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
         RCACCR= 0.;  CCSCOC= 0.;  Dr= 0.;  iLAMr= 0.;  TAU= 0.
         CCAUTR= 0.;  CRSCOR= 0.;  SIGc= 0.;  DrINIT= 0.
         iLAMc3= 0.;  iLAMc6= 0.;  iLAMr3= 0.;  iLAMr6= 0.
-
+        
         rainPresent= (QR_in(i,k)>epsQ .and. NR_in(i,k)>epsN)
 
         if (QC_in(i,k)>epsQ .and. NC_in(i,k)>epsN) then
@@ -3163,14 +3166,14 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
         T(i,k)  = T(i,k)  + LCP*X
 
         if (X>0.) then
-          !nucleation of cloud droplets:
+          !nucleation of cloud droplets:          
            if (WZ(i,k)>0.001) then
-              !condensation and non-negligible upward motion:
-               !note: WZ threshold of 1 mm/s is to overflow problem in NccnFNC, which
-               !      uses a polynomial approximation that is invalid for tiny WZ.
-              NC(i,k) = max(NC(i,k), NccnFNC(WZ(i,k),T(i,k),pres(i,k),CCNtype))
+                 !condensation and non-negligible upward motion:
+                 !note: WZ threshold of 1 mm/s is to overflow problem in NccnFNC, which
+                 !      uses a polynomial approximation that is invalid for tiny WZ.
+              NC(i,k) = max(NC(i,k), NccnFNC(WZ(i,k),T(i,k),pres(i,k),CCNtype)) 
            else
-             !condensation and negible or downward vertical motion:
+                 !condensation and negible or downward vertical motion:
               NC(i,k) = max(NC(i,k), N_c_SM)
            endif
         else
@@ -3296,7 +3299,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
    fluxM_r= 0.;  fluxM_i= 0.;  fluxM_s= 0.;  fluxM_g= 0.;  fluxM_h= 0.
    RT_rn1 = 0.;  RT_rn2 = 0.;  RT_fr1 = 0.;  RT_fr2 = 0.;  RT_sn1 = 0.
    RT_sn2 = 0.;  RT_sn3 = 0.;  RT_pe1 = 0.;  RT_pe2 = 0.;  RT_peL = 0.
-
+ 
 !---- For sedimentation on all levels:
     call sedi_wrapper_2(QR,NR,1,epsQ,epsQr_sedi,epsN,dmr,ni,VrMax,DrMax,dt,fluxM_r,kdir, &
                         kbot,ktop_sedi,GRAV,zheight,nk,DE,iDE,iDP,DZ,iDZ,gamfact,kount,  &
@@ -3526,11 +3529,53 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
           !hardcoded for alpha_i = 0. and mu_i = 1.
            iNY   = 1./NY(i,k)
            iLAMi = max( iLAMmin2, iLAMDA_x(DE(i,k),QI(i,k),iNY,icexi9,thrd) )
-           reff_i(i,k) = 1.5*iLAMi
+           reff_i1(i,k) = 1.5*iLAMi
         else
-           reff_i(i,k) = 0.
+           reff_i1(i,k) = 0.
         endif
 
+      !snow:
+        if (QN(i,k)>epsQ .and. NN(i,k)>epsN) then
+          !hardcoded for alpha_s = 0. and mu_s = 1.
+           iNN   = 1./NN(i,k)
+           iLAMs  = max( iLAMmin2, iLAMDA_x(DE(i,k),QN(i,k),iNN,iGS20,idms) )
+           reff_i2(i,k) = 1.5*iLAMs
+        else
+           reff_i2(i,k) = 0.
+        endif
+
+      !graupel:
+        if (QG(i,k)>epsQ .and. NG(i,k)>epsN) then
+          !hardcoded for alpha_g = 0. and mu_g = 1.
+           iNG   = 1./NG(i,k)
+           iLAMg = max( iLAMmin1, iLAMDA_x(DE(i,k),QG(i,k),iNG,iGG99,thrd) )
+           reff_i3(i,k) = 1.5*iLAMg
+        else
+           reff_i3(i,k) = 0.
+        endif
+
+      !hail:
+        if (QH(i,k)>epsQ .and. NH(i,k)>epsN) then
+          !hardcoded for alpha_h = 0. and mu_h = 1.
+           iNH   = 1./NH(i,k)
+           iLAMh = max( iLAMmin1, iLAMDA_x(DE(i,k),QH(i,k),iNH,iGH99,thrd) )
+           reff_i4(i,k) = 1.5*iLAMh
+        else
+           reff_i4(i,k) = 0.
+        endif
+
+        ! DPR-june2017: calculate a 'binary' cloud fraction (0 or 1) based on supersaturation
+        cloud_bin(i,k)=0.
+        cloudliq=0.
+        cloudice=0.
+        cloudsnow=0.
+        if (QC(i,k).ge.epsQ .and. (Q(i,k)/QSW(i,k)-1.).gt.1.e-6) cloudliq=1.
+!        if (QI(i,k).ge.epsQ .and. (Q(i,k)/QSI(i,k)-1.).gt.1.e-6) cloudice=1.
+        if (QI(i,k).ge.epsQ .and. reff_i1(i,k).lt.100.e-6) cloudice=1.
+!        if (QN(i,k).ge.epsQ .and. (Q(i,k)/QSI(i,k)-1.).gt.1.e-6) cloudsnow=1.
+        if (QN(i,k).ge.epsQ .and. reff_i2(i,k).lt.100.e-6) cloudsnow=1.
+        cloud_bin(i,k)=cloudice+cloudsnow+cloudliq
+        cloud_bin(i,k)=max(min(cloud_bin(i,k),1.),0.)
      enddo
   enddo
 
@@ -3638,7 +3683,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 !   QH = max(QH, 0.);   NH = max(NH, 0.)
 
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,900)
-
+  
  END SUBROUTINE mp_my2_main
 
 !___________________________________________________________________________________!

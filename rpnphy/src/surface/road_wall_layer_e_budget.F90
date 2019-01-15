@@ -262,6 +262,8 @@ REAL, DIMENSION(SIZE(PTA)) :: ZTS_ROAD
 ! road surface temperature
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_WALL
 ! wall surface temperature
+REAL, DIMENSION(SIZE(PTA)) :: ZQSAT
+! work
 !
 INTEGER :: IROAD_LAYER           ! number of road layers
 INTEGER :: IWALL_LAYER           ! number of wall layers
@@ -647,6 +649,21 @@ PQ_CANYON(:) = (  PQSAT_ROAD     (:) * PAC_ROAD_WAT(:) * ZDF(:)      &
                 + PLE_TRAFFIC (:) / (1.-PBLD(:)) / PRHOA(:) / XLVTT  &
                 + PLESNOW_ROAD(:) * ZDN(:)       / PRHOA(:) / XLVTT )&
                / ZSAC_Q(:)
+
+
+!
+!*     14.3    Resolve instabilities developing for winter conditions
+!              ----------------------------
+!
+! If canyon specific humidity gets too small or even negative
+! set it to specific humidity at the lowest level (KW)
+WHERE(PQ_CANYON(:) <= 1.e-6) PQ_CANYON(:) = PQA(:)
+
+! If canyon specific humidity gets larger than saturation
+! clip to saturation (KW)
+zqsat(:) = QSAT(PT_CANYON(:),PPS(:))
+WHERE(PQ_CANYON(:) > zqsat(:)) PQ_CANYON(:) = zqsat(:)
+               
 !
 !-------------------------------------------------------------------------------
 !

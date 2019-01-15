@@ -110,6 +110,8 @@ module sfcbus_mod
       SFCVAR(fluslop, 'fluslop')
       SFCVAR(fq, 'fq')
       SFCVAR(frv, 'frv')
+      SFCVAR(fsd, 'fsd')
+      SFCVAR(fsf, 'fsf')
       SFCVAR(ftemp, 'ftemp')
       SFCVAR(fv, 'fv')
       SFCVAR(fvap, 'fvap')

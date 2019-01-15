@@ -126,17 +126,17 @@ subroutine prep_cw_rad2 (f, fsiz, d, dsiz, v, vsiz, &
               (any(dyninread_list_s == 'I1QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i1qt:p')) )then
             zqi_cat1(1:ni,1:nk) => d(i1qtplus:)
             ziwc = zqi_cat1
-            if ( (mp_p3_ncat >= 2).and. &
+            if ( (p3_ncat >= 2).and. &
                  (any(dyninread_list_s == 'I2QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i2qt:p')) )then
                zqi_cat2(1:ni,1:nk) => d(i2qtplus:)
                ziwc = ziwc + zqi_cat2
             endif
-            if ( (mp_p3_ncat >= 3).and. &
+            if ( (p3_ncat >= 3).and. &
                  (any(dyninread_list_s == 'I3QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i3qt:p')) )then
                zqi_cat3(1:ni,1:nk) => d(i3qtplus:)
                ziwc = ziwc + zqi_cat3
             endif
-            if ( (mp_p3_ncat >= 4).and. &
+            if ( (p3_ncat >= 4).and. &
                  (any(dyninread_list_s == 'I4QT') .or. any(phyinread_list_s(1:phyinread_n) == 'tr/i4qt:p')) )then
                zqi_cat4(1:ni,1:nk) => d(i4qtplus:)
                ziwc = ziwc + zqi_cat4

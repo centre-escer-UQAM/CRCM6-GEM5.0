@@ -1,16 +1,16 @@
 !-------------------------------------- LICENCE BEGIN ------------------------------------
-!Environment Canada - Atmospheric Science and Technology License/Disclaimer, 
+!Environment Canada - Atmospheric Science and Technology License/Disclaimer,
 !                     version 3; Last Modified: May 7, 2008.
-!This is free but copyrighted software; you can use/redistribute/modify it under the terms 
-!of the Environment Canada - Atmospheric Science and Technology License/Disclaimer 
-!version 3 or (at your option) any later version that should be found at: 
-!http://collaboration.cmc.ec.gc.ca/science/rpn.comm/license.html 
+!This is free but copyrighted software; you can use/redistribute/modify it under the terms
+!of the Environment Canada - Atmospheric Science and Technology License/Disclaimer
+!version 3 or (at your option) any later version that should be found at:
+!http://collaboration.cmc.ec.gc.ca/science/rpn.comm/license.html
 !
-!This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-!without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+!This software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+!without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 !See the above mentioned License/Disclaimer for more details.
-!You should have received a copy of the License/Disclaimer along with this software; 
-!if not, you can write to: EC-RPN COMM Group, 2121 TransCanada, suite 500, Dorval (Quebec), 
+!You should have received a copy of the License/Disclaimer along with this software;
+!if not, you can write to: EC-RPN COMM Group, 2121 TransCanada, suite 500, Dorval (Quebec),
 !CANADA, H9P 1J3; or send e-mail to service.rpn@ec.gc.ca
 !-------------------------------------- LICENCE END --------------------------------------
 
@@ -33,27 +33,34 @@ module phybus
    real, pointer :: volbus(:,:) => null()
 
    integer :: effradc=0
-   integer :: effradi=0
+   integer :: effradi1=0
+   integer :: effradi2=0
+   integer :: effradi3=0
+   integer :: effradi4=0
 
    integer :: i1qtplus=0
+   integer :: i1qtmoins=0
    integer :: i1qmplus=0
    integer :: i1ntplus=0
-   integer :: i1bvplus=0
+   integer :: i1bmplus=0
 
    integer :: i2qtplus=0
+   integer :: i2qtmoins=0
    integer :: i2qmplus=0
    integer :: i2ntplus=0
-   integer :: i2bvplus=0
- 
+   integer :: i2bmplus=0
+
    integer :: i3qtplus=0
+   integer :: i3qtmoins=0
    integer :: i3qmplus=0
    integer :: i3ntplus=0
-   integer :: i3bvplus=0
+   integer :: i3bmplus=0
 
    integer :: i4qtplus=0
+   integer :: i4qtmoins=0
    integer :: i4qmplus=0
    integer :: i4ntplus=0
-   integer :: i4bvplus=0
+   integer :: i4bmplus=0
 
    integer :: ae=0
    integer :: afoudre=0
@@ -121,6 +128,26 @@ module phybus
    integer :: cte=0
    integer :: ctt=0
    integer :: ctue=0
+   integer :: d2d01=0
+   integer :: d2d02=0
+   integer :: d2d03=0
+   integer :: d2d04=0
+   integer :: d2d05=0
+   integer :: d2d06=0
+   integer :: d2d07=0
+   integer :: d2d08=0
+   integer :: d2d09=0
+   integer :: d2d10=0
+   integer :: d2d11=0
+   integer :: d2d12=0
+   integer :: d2d13=0
+   integer :: d2d14=0
+   integer :: d2d15=0
+   integer :: d2d16=0
+   integer :: d2d17=0
+   integer :: d2d18=0
+   integer :: d2d19=0
+   integer :: d2d20=0
    integer :: dct_bh=0
    integer :: dct_count=0
    integer :: dct_lvl=0
@@ -197,6 +224,7 @@ module phybus
    integer :: fluxul=0
    integer :: fluxus=0
    integer :: fluxus0=0
+   integer :: fmp=0
    integer :: fneige=0
    integer :: fnn=0
    integer :: fnsi=0
@@ -265,6 +293,7 @@ module phybus
    integer :: iv=0
    integer :: ivaf=0
    integer :: iwc=0
+   integer :: iwcimp=0
    integer :: iwcm=0
    integer :: iwcrad=0
    integer :: iwcradm=0
@@ -285,6 +314,7 @@ module phybus
    integer :: lhtg=0
    integer :: lhtgen=0
    integer :: lwc=0
+   integer :: lwcimp=0
    integer :: lwcm=0
    integer :: lwcrad=0
    integer :: lwcradm=0

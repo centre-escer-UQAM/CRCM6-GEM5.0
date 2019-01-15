@@ -136,8 +136,8 @@ function check_options2() result(F_istat)
    endif
 
 
-   if (stcond == 'MP_P3' .and. (mp_p3_ncat < 1 .or. mp_p3_ncat > 4)) then
-      write(str512, '(a,i2,a)') '(check_options) STCOND = MP_P3 option MP_P3_NCAT=',mp_p3_ncat,' (MUST BE BETWEEN 1 AND 4)'
+   if (stcond == 'MP_P3' .and. (p3_ncat < 1 .or. p3_ncat > 4)) then
+      write(str512, '(a,i2,a)') '(check_options) STCOND = MP_P3 option P3_NCAT=',p3_ncat,' (MUST BE BETWEEN 1 AND 4)'
       call msg(MSG_ERROR, str512)
       return
    endif

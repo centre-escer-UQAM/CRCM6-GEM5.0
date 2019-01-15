@@ -21,10 +21,11 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                         dt   , ni   , n1    , nk, &
                         kount, trnch, icpu)
    use phy_options
-   use my_dmom_mod, only: mydmom_main
-   use mp_my2_mod,  only: mp_my2_main
-   use mp_p3,       only: mp_p3_wrapper_gem
+   use my_dmom_mod,  only: mydmom_main
+   use mp_my2_mod,   only: mp_my2_main
+   use module_mp_p3, only: mp_p3_wrapper_gem
    use phybus
+
    implicit none
 #include <arch_specific.hf>
    !@Object Interface to convection/condensation
@@ -60,7 +61,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
    ! zsqce    stratiform total condensate tendency
    ! zcqre    convective rain mixing ratio tendency
    ! zsqre    stratiform rain mixing ratio tendency
- 
+
    integer :: fsiz,vsiz,dsiz,ni,n1,nk,kount,trnch,icpu
    real    :: dt
    integer,dimension(ni,nk) :: ilab
@@ -85,18 +86,25 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
    real, dimension(ni)      :: tlcr,tscr
    real, dimension(ni,nk)   :: zfm,zfm1,zcqer,zcqcer,zcter,press,tdmask2d,iwc_total,lqip,lqrp,lqgp,lqnp,geop
 
-   integer, parameter :: numSS     = 20      ! number of diagnostic arrays (SS)
-   logical, parameter :: nk_BOTTOM = .true.  ! (.T. for nk at bottom)
-   real               :: SS(ni,nk,numSS)     ! diagnostic arrays
+   logical, parameter :: nk_BOTTOM = .true.          !(.T. for nk at bottom)
+   integer, parameter :: n_diag_2d = 20              !number of diagnostic 2D fields (diag_2d)
+   integer, parameter :: n_diag_3d = 20              !number of diagnostic 3D fields (SS)
+   real               :: diag_2d(ni,n_diag_2d)       !diagnostic 2D fields
+   real               :: diag_3d(ni,nk,n_diag_3d)
+
 
    !# cnd_ptr_as.cdk has ptr association, should be included after declarations
    real, pointer, dimension(:) :: a_h_cb, a_h_m2, a_h_ml, a_h_sn, a_tls, &
         a_tls_rn1, a_tls_rn2, a_tls_fr1, a_tls_fr2, a_tss, a_tss_pe1, &
         a_tss_pe2, a_tss_pe2l, a_tss_sn1, a_tss_sn2, a_tss_sn3, a_tss_snd, &
-        a_zec, psm, psp, ztdmask, ztlc, ztsc
-   real, pointer, dimension(:,:) :: a_effradc, a_effradi, i1qtp, i1qmp, i1ntp, &
-        i1bvp, i2qtp, i2qmp, i2ntp, i2bvp, i3qtp, i3qmp, i3ntp, i3bvp, i4qtp, &
-        i4qmp, i4ntp, i4bvp, a_dm_c, a_dm_r, a_dm_i, a_dm_s, a_dm_g, a_dm_h, &
+        a_zec, psm, psp, ztdmask, ztlc, ztsc, &
+        a_d2d01,a_d2d02,a_d2d03,a_d2d04,a_d2d05,a_d2d06,a_d2d07,a_d2d08,a_d2d09,a_d2d10, &
+        a_d2d11,a_d2d12,a_d2d13,a_d2d14,a_d2d15,a_d2d16,a_d2d17,a_d2d18,a_d2d19,a_d2d20
+
+   real, pointer, dimension(:,:) :: a_effradc, a_effradi1, a_effradi2, a_effradi3, &
+        a_effradi4, a_fxp, i1qtp, i1qtm, i1qmp, i1ntp, &
+        i1bmp, i2qtp, i2qtm, i2qmp, i2ntp, i2bmp, i3qtp, i3qtm, i3qmp, i3ntp, i3bmp, i4qtp, &
+        i4qtm, i4qmp, i4ntp, i4bmp, a_dm_c, a_dm_r, a_dm_i, a_dm_s, a_dm_g, a_dm_h, &
         a_slw, a_ss01, a_ss02, a_ss03, a_ss04, a_ss05, a_ss06, a_ss07, a_ss08, &
         a_ss09, a_ss10, a_ss11, a_ss12, a_ss13, a_ss14, a_ss15, a_ss16, &
         a_ss17, a_ss18, a_ss19, a_ss20, a_vis, a_vis1, a_vis2, a_vis3, a_zet, &
@@ -107,6 +115,8 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
         ttm, ttp, ww, zcqe_, zcte_, zfbl, zfdc, zgztherm, zhushal, zprcten, &
         zqtde, zsqe_, zste_, ztqcx, ztshal, zzcqcem, zzcqem, zzctem, zzsqcem, &
         zzsqem, zzstem
+
+
    include "cnd_ptr_as.cdk"
 
    cdt1   = factdt * dt
@@ -196,65 +206,103 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
            a_ss08, a_ss09, a_ss10, a_ss11, a_ss12, a_ss13, a_ss14,&
            a_ss15, a_ss16, a_ss17, a_ss18, a_ss19, a_ss20,        &
            my_tc3comp,  &
-           v(rnflx),v(snoflx),v(f12),v(fevp),v(clr),v(cls)        )
+           v(rnflx),v(snoflx),v(f12),v(fevp),v(clr),v(cls),a_fxp,a_effradc,&
+           a_effradi1, a_effradi2, a_effradi3, a_effradi4)
 
    case('MP_MY2')
 
-      !#  modified (from HRDPS_4.0.0) Milbrandt-Yau 2-moment microphysics (MY2, v2.25.2)
-      call mp_my2_main(ww,ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,            &
-           psp, sigma, a_tls_rn1, a_tls_rn2, a_tls_fr1, a_tls_fr2, a_tss_sn1, a_tss_sn2,      &
-           a_tss_sn3, a_tss_pe1, a_tss_pe2, a_tss_pe2l, a_tss_snd,cdt1, ni, nk, 1, kount,     &
-           my_ccntype, my_diagon, my_sedion, my_warmon, my_rainon, my_iceon, my_snowon,       &
-           a_dm_c,a_dm_r,a_dm_i,a_dm_s,a_dm_g,a_dm_h, a_zet, a_zec,SS, a_effradc, a_effradi,  &
-           nk_BOTTOM)
+       call mp_my2_main(ww,ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,            &
+            psp, sigma, a_tls_rn1, a_tls_rn2, a_tls_fr1, a_tls_fr2, a_tss_sn1, a_tss_sn2,      &
+            a_tss_sn3, a_tss_pe1, a_tss_pe2, a_tss_pe2l, a_tss_snd,dt, ni, nk, 1, kount,       &
+            my_ccntype, my_diagon, my_sedion, my_warmon, my_rainon, my_iceon,                  &
+            my_snowon, a_dm_c,a_dm_r,a_dm_i,a_dm_s,a_dm_g,a_dm_h, a_zet, a_zec,diag_3d,        &
+            a_effradc, a_effradi1, a_effradi2, a_effradi3, a_effradi4, a_fxp, nk_BOTTOM)
 
-      a_ss01 = SS(:,:,1);   a_ss06 = SS(:,:,6);   a_ss11 = SS(:,:,11);   a_ss16 = SS(:,:,16)
-      a_ss02 = SS(:,:,2);   a_ss07 = SS(:,:,7);   a_ss12 = SS(:,:,12);   a_ss17 = SS(:,:,17)
-      a_ss03 = SS(:,:,3);   a_ss08 = SS(:,:,8);   a_ss13 = SS(:,:,13);   a_ss18 = SS(:,:,18)
-      a_ss04 = SS(:,:,4);   a_ss09 = SS(:,:,9);   a_ss14 = SS(:,:,14);   a_ss19 = SS(:,:,19)
-      a_ss05 = SS(:,:,5);   a_ss10 = SS(:,:,10);  a_ss15 = SS(:,:,15);   a_ss20 = SS(:,:,20)
+      !-- temporary:  (until RN/FR separation gets removed in MY2)
+      a_tls_rn1 = a_tls_rn1 + a_tls_fr1
+      a_tls_rn2 = a_tls_rn2 + a_tls_fr2
+      a_tls_fr1 = 0.
+      a_tls_fr2 = 0.
+
+      a_ss01 = diag_3d(:,:,1);   a_ss11 = diag_3d(:,:, 8);   a_ss16 = diag_3d(:,:,15)
+      a_ss02 = diag_3d(:,:,2);   a_ss12 = diag_3d(:,:, 9);   a_ss17 = diag_3d(:,:,16)
+      a_ss03 = diag_3d(:,:,3);   a_ss08 = diag_3d(:,:,10);   a_ss13 = diag_3d(:,:,17)
+      a_ss04 = diag_3d(:,:,4);   a_ss09 = diag_3d(:,:,11);   a_ss14 = diag_3d(:,:,18)
+      a_ss05 = diag_3d(:,:,5);   a_ss10 = diag_3d(:,:,12);   a_ss15 = diag_3d(:,:,19)
+      a_ss06 = diag_3d(:,:,6);   a_ss10 = diag_3d(:,:,13);   a_ss15 = diag_3d(:,:,20)
+      a_ss07 = diag_3d(:,:,7);   a_ss10 = diag_3d(:,:,14)
 
    case('MP_P3')
 
-      !#  Predicted Particle Properties (P3) microphysics  (P3, v2.0)
-      if (mp_p3_ncat == 1) then
+      !#  Predicted Particle Properties (P3) microphysics (v2.8.2)
+      if (p3_ncat == 1) then
 
-         call mp_p3_wrapper_gem(qqp,ttp,cdt1,ww,psp,sigma,kount,trnch,ni,nk,a_tls,          &
-                                a_tss,a_zet,a_zec,a_effradc,a_effradi,a_ss01,a_ss02,a_ss03, &
-                                qcp,qrp,nrp,mp_p3_ncat,                                     &
-                                i1qtp,i1qmp,i1ntp,i1bvp)
+         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
+                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
+                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
+                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
+                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
+                                p3_depfact,p3_subfact,p3_debug,                          &
+                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1)
          iwc_total = i1qtp
 
-      elseif (mp_p3_ncat == 2) then
+        elseif (p3_ncat == 2) then
 
-         call mp_p3_wrapper_gem(qqp,ttp,cdt1,ww,psp,sigma,kount,trnch,ni,nk,a_tls,          &
-                                a_tss,a_zet,a_zec,a_effradc,a_effradi,a_ss01,a_ss02,a_ss03, &
-                                qcp,qrp,nrp,mp_p3_ncat,                                     &
-                                i1qtp,i1qmp,i1ntp,i1bvp,                                    &
-                                i2qtp,i2qmp,i2ntp,i2bvp)
-         iwc_total = i1qtp + i2qtp
+         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
+                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
+                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
+                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
+                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
+                                p3_depfact,p3_subfact,p3_debug,                          &
+                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                      &
+                                i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2)
+           iwc_total = i1qtp + i2qtp
 
-      elseif (mp_p3_ncat == 3) then
+        elseif (p3_ncat == 3) then
 
-         call mp_p3_wrapper_gem(qqp,ttp,cdt1,ww,psp,sigma,kount,trnch,ni,nk,a_tls,          &
-                               a_tss,a_zet,a_zec,a_effradc,a_effradi,a_ss01,a_ss02,a_ss03,  &
-                                qcp,qrp,nrp,mp_p3_ncat,                                     &
-                                i1qtp,i1qmp,i1ntp,i1bvp,                                    &
-                                i2qtp,i2qmp,i2ntp,i2bvp,                                    &
-                                i3qtp,i3qmp,i3ntp,i3bvp)
-         iwc_total = i1qtp + i2qtp + i3qtp
+         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
+                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
+                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
+                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
+                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
+                                p3_depfact,p3_subfact,p3_debug,                          &
+                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                      &
+                                i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                      &
+                                i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3)
+          iwc_total = i1qtp + i2qtp + i3qtp
 
-      elseif (mp_p3_ncat == 4) then
+        elseif (p3_ncat == 4) then
 
-         call mp_p3_wrapper_gem(qqp,ttp,cdt1,ww,psp,sigma,kount,trnch,ni,nk,a_tls,          &
-                                a_tss,a_zet,a_zec,a_effradc,a_effradi,a_ss01,a_ss02,a_ss03, &
-                                qcp,qrp,nrp,mp_p3_ncat,                                     &
-                                i1qtp,i1qmp,i1ntp,i1bvp,                                    &
-                                i2qtp,i2qmp,i2ntp,i2bvp,                                    &
-                                i3qtp,i3qmp,i3ntp,i3bvp,                                    &
-                                i4qtp,i4qmp,i4ntp,i4bvp)
-         iwc_total = i1qtp + i2qtp + i3qtp + i4qtp
+         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
+                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
+                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
+                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
+                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
+                                p3_depfact,p3_subfact,p3_debug,                          &
+                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                      &
+                                i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                      &
+                                i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3,                      &
+                                i4qtp,i4qmp,i4ntp,i4bmp,a_effradi4)
+          iwc_total = i1qtp + i2qtp + i3qtp + i4qtp
 
+      endif
+
+      if (.true.) then  ! namelist switch to be added
+         a_d2d01 = diag_2d(:,1);    a_d2d08 = diag_2d(:, 8);    a_d2d15 = diag_2d(:,15)
+         a_d2d02 = diag_2d(:,2);    a_d2d09 = diag_2d(:, 9);    a_d2d16 = diag_2d(:,16)
+         a_d2d03 = diag_2d(:,3);    a_d2d10 = diag_2d(:,10);    a_d2d17 = diag_2d(:,17)
+         a_d2d14 = diag_2d(:,4);    a_d2d11 = diag_2d(:,11);    a_d2d18 = diag_2d(:,18)
+         a_d2d15 = diag_2d(:,5);    a_d2d12 = diag_2d(:,12);    a_d2d19 = diag_2d(:,19)
+         a_d2d16 = diag_2d(:,6);    a_d2d13 = diag_2d(:,13);    a_d2d20 = diag_2d(:,20)
+         a_d2d17 = diag_2d(:,7);    a_d2d14 = diag_2d(:,14)
+
+         a_ss01 = diag_3d(:,:,1);   a_ss08 = diag_3d(:,:, 8);   a_ss15 = diag_3d(:,:,15)
+         a_ss02 = diag_3d(:,:,2);   a_ss09 = diag_3d(:,:, 9);   a_ss16 = diag_3d(:,:,16)
+         a_ss03 = diag_3d(:,:,3);   a_ss10 = diag_3d(:,:,10);   a_ss17 = diag_3d(:,:,17)
+         a_ss04 = diag_3d(:,:,4);   a_ss11 = diag_3d(:,:,11);   a_ss18 = diag_3d(:,:,18)
+         a_ss05 = diag_3d(:,:,5);   a_ss12 = diag_3d(:,:,12);   a_ss19 = diag_3d(:,:,19)
+         a_ss06 = diag_3d(:,:,6);   a_ss13 = diag_3d(:,:,13);   a_ss20 = diag_3d(:,:,20)
+         a_ss07 = diag_3d(:,:,7);   a_ss14 = diag_3d(:,:,14)
       endif
 
    end select

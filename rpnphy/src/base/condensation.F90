@@ -256,6 +256,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
                   n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
+                  a_h_cb,a_h_sn,a_vis,a_vis1,a_vis2,a_vis3,                              &
                   qti1p,qmi1p,nti1p,bmi1p,a_effradi1)
          if (istat1 >= 0) then
             iwc_total = qti1p
@@ -270,6 +271,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
                   n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
+                  a_h_cb,a_h_sn,a_vis,a_vis1,a_vis2,a_vis3,                              &
                   qti1p,qmi1p,nti1p,bmi1p,a_effradi1,                                    &
                   qti2p,qmi2p,nti2p,bmi2p,a_effradi2)
          if (istat1 >= 0) then
@@ -286,6 +288,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
                   n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
+                  a_h_cb,a_h_sn,a_vis,a_vis1,a_vis2,a_vis3,                              &
                   qti1p,qmi1p,nti1p,bmi1p,a_effradi1,                                    &
                   qti2p,qmi2p,nti2p,bmi2p,a_effradi2,                                    &
                   qti3p,qmi3p,nti3p,bmi3p,a_effradi3)
@@ -304,6 +307,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
                   a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
                   n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type,a_fxp,                     &
                   p3_depfact,p3_subfact,p3_debug,                                        &
+                  a_h_cb,a_h_sn,a_vis,a_vis1,a_vis2,a_vis3,                              &
                   qti1p,qmi1p,nti1p,bmi1p,a_effradi1,                                    &
                   qti2p,qmi2p,nti2p,bmi2p,a_effradi2,                                    &
                   qti3p,qmi3p,nti3p,bmi3p,a_effradi3,                                    &

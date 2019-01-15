@@ -22,8 +22,8 @@
 !    Jason Milbrandt (jason.milbrandt@canada.ca)                                           !
 !__________________________________________________________________________________________!
 !                                                                                          !
-! Version:       2.10.1                                                                    !
-! Last updated:  2018-04-06                                                                !
+! Version:       2.11.0                                                                    !
+! Last updated:  2018-06-24                                                                !
 !__________________________________________________________________________________________!
 
  MODULE MODULE_MP_P3
@@ -80,7 +80,8 @@
                    inv_rhow,qsmall,nsmall,bsmall,zsmall,cp,g,rd,rv,ep_2,inv_cp,mw,osm,   &
                    vi,epsm,rhoa,map,ma,rr,bact,inv_rm1,inv_rm2,sig1,nanew1,f11,f21,sig2, &
                    nanew2,f12,f22,pi,thrd,sxth,piov3,piov6,diff_nucthrs,rho_rimeMin,     &
-                   rho_rimeMax,inv_rho_rimeMax,max_total_Ni,dbrk,nmltratio
+                   rho_rimeMax,inv_rho_rimeMax,max_total_Ni,dbrk,nmltratio,minVIS,maxVIS
+
 
  contains
 
@@ -103,7 +104,7 @@
 
 ! Local variables and parameters:
  logical, save :: is_init = .false.
- character(len=16), parameter :: version_p3               = '2.10.1'!version number of P3
+ character(len=16), parameter :: version_p3               = '2.11.0'!version number of P3
  character(len=16), parameter :: version_intended_table_1 = '3'     !lookupTable_1 version intended for this P3 version
  character(len=16), parameter :: version_intended_table_2 = '3'     !lookupTable_2 version intended for this P3 version
  character(len=1024)          :: version_header_table_1             !version number read from header, table 1
@@ -242,6 +243,9 @@
  nanew2  = 0.              ! aerosol number mixing ratio (kg-1)
  f12     = 0.5*exp(2.5*(log(sig2))**2)
  f22     = 1. + 0.25*log(sig2)
+
+ minVIS =  1.              ! minimum visibility  (m)
+ maxVIS = 99.e+3           ! maximum visibility  (m)
 
 ! parameters for droplet mass spectral shape, used by Seifert and Beheng (2001)
 ! warm rain scheme only (iparam = 1)
@@ -883,6 +887,7 @@ END subroutine p3_init
                               prt_grpl,prt_pell,prt_hail,prt_sndp,diag_Zet,diag_Zec,diag_effc,  &
                               qc,nc,qr,nr,n_iceCat,n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type, &
                               cloud_bin,clbfact_dep,clbfact_sub,debug_on,                       &
+                              diag_hcb,diag_hsn,diag_vis,diag_vis1,diag_vis2,diag_vis3,         &
                               qitot_1,qirim_1,nitot_1,birim_1,diag_effi_1,                      &
                               qitot_2,qirim_2,nitot_2,birim_2,diag_effi_2,                      &
                               qitot_3,qirim_3,nitot_3,birim_3,diag_effi_3,                      &
@@ -968,6 +973,13 @@ END subroutine p3_init
  real, intent(out),   dimension(ni,nk,n_diag_3d) :: diag_3d      ! user-defined 3D diagnostic fields
  real, intent(out),   dimension(ni,nk,n_qiType  ):: qi_type      ! mass mixing ratio, diag ice type    kg kg-1
 
+ real, intent(out),   dimension(ni)     :: diag_hcb              ! height of cloud base                m
+ real, intent(out),   dimension(ni)     :: diag_hsn              ! height of snow level                m
+ real, intent(out),   dimension(ni,nk)  :: diag_vis              ! visibility (total)                  m
+ real, intent(out),   dimension(ni,nk)  :: diag_vis1             ! visibility through liquid fog       m
+ real, intent(out),   dimension(ni,nk)  :: diag_vis2             ! visibility through rain             m
+ real, intent(out),   dimension(ni,nk)  :: diag_vis3             ! visibility through snow             m
+
  logical, intent(in)                    :: debug_on              ! logical switch for internal debug checks
  integer :: end_status
 
@@ -999,6 +1011,8 @@ END subroutine p3_init
 
  integer                 :: i,k,ktop,kbot,kdir,i_strt,k_strt
  integer                 :: i_substep,n_substep
+
+ logical                 :: log_tmp1,log_tmp2
 
  logical, parameter      :: log_predictNc = .true.      ! temporary; to be put as GEM namelist
  logical, parameter      :: typeDiags_ON  = .true.      ! switch for hydrometeor/precip type diagnostics
@@ -1100,7 +1114,8 @@ END subroutine p3_init
                    k_strt,nk,n_iceCat,diag_Zet,diag_effc,diag_effi_1(:,:),diag_vmi,diag_di,   &
                    diag_rhoi,n_diag_2d,diag_2d,n_diag_3d,diag_3d,log_predictNc,typeDiags_ON,  &
                    trim(model),clbfact_dep,clbfact_sub,debug_on,prt_drzl,prt_rain,prt_crys,   &
-                   prt_snow,prt_grpl,prt_pell,prt_hail,prt_sndp,qi_type,cloud_bin)
+                   prt_snow,prt_grpl,prt_pell,prt_hail,prt_sndp,qi_type,cloud_bin,diag_vis,   &
+                   diag_vis1,diag_vis2,diag_vis3)
 
       else
         !general (nCat >= 1):
@@ -1109,7 +1124,8 @@ END subroutine p3_init
                    diag_Zet,diag_effc,diag_effi,diag_vmi,diag_di,diag_rhoi,n_diag_2d,diag_2d, &
                    n_diag_3d,diag_3d,log_predictNc,typeDiags_ON,trim(model),clbfact_dep,      &
                    clbfact_sub,debug_on,prt_drzl,prt_rain,prt_crys,prt_snow,prt_grpl,         &
-                   prt_pell,prt_hail,prt_sndp,qi_type,cloud_bin)
+                   prt_pell,prt_hail,prt_sndp,qi_type,cloud_bin,diag_vis,diag_vis1,diag_vis2, &
+                   diag_vis3)
       endif
       if (global_status /= STATUS_OK) return
 
@@ -1189,6 +1205,26 @@ END subroutine p3_init
       diag_Zec(i) = maxval(diag_Zet(i,:))
    enddo
 
+  !determine diagnostic heights:
+   diag_hcb(:) = -1.
+   diag_hsn(:) = -1.
+   do i = 1,ni
+      log_tmp1 = .false.  !cloud base height found
+      log_tmp2 = .false.  !snow level height found
+      do k = nk,2,-1
+        !cloud base height:
+         if (qc(i,k)>1.e-6 .and. .not.log_tmp1) then
+            diag_hcb(i) = gztherm(i,k)
+            log_tmp1 = .true.
+         endif
+        !snow level height:  (height of lowest level with ice) [for n_iceCat=1 only]
+         if (qitot_1(i,k)>1.e-6 .and. .not.log_tmp2) then
+            diag_hsn(i) = gztherm(i,k)
+            log_tmp2 = .true.
+         endif
+      enddo
+   enddo
+
    end_status = STATUS_OK
    return
  end function mp_p3_wrapper_gem
@@ -1200,7 +1236,8 @@ END subroutine p3_init
                     diag_effi,diag_vmi,diag_di,diag_rhoi,n_diag_2d,diag_2d,n_diag_3d,     &
                     diag_3d,log_predictNc,typeDiags_ON,model,clbfact_dep,clbfact_sub,     &
                     debug_on,prt_drzl,prt_rain,prt_crys,prt_snow,prt_grpl,prt_pell,       &
-                    prt_hail,prt_sndp,qi_type,cloud_bin)
+                    prt_hail,prt_sndp,qi_type,cloud_bin,diag_vis,diag_vis1,diag_vis2,     &
+                    diag_vis3)
 
 
 !----------------------------------------------------------------------------------------!
@@ -1251,6 +1288,11 @@ END subroutine p3_init
  real, intent(out),   dimension(its:ite,kts:kte,nCat) :: diag_vmi   ! mass-weighted fall speed of ice  m s-1
  real, intent(out),   dimension(its:ite,kts:kte,nCat) :: diag_di    ! mean diameter of ice             m
  real, intent(out),   dimension(its:ite,kts:kte,nCat) :: diag_rhoi  ! bulk density of ice              kg m-1
+
+ real, intent(out),   dimension(its:ite,kts:kte), optional :: diag_vis   ! visibility (total)          m
+ real, intent(out),   dimension(its:ite,kts:kte), optional :: diag_vis1  ! visibility through fog      m
+ real, intent(out),   dimension(its:ite,kts:kte), optional :: diag_vis2  ! visibility through rain     m
+ real, intent(out),   dimension(its:ite,kts:kte), optional :: diag_vis3  ! visibility through snow     m
 
  real, intent(out),   dimension(its:ite,n_diag_2d)         :: diag_2d    ! user-defined 2D diagnostic fields
  real, intent(out),   dimension(its:ite,kts:kte,n_diag_3d) :: diag_3d    ! user-defined 3D diagnostic fields
@@ -3570,6 +3612,46 @@ END subroutine p3_init
        if (global_status /= STATUS_OK) return
     endif
 
+
+   !..............................................
+   !Diagnostics -- visibility:
+
+    if (trim(model) == 'GEM') then
+
+       diag_vis(i,:)  = 3.*maxVIS
+       diag_vis1(i,:) = 3.*maxVIS
+       diag_vis2(i,:) = 3.*maxVIS
+       diag_vis3(i,:) = 3.*maxVIS
+
+      !VIS2: component through rain;  based on Gultepe and Milbrandt, 2008, Table 2 eqn (1)
+       tmp1= prt_liq(i)*3.6e+6                                    !rain rate [mm h-1]
+       if (tmp1>0.01) then
+          diag_vis2(i,kbot)= max(minVIS,1000.*(-4.12*tmp1**0.176+9.01))   ![m]
+       endif
+
+      !VIS3: component through snow;  based on Gultepe and Milbrandt, 2008, Table 2 eqn (6)
+       tmp1= prt_sol(i)*3.6e+6                                    !snow rate, liq-eq [mm h-1]
+       if (tmp1>0.01) then
+          diag_vis3(i,kbot)= max(minVIS,1000.*(1.10*tmp1**(-0.701)))      ![m]
+       endif
+
+       do k = kbot,ktop,kdir
+          !VIS1:  component through liquid cloud (fog); based on Gultepe and Milbrandt, 2007)
+          tmp1 = qc(i,k)*rho(i,k)*1.e+3    !LWC [g m-3]
+          tmp2 = nc(i,k)*rho(i,k)*1.e-6    !Nc  [cm-3]
+          if (tmp1>0.005 .and. tmp2>1.) then
+             diag_vis1(i,k)= max(minVIS,1000.*(1.13*(tmp1*tmp2)**(-0.51))) !based on FRAM [GM2007, eqn (4)
+            !diag_vis1(i,k)= max(minVIS,min(maxVIS, (tmp1*tmp2)**(-0.65))) !based on RACE [GM2007, eqn (3)
+          endif
+          !VIS:  visibility due to reduction from all components 1, 2, and 3
+          !      (based on sum of extinction coefficients and Koschmieders's Law)
+          diag_vis(i,k) = min(maxVIS, 1./(1./diag_vis1(i,k) + 1./diag_vis2(i,k) + 1./diag_vis3(i,k)))
+          diag_vis1(i,k)= min(maxVIS, diag_vis1(i,k))
+          diag_vis2(i,k)= min(maxVIS, diag_vis2(i,k))
+          diag_vis3(i,k)= min(maxVIS, diag_vis3(i,k))
+       enddo !k-loop
+
+    endif  !model==GEM
 !.....................................................
 
  enddo i_loop_main

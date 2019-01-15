@@ -22,8 +22,8 @@
 !    Jason Milbrandt (jason.milbrandt@canada.ca)                                           !
 !__________________________________________________________________________________________!
 !                                                                                          !
-! Version:       2.9.1                                                                     !
-! Last updated:  2018-03-01                                                                !
+! Version:       2.10.1                                                                    !
+! Last updated:  2018-04-06                                                                !
 !__________________________________________________________________________________________!
 
  MODULE MODULE_MP_P3
@@ -60,6 +60,9 @@
 
 ! integer switch for warm rain autoconversion/accretion schemes
  integer :: iparam
+
+! number of diagnostic ice-phase hydrometeor types
+ integer, public, parameter :: n_qiType = 6
 
 ! droplet spectral shape parameter for mass spectra, used for Seifert and Beheng (2001)
 ! warm rain autoconversion/accretion option only (iparam = 1)
@@ -100,7 +103,7 @@
 
 ! Local variables and parameters:
  logical, save :: is_init = .false.
- character(len=16), parameter :: version_p3               = '2.9.1' !version number of P3
+ character(len=16), parameter :: version_p3               = '2.10.1'!version number of P3
  character(len=16), parameter :: version_intended_table_1 = '3'     !lookupTable_1 version intended for this P3 version
  character(len=16), parameter :: version_intended_table_2 = '3'     !lookupTable_2 version intended for this P3 version
  character(len=1024)          :: version_header_table_1             !version number read from header, table 1
@@ -119,10 +122,8 @@
  lookup_file_2 = trim(lookup_file_dir)//'/'//'p3_lookup_table_2.dat-v'//trim(version_intended_table_2)
 
 !-- override for local path/filenames:
-!lookup_file_1 = trim(lookup_file_dir)//'/'//'p3_lookup_table_1.dat-v2.8.3'  !TEMPORARY -- FORCE USE OF THIS TABLE
-!lookup_file_2 = trim(lookup_file_dir)//'/'//'p3_lookup_table_2.dat-v2.8.3'  !TEMPORARY -- FORCE USE OF THIS TABLE
-! lookup_file_1 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_1.dat-v'//trim(version_intended_table_1)
-! lookup_file_2 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_2.dat-v'//trim(version_intended_table_2)
+!lookup_file_1 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_1.dat-v'//trim(version_intended_table_1)
+!lookup_file_2 = '/data/ords/armn/armngr8/storage_model/p3_lookup_tables/p3_lookup_table_2.dat-v'//trim(version_intended_table_2)
 !==
 
 !------------------------------------------------------------------------------------------!
@@ -878,14 +879,14 @@ END subroutine p3_init
 !==================================================================================================!
 
  function mp_p3_wrapper_gem(qvap_m,qvap,temp_m,temp,dt,dt_max,ww,psfc,gztherm,sigma,kount,      &
-                              trnch,ni,nk,prt_liq,prt_sol,prt_drzl,prt_rain,prt_crys,prt_snow,    &
-                              prt_grpl,prt_pell,prt_hail,prt_sndp,diag_Zet,diag_Zec,diag_effc,    &
-                              qc,nc,qr,nr,n_iceCat,n_diag_2d,diag_2d,n_diag_3d,diag_3d,cloud_bin, &
-                              clbfact_dep,clbfact_sub,debug_on,                                   &
-                              qitot_1,qirim_1,nitot_1,birim_1,diag_effi_1,                        &
-                              qitot_2,qirim_2,nitot_2,birim_2,diag_effi_2,                        &
-                              qitot_3,qirim_3,nitot_3,birim_3,diag_effi_3,                        &
-                              qitot_4,qirim_4,nitot_4,birim_4,diag_effi_4) &
+                              trnch,ni,nk,prt_liq,prt_sol,prt_drzl,prt_rain,prt_crys,prt_snow,  &
+                              prt_grpl,prt_pell,prt_hail,prt_sndp,diag_Zet,diag_Zec,diag_effc,  &
+                              qc,nc,qr,nr,n_iceCat,n_diag_2d,diag_2d,n_diag_3d,diag_3d,qi_type, &
+                              cloud_bin,clbfact_dep,clbfact_sub,debug_on,                       &
+                              qitot_1,qirim_1,nitot_1,birim_1,diag_effi_1,                      &
+                              qitot_2,qirim_2,nitot_2,birim_2,diag_effi_2,                      &
+                              qitot_3,qirim_3,nitot_3,birim_3,diag_effi_3,                      &
+                              qitot_4,qirim_4,nitot_4,birim_4,diag_effi_4)                      &
                               result(end_status)
 
 !------------------------------------------------------------------------------------------!
@@ -962,13 +963,13 @@ END subroutine p3_init
  real, intent(out),   dimension(ni,nk)  :: diag_Zet              ! equivalent reflectivity, 3D         dBZ
  real, intent(out),   dimension(ni)     :: diag_Zec              ! equivalent reflectivity, col-max    dBZ
  real, intent(out),   dimension(ni,nk)  :: diag_effc             ! effective radius, cloud             m
+ real, intent(out),   dimension(ni,nk)  :: cloud_bin             ! cloud fraction (0 or 1)
  real, intent(out),   dimension(ni,n_diag_2d)    :: diag_2d      ! user-defined 2D diagnostic fields
  real, intent(out),   dimension(ni,nk,n_diag_3d) :: diag_3d      ! user-defined 3D diagnostic fields
- real, intent(out),   dimension(ni,nk)  :: cloud_bin             ! cloud fraction (0 or 1)
+ real, intent(out),   dimension(ni,nk,n_qiType  ):: qi_type      ! mass mixing ratio, diag ice type    kg kg-1
 
  logical, intent(in)                    :: debug_on              ! logical switch for internal debug checks
  integer :: end_status
-
 
 !----------------------------------------------------------------------------------------!
 
@@ -1099,7 +1100,7 @@ END subroutine p3_init
                    k_strt,nk,n_iceCat,diag_Zet,diag_effc,diag_effi_1(:,:),diag_vmi,diag_di,   &
                    diag_rhoi,n_diag_2d,diag_2d,n_diag_3d,diag_3d,log_predictNc,typeDiags_ON,  &
                    trim(model),clbfact_dep,clbfact_sub,debug_on,prt_drzl,prt_rain,prt_crys,   &
-                   prt_snow,prt_grpl,prt_pell,prt_hail,prt_sndp,cloud_bin)
+                   prt_snow,prt_grpl,prt_pell,prt_hail,prt_sndp,qi_type,cloud_bin)
 
       else
         !general (nCat >= 1):
@@ -1108,7 +1109,7 @@ END subroutine p3_init
                    diag_Zet,diag_effc,diag_effi,diag_vmi,diag_di,diag_rhoi,n_diag_2d,diag_2d, &
                    n_diag_3d,diag_3d,log_predictNc,typeDiags_ON,trim(model),clbfact_dep,      &
                    clbfact_sub,debug_on,prt_drzl,prt_rain,prt_crys,prt_snow,prt_grpl,         &
-                   prt_pell,prt_hail,prt_sndp,cloud_bin)
+                   prt_pell,prt_hail,prt_sndp,qi_type,cloud_bin)
       endif
       if (global_status /= STATUS_OK) return
 
@@ -1199,7 +1200,8 @@ END subroutine p3_init
                     diag_effi,diag_vmi,diag_di,diag_rhoi,n_diag_2d,diag_2d,n_diag_3d,     &
                     diag_3d,log_predictNc,typeDiags_ON,model,clbfact_dep,clbfact_sub,     &
                     debug_on,prt_drzl,prt_rain,prt_crys,prt_snow,prt_grpl,prt_pell,       &
-                    prt_hail,prt_sndp,cloud_bin)
+                    prt_hail,prt_sndp,qi_type,cloud_bin)
+
 
 !----------------------------------------------------------------------------------------!
 !                                                                                        !
@@ -1265,15 +1267,16 @@ END subroutine p3_init
  logical, intent(in)                                  :: debug_on      !switch for internal debug checks
  character(len=*), intent(in)                         :: model         !driving model
 
- real, intent(out), dimension(its:ite), optional      :: prt_drzl      ! precip rate, drizzle          m s-1
- real, intent(out), dimension(its:ite), optional      :: prt_rain      ! precip rate, rain             m s-1
- real, intent(out), dimension(its:ite), optional      :: prt_crys      ! precip rate, ice cystals      m s-1
- real, intent(out), dimension(its:ite), optional      :: prt_snow      ! precip rate, snow             m s-1
- real, intent(out), dimension(its:ite), optional      :: prt_grpl      ! precip rate, graupel           m s-1
- real, intent(out), dimension(its:ite), optional      :: prt_pell      ! precip rate, ice pellets       m s-1
- real, intent(out), dimension(its:ite), optional      :: prt_hail      ! precip rate, hail              m s-1
- real, intent(out), dimension(its:ite), optional      :: prt_sndp      ! precip rate, unmelted snow     m s-1
- real, intent(out), dimension(its:ite,kts:kte), optional :: cloud_bin  ! cloud fraction of 0 or 1
+ real, intent(out), dimension(its:ite), optional      :: prt_drzl       ! precip rate, drizzle           m s-1
+ real, intent(out), dimension(its:ite), optional      :: prt_rain       ! precip rate, rain              m s-1
+ real, intent(out), dimension(its:ite), optional      :: prt_crys       ! precip rate, ice cystals       m s-1
+ real, intent(out), dimension(its:ite), optional      :: prt_snow       ! precip rate, snow              m s-1
+ real, intent(out), dimension(its:ite), optional      :: prt_grpl       ! precip rate, graupel           m s-1
+ real, intent(out), dimension(its:ite), optional      :: prt_pell       ! precip rate, ice pellets       m s-1
+ real, intent(out), dimension(its:ite), optional      :: prt_hail       ! precip rate, hail              m s-1
+ real, intent(out), dimension(its:ite), optional      :: prt_sndp       ! precip rate, unmelted snow     m s-1
+ real, intent(out), dimension(its:ite,kts:kte),   optional :: cloud_bin ! cloud fraction of 0 or 1
+ real, intent(out), dimension(its:ite,kts:kte,n_qiType), optional :: qi_type ! mass mixing ratio, diagnosed ice type  kg kg-1
 
 !----- Local variables and parameters:  -------------------------------------------------!
 
@@ -1417,7 +1420,7 @@ END subroutine p3_init
  real    :: f1pr18   ! ice-ice category collection change in mass
 
 ! quantities related to diagnostic hydrometeor/precipitation types
- real,    parameter                       :: freq3DtypeDiag     = 60.     !frequency (min) for full-column diagnostics
+ real,    parameter                       :: freq3DtypeDiag     = 1.      !frequency (min) for full-column diagnostics
  real,    parameter                       :: thres_raindrop     = 100.e-6 !size threshold for drizzle vs. rain
  real,    dimension(its:ite,kts:kte)      :: Q_drizzle,Q_rain
  real,    dimension(its:ite,kts:kte,nCat) :: Q_crystals,Q_ursnow,Q_lrsnow,Q_grpl,Q_pellets,Q_hail
@@ -1483,10 +1486,10 @@ END subroutine p3_init
  endif
 
  if (trim(model)=='GEM') then
-   if (typeDiags_ON .eqv. .false.) then
+   if (.not. typeDiags_ON) then
       !If typeDiags_ON is .false., uninitialized arrays (prt_drzl etc.) will be passed back.
       !(The coding of this will be refined later)
-       print*, '*** ABORT in P3_MAIN ***'
+       print*, '*** ERROR in P3_MAIN ***'
        print*, '* typeDiags_ON must be set to .TRUE. for GEM'
        global_status = STATUS_ERROR
        return
@@ -3595,14 +3598,16 @@ END subroutine p3_init
        global_status = STATUS_ERROR
        return
     endif
-    prt_drzl = 0.
-    prt_rain = 0.
-    prt_crys = 0.
-    prt_snow = 0.
-    prt_grpl = 0.
-    prt_pell = 0.
-    prt_hail = 0.
-    prt_sndp = 0.
+
+    prt_drzl(:) = 0.
+    prt_rain(:) = 0.
+    prt_crys(:) = 0.
+    prt_snow(:) = 0.
+    prt_grpl(:) = 0.
+    prt_pell(:) = 0.
+    prt_hail(:) = 0.
+    prt_sndp(:) = 0.
+    if (present(qi_type)) qi_type(:,:,:) = 0.
 
     if (freq3DtypeDiag>0. .and. mod(it*dt,freq3DtypeDiag*60.)==0.) then
       !diagnose hydrometeor types for full columns
@@ -3619,7 +3624,7 @@ END subroutine p3_init
 
           Q_drizzle(i,k) = 0.
           Q_rain(i,k)    = 0.
-          !note:  theese can be broken down further (outside of microphysics) into
+          !note:  these can be broken down further (outside of microphysics) into
           !       liquid rain (drizzle) vs. freezing rain (drizzle) based on sfc temp.
           if (qr(i,k)>qsmall .and. nr(i,k)>nsmall) then
              tmp1 = (qr(i,k)/(pi*rhow*nr(i,k)))**thrd   !mean-mass diameter
@@ -3637,12 +3642,6 @@ END subroutine p3_init
        elseif (Q_rain(i,kbot) > 0.) then
           prt_rain(i) = prt_liq(i)
        endif
-      !--- optimized version above above IF block (does not work on all FORTRAN compilers)
-!        tmp1 = -(Q_drizzle(i,kbot) > 0.)  !note: tmp1=1.0 if Q_drizzle>0., else tmp1=0.0
-!        tmp2 = -(Q_rain(i,kbot)    > 0.)
-!        prt_drzl(i) = prt_liq(i)*tmp1  !precip rate of drizzle
-!        prt_rain(i) = prt_liq(i)*tmp2  !precip rate of rain
-      !===
 
       !-- ice-phase:
       iice_loop_diag: do iice = 1,nCat
@@ -3656,6 +3655,9 @@ END subroutine p3_init
              Q_pellets(i,k,iice)  = 0.
              Q_hail(i,k,iice)     = 0.
 
+            !Note: The following partitioning of ice into types is subjective.  However,
+            !      this is a diagnostic only; it does not affect the model solution.
+
              if (qitot(i,k,iice)>qsmall) then
                 tmp1 = qirim(i,k,iice)/qitot(i,k,iice)   !rime mass fraction
                 if (tmp1<0.1) then
@@ -3665,10 +3667,10 @@ END subroutine p3_init
                    else
                       Q_ursnow(i,k,iice) = qitot(i,k,iice)
                    endif
-                elseif (tmp1>=0.1 .and. tmp1<0.25) then
+                elseif (tmp1>=0.1 .and. tmp1<0.6) then
                 !lightly rimed:
                    Q_lrsnow(i,k,iice) = qitot(i,k,iice)
-                elseif (tmp1>=0.25 .and. tmp1<=1.) then
+                elseif (tmp1>=0.6 .and. tmp1<=1.) then
                 !moderate-to-heavily rimed:
                    if (diag_rhoi(i,k,iice)<700.) then
                       Q_grpl(i,k,iice) = qitot(i,k,iice)
@@ -3730,18 +3732,19 @@ END subroutine p3_init
 
     enddo i_loop_typediag
 
-   !- for output of 3D fields of diagnostic hydrometeor type (for iice = 1)
-!     if (ktop_typeDiag == ktop) then
-!        diag_3d(:,:,1) = Q_drizzle(:,:)
-!        diag_3d(:,:,2) = Q_rain(:,:)
-!        diag_3d(:,:,3) = Q_crystals(:,:,1)
-!        diag_3d(:,:,4) = Q_ursnow(:,:,1)
-!        diag_3d(:,:,5) = Q_lrsnow(:,:,1)
-!        diag_3d(:,:,6) = Q_grpl(:,:,1)
-!        diag_3d(:,:,7) = Q_pellets(:,:,1)
-!        diag_3d(:,:,8) = Q_hail(:,:,1)
-!     endif
-    !=
+   !- for output of 3D fields of diagnostic ice-phase hydrometeor type
+    if (ktop_typeDiag==ktop .and. present(qi_type)) then
+      !diag_3d(:,:,1) = Q_drizzle(:,:)
+      !diag_3d(:,:,2) = Q_rain(:,:)
+       do ii = 1,nCat
+          qi_type(:,:,1) = qi_type(:,:,1) + Q_crystals(:,:,ii)
+          qi_type(:,:,2) = qi_type(:,:,2) + Q_ursnow(:,:,ii)
+          qi_type(:,:,3) = qi_type(:,:,3) + Q_lrsnow(:,:,ii)
+          qi_type(:,:,4) = qi_type(:,:,4) + Q_grpl(:,:,ii)
+          qi_type(:,:,5) = qi_type(:,:,5) + Q_hail(:,:,ii)
+          qi_type(:,:,6) = qi_type(:,:,6) + Q_pellets(:,:,ii)
+       enddo
+    endif
 
  endif compute_type_diags
 

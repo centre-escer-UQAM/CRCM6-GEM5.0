@@ -9,7 +9,7 @@ endif
 # endif
 # GEM_VERSION   = $(shell cat $(gem)/VERSION)
 # GEM_VERSION_X = x/
-GEM_VERSION0  = 4.9.2
+GEM_VERSION0  = 4.9.3a
 GEM_VERSION   = $(notdir $(GEM_VERSION0))
 GEM_VERSION_X = $(dir $(GEM_VERSION0))
 

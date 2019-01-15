@@ -86,11 +86,14 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
    real, dimension(ni)      :: tlcr,tscr
    real, dimension(ni,nk)   :: zfm,zfm1,zcqer,zcqcer,zcter,press,tdmask2d,iwc_total,lqip,lqrp,lqgp,lqnp,geop
 
-   logical, parameter :: nk_BOTTOM = .true.          !(.T. for nk at bottom)
-   integer, parameter :: n_diag_2d = 20              !number of diagnostic 2D fields (diag_2d)
-   integer, parameter :: n_diag_3d = 20              !number of diagnostic 3D fields (SS)
-   real               :: diag_2d(ni,n_diag_2d)       !diagnostic 2D fields
-   real               :: diag_3d(ni,nk,n_diag_3d)
+   logical, parameter               :: nk_BOTTOM = .true.   !(.T. for nk at bottom)
+   integer, parameter               :: n_diag_2d = 20       !number of diagnostic 2D fields  (diag_2d)
+   integer, parameter               :: n_diag_3d = 20       !number of diagnostic 3D fields  (SS)
+   integer, parameter               :: aeroact   = 1        !default aerosol activation (for mp_my2)
+   integer                          :: istat1               !error status (for mp_p3)
+   real, dimension(ni,n_diag_2d)    :: diag_2d              !diagnostic 2D fields
+   real, dimension(ni,nk,n_diag_3d) :: diag_3d              !diagnostic 3D fields
+   real, dimension(ni,nk)           :: Naero                !aerosol number concentration (for mp_my2)
 
 
    !# cnd_ptr_as.cdk has ptr association, should be included after declarations
@@ -183,7 +186,7 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
 
    case('MP_MY2_OLD')
 
-      !# "old" Milbrandt-Yau 2-moment microphysics (as in HRDPS_4.0.0)
+      !# Milbrandt-Yau 2-moment microphysics (MY2; v2.18.5)
       geop = zgztherm*grav
       call mydmom_main(ww,&
            ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,psp, &
@@ -211,11 +214,21 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
 
    case('MP_MY2')
 
-       call mp_my2_main(ww,ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,            &
-            psp, sigma, a_tls_rn1, a_tls_rn2, a_tls_fr1, a_tls_fr2, a_tss_sn1, a_tss_sn2,      &
-            a_tss_sn3, a_tss_pe1, a_tss_pe2, a_tss_pe2l, a_tss_snd,dt, ni, nk, 1, kount,       &
-            my_ccntype, my_diagon, my_sedion, my_warmon, my_rainon, my_iceon,                  &
-            my_snowon, a_dm_c,a_dm_r,a_dm_i,a_dm_s,a_dm_g,a_dm_h, a_zet, a_zec,diag_3d,        &
+! !       !# Milbrandt-Yau 2-moment microphysics (MY2; v2.25.2)
+! !       call mp_my2_main(ww,ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,             &
+! !             psp, sigma, a_tls_rn1, a_tls_rn2, a_tls_fr1, a_tls_fr2, a_tss_sn1, a_tss_sn2,      &
+! !             a_tss_sn3, a_tss_pe1, a_tss_pe2, a_tss_pe2l, a_tss_snd,dt, ni, nk, 1, kount,       &
+! !             my_ccntype, my_diagon, my_sedion, my_warmon, my_rainon, my_iceon,                  &
+! !             my_snowon, a_dm_c,a_dm_r,a_dm_i,a_dm_s,a_dm_g,a_dm_h, a_zet, a_zec,diag_3d,        &
+! !             a_effradc, a_effradi1, a_effradi2, a_effradi3, a_effradi4, a_fxp, nk_BOTTOM)
+
+      Naero = 0.  !(not used on this version)
+      !# Milbrandt-Yau 2-moment microphysics (MY2; v3.2.0)
+      call mp_my2_main(ww,ttp,qqp,qcp,qrp,qip,qnp,qgp,qhp,ncp,nrp,nip,nnp,ngp,nhp,i1bmp,Naero,   &
+            psp, sigma, a_tls_rn1, a_tls_rn2, a_tls_fr1, a_tls_fr2, a_tss_sn1, a_tss_sn2,        &
+            a_tss_sn3, a_tss_pe1, a_tss_pe2, a_tss_pe2l, a_tss_snd,dt, ni, nk, 1, kount,aeroact, &
+            my_ccntype, my_diagon, my_sedion, my_warmon, my_rainon, my_iceon,                    &
+            my_snowon, a_dm_c,a_dm_r,a_dm_i,a_dm_s,a_dm_g,a_dm_h, a_zet, a_zec,diag_3d,          &
             a_effradc, a_effradi1, a_effradi2, a_effradi3, a_effradi4, a_fxp, nk_BOTTOM)
 
       !-- temporary:  (until RN/FR separation gets removed in MY2)
@@ -234,58 +247,86 @@ subroutine condensation(d    , dsiz , f    , fsiz , v   , vsiz, &
 
    case('MP_P3')
 
-      !#  Predicted Particle Properties (P3) microphysics (v2.8.2)
+      !#  Predicted Particle Properties (P3) microphysics (v2.9.1)
       if (p3_ncat == 1) then
 
-         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
-                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
-                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
-                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
-                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
-                                p3_depfact,p3_subfact,p3_debug,                          &
-                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1)
-         iwc_total = i1qtp
+         istat1 = mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,   &
+                  kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
+                  a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
+                  a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  p3_depfact,p3_subfact,p3_debug,                                        &
+                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1)
+         if (istat1 >= 0) then
+            iwc_total = i1qtp
+            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
+         endif
 
-        elseif (p3_ncat == 2) then
+      elseif (p3_ncat == 2) then
 
-         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
-                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
-                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
-                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
-                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
-                                p3_depfact,p3_subfact,p3_debug,                          &
-                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                      &
-                                i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2)
-           iwc_total = i1qtp + i2qtp
+         istat1 = mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,   &
+                  kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
+                  a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
+                  a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  p3_depfact,p3_subfact,p3_debug,                                        &
+                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                                    &
+                  i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2)
+         if (istat1 >= 0) then
+            iwc_total = i1qtp + i2qtp
+            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
+            where (i2qtp(:,1:nk)<1.e-14) a_effradi2 = 0.
+         endif
 
-        elseif (p3_ncat == 3) then
+      elseif (p3_ncat == 3) then
 
-         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
-                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
-                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
-                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
-                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
-                                p3_depfact,p3_subfact,p3_debug,                          &
-                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                      &
-                                i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                      &
-                                i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3)
-          iwc_total = i1qtp + i2qtp + i3qtp
+         istat1 = mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,   &
+                  kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
+                  a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
+                  a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  p3_depfact,p3_subfact,p3_debug,                                        &
+                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                                    &
+                  i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                                    &
+                  i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3)
+         if (istat1 >= 0) then
+            iwc_total = i1qtp + i2qtp + i3qtp
+            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
+            where (i2qtp(:,1:nk)<1.e-14) a_effradi2 = 0.
+            where (i3qtp(:,1:nk)<1.e-14) a_effradi3 = 0.
+         endif
 
-        elseif (p3_ncat == 4) then
+      elseif (p3_ncat == 4) then
 
-         call mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,kount, &
-                                trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,   &
-                                a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,       &
-                                a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,           &
-                                n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,               &
-                                p3_depfact,p3_subfact,p3_debug,                          &
-                                i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                      &
-                                i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                      &
-                                i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3,                      &
-                                i4qtp,i4qmp,i4ntp,i4bmp,a_effradi4)
-          iwc_total = i1qtp + i2qtp + i3qtp + i4qtp
+         istat1 = mp_p3_wrapper_gem(qqm,qqp,ttm,ttp,dt,p3_dtmax,ww,psp,zgztherm,sigma,   &
+                  kount,trnch,ni,nk,a_tls,a_tss,a_tls_rn1,a_tls_rn2,a_tss_sn1,           &
+                  a_tss_sn2,a_tss_sn3,a_tss_pe1,a_tss_pe2,a_tss_snd,                     &
+                  a_zet,a_zec,a_effradc,qcp,ncp,qrp,nrp,p3_ncat,                         &
+                  n_diag_2d,diag_2d,n_diag_3d,diag_3d,a_fxp,                             &
+                  p3_depfact,p3_subfact,p3_debug,                                        &
+                  i1qtp,i1qmp,i1ntp,i1bmp,a_effradi1,                                    &
+                  i2qtp,i2qmp,i2ntp,i2bmp,a_effradi2,                                    &
+                  i3qtp,i3qmp,i3ntp,i3bmp,a_effradi3,                                    &
+                  i4qtp,i4qmp,i4ntp,i4bmp,a_effradi4)
+         if (istat1 >= 0) then
+            iwc_total = i1qtp + i2qtp + i3qtp + i4qtp
+            where (i1qtp(:,1:nk)<1.e-14) a_effradi1 = 0.
+            where (i2qtp(:,1:nk)<1.e-14) a_effradi2 = 0.
+            where (i3qtp(:,1:nk)<1.e-14) a_effradi3 = 0.
+            where (i4qtp(:,1:nk)<1.e-14) a_effradi4 = 0.
+         endif
 
       endif
+
+      if (istat1 < 0) then
+         print*, 'ABORT (condensation) Problem in P3'
+         stop
+      endif
+
+     !temporary; rn/fr (rate) partition should be done in s/r 'calcdiag'
+     !(but currently it is still done inside microphyics scheme for MY2)
+      a_tls_fr1 = 0.
+      a_tls_fr2 = 0.
 
       if (.true.) then  ! namelist switch to be added
          a_d2d01 = diag_2d(:,1);    a_d2d08 = diag_2d(:, 8);    a_d2d15 = diag_2d(:,15)

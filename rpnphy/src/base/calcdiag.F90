@@ -127,7 +127,7 @@ subroutine calcdiag(d,f,v,dsiz,fsiz,vsiz,dt,trnch,kount,ni,nk)
          zaip (i) = 0.
          zsn  (i) = 0.
       enddo
-      if  (stcond(1:6) == 'MP_MY2')  then
+      if (stcond(1:3) == 'MP_')  then
          do i = 1,ni
             zals_rn1 (i) = 0.
             zals_rn2 (i) = 0.
@@ -147,39 +147,40 @@ subroutine calcdiag(d,f,v,dsiz,fsiz,vsiz,dt,trnch,kount,ni,nk)
    endif IF_RESET_PRECIP
 
    IF_KOUNT_NOT_0: if (kount /= 0) then
-      !DIAGNOSTICS ON PRECIPITATION TYPE.
-      if (pcptype == 'BOURGE') then
+
+     !Diagnostics on precipitation type.
+      if (pcptype == 'BOURGE' .or. &
+           (stcond(1:3) == 'MP_' .and. pcptype == 'NIL')) then
+         !Note: 'bourge2' is always called if microphysics scheme is used and pcptyp=nil,
+         !       but it is only applied to implicit (convection) precipitation
          call bourge2(v(fneige),v(fip),d(tplus),d(sigw),f(pmoins),ni,nk-1)
-      else if (pcptype == 'BOURGE3D')then
+      else if (pcptype == 'BOURGE3D') then
          call bourge1_3d(f(fneige),f(fip),d(tplus),d(sigw),f(pmoins),ni,nk-1)
+         zfneige1d(:) = zfneige2d(:,nk)
+         zfip1d(:)    = zfip2d(:,nk)
       endif
 
-      IF_BOURG3D: if (pcptype == 'BOURGE3D') then
 
+      IF_BOURG3D: if (pcptype == 'BOURGE3D' .and. stcond == 'CONSUN') then
          !AZR3D: ACCUMULATION DES PRECIPITATIONS VERGLACLACANTES EN 3D
          !AIP3D: ACCUMULATION DES PRECIPITATIONS RE-GELEES EN 3D
-         if (stcond == 'CONSUN') then
-            do k = 1,nk-1
-               do i = 1, ni
-                  ! Flux de consun1
-                  tempo = (zsnoflx(i,k)+zrnflx(i,k))*.001
-                  sol_stra = max(0.,zfneige2d(i,k)*tempo)
-                  liq_stra = max(0.,tempo-sol_stra)
-                  ! Flux de kfc
-                  tempo = (zkfcrf(i,k)+zkfcsf(i,k))*.001
-                  sol_conv = max(0.,zfneige2d(i,k)*tempo)
-                  liq_conv = max(0.,tempo-sol_conv)
-
-                  tempo = liq_stra+liq_conv
-
-                  if (ztplus(i,k) < tcdk) then
-                     zazr3d(i,k) = zazr3d(i,k) + (1.-zfip2d(i,k))*tempo*dt
-                  endif
-
-                  zaip3d(i,k) = zaip3d(i,k) + zfip2d(i,k)*tempo*dt
-               enddo
+         do k = 1,nk-1
+            do i = 1, ni
+               ! Flux de consun1
+               tempo = (zsnoflx(i,k)+zrnflx(i,k))*.001
+               sol_stra = max(0.,zfneige2d(i,k)*tempo)
+               liq_stra = max(0.,tempo-sol_stra)
+               ! Flux de kfc
+               tempo = (zkfcrf(i,k)+zkfcsf(i,k))*.001
+               sol_conv = max(0.,zfneige2d(i,k)*tempo)
+               liq_conv = max(0.,tempo-sol_conv)
+               tempo = liq_stra+liq_conv
+               if (ztplus(i,k) < tcdk) then
+                  zazr3d(i,k) = zazr3d(i,k) + (1.-zfip2d(i,k))*tempo*dt
+               endif
+               zaip3d(i,k) = zaip3d(i,k) + zfip2d(i,k)*tempo*dt
             enddo
-         endif
+         enddo
       endif IF_BOURG3D
 
 !VDIR NODEP
@@ -196,7 +197,21 @@ subroutine calcdiag(d,f,v,dsiz,fsiz,vsiz,dt,trnch,kount,ni,nk)
 
          !Precipitation types from Milbrandt-Yau cloud microphysics scheme:
 
-         IF_MY2: if (stcond(1:6) == 'MP_MY2')  then
+         IF_MP: if (stcond(1:3) == 'MP_')  then
+
+            !diagnose freezing drizzle/rain based on sfc temperature
+            !---override rn/fr partition from my2 [to be removed]
+            if (stcond(1:6) == 'MP_MY2') then
+               ztls_rn1(i) = ztls_rn1(i) + ztls_fr1(i)
+               ztls_rn2(i) = ztls_rn2(i) + ztls_fr2(i)
+            endif
+
+            if  (ztplus(i,nk) < TCDK) then
+               ztls_fr1(i) = ztls_rn1(i)
+               ztls_fr2(i) = ztls_rn2(i)
+               ztls_rn1(i) = 0.
+               ztls_rn2(i) = 0.
+            endif
 
             !tls:  rate of liquid precipitation (sum of rain and drizzle)
             ztls(i) = ztls_rn1(i) + ztls_rn2(i) + ztls_fr1(i) + ztls_fr2(i)
@@ -256,7 +271,7 @@ subroutine calcdiag(d,f,v,dsiz,fsiz,vsiz,dt,trnch,kount,ni,nk)
                zass_s2l(i) = 0.
             endif
 
-         endif IF_MY2
+         endif IF_MP
 
          !taux des precipitations, grid-scale condensation scheme
          zrr(i) = ztss(i) + ztls(i)
@@ -297,34 +312,25 @@ subroutine calcdiag(d,f,v,dsiz,fsiz,vsiz,dt,trnch,kount,ni,nk)
          !pr : accumulation des precipitations totales
          zpr(i) = zpc(i) + zae(i)
 
-         if ( pcptype == 'BOURGE3D' .and. &
-             (stcond == 'CONSUN' .or. stcond(1:6) == 'MP_MY2') ) then
-            tempo    = ztls(i)+ztss(i)
-            sol_stra = max(0.,zfneige2d(i,nk)*tempo)
-            liq_stra = max(0.,tempo-sol_stra)
-            tempo    = (ztlc(i)+ztlcs(i))+(ztsc(i)+ztscs(i))
-            sol_conv = max(0.,zfneige2d(i,nk)*tempo)
-            liq_conv = max(0.,tempo-sol_conv)
-         elseif ( pcptype == 'BOURGE' .and. &
-                  (stcond == 'CONSUN' .or. stcond(1:6) == 'MP_MY2') ) then
-            tempo    = ztls(i)+ztss(i)
-            sol_stra = max(0.,zfneige1d(i)*tempo)
-            liq_stra = max(0.,tempo-sol_stra)
-            tempo    = (ztlc(i)+ztlcs(i))+(ztsc(i)+ztscs(i))
-            sol_conv = max(0.,zfneige1d(i)*tempo)
-            liq_conv = max(0.,tempo-sol_conv)
+         if (stcond == 'CONSUN') then
+            tempo    = ztls(i) + ztss(i)
+            sol_stra = max(0., zfneige1d(i)*tempo)
+            liq_stra = max(0., tempo-sol_stra)
+            tempo    = ztlc(i) + ztlcs(i) + ztsc(i) + ztscs(i)
+            sol_conv = max(0., zfneige1d(i)*tempo)
+            liq_conv = max(0., tempo-sol_conv)
          elseif (pcptype == 'NIL') then
             sol_stra = ztss(i)
             liq_stra = ztls(i)
-            sol_conv = ztsc(i)+ztscs(i)
-            liq_conv = ztlc(i)+ztlcs(i)
-         else
-            tempo    = ztls(i)+ztss(i)
-            sol_stra = max(0.,zfneige1d(i)*tempo)
-            liq_stra = max(0.,tempo-sol_stra)
-            tempo    = (ztlc(i)+ztlcs(i))+(ztsc(i)+ztscs(i))
-            sol_conv = max(0.,zfneige1d(i)*tempo)
-            liq_conv = max(0.,tempo-sol_conv)
+            sol_conv = ztsc(i) + ztscs(i)
+            liq_conv = ztlc(i) + ztlcs(i)
+         else  !i.e. IF stcond==mp_ .and. pcptype==bourge or bourge3d
+            tempo    = ztls(i) + ztss(i)
+            sol_stra = max(0., zfneige1d(i)*tempo)
+            liq_stra = max(0., tempo-sol_stra)
+            tempo    = ztlc(i) + ztlcs(i) + ztsc(i) + ztscs(i)
+            sol_conv = max(0., zfneige1d(i)*tempo)
+            liq_conv = max(0., tempo-sol_conv)
          endif
 
          !RN : ACCUMULATION DES PRECIPITATIONS de PLUIE
@@ -333,69 +339,55 @@ subroutine calcdiag(d,f,v,dsiz,fsiz,vsiz,dt,trnch,kount,ni,nk)
          !SN : ACCUMULATION DES PRECIPITATIONS de neige
 
 
-         MY2_EXPLICIT: if ( stcond(1:6) == 'MP_MY2' .and. pcptype == 'NIL') then
+         IF_MP_EXPL: if (stcond(1:3)=='MP_' .and. pcptype(1:3)=='NIL') then
 
-            sol_stra = ztss(i)
-            liq_stra = ztls(i)
-            tempo    = ztlc(i)+ztlcs(i)+ztsc(i)+ztscs(i)  !total (deep+shallow) convection
-            sol_conv = max(0.,zfneige1d(i)*tempo)
-            liq_conv = max(0.,tempo-sol_conv)
+            tempo    = ztlc(i) + ztlcs(i) + ztsc(i) + ztscs(i)   !total convective (implicit)
+            sol_conv = max(0., zfneige1d(i)*tempo)
+            liq_conv = max(0., tempo-sol_conv)
             tempo2   = zazr(i)
-            zazr(i)  =  zazr(i) + (ztls_fr1(i) + ztls_fr2(i))*dt  !from MY2
-            zrn (i)  =  zrn (i) + (ztls_rn1(i) + ztls_rn2(i))*dt  !from MY2
-            !Add diagnostic portion of rain/freezing rain from convective schemes:
-            if  (ztplus(i,nk) < tcdk) then
-               zazr(i) = zazr(i) + (1.-zfip1d(i))*liq_conv*dt  !from cvt schemes
+            !add explicit + diagnostic portion of rain/freezing rain from convective schemes:
+            if  (ztplus(i,nk) < TCDK) then
+               zazr(i) = zazr(i)                                  &
+                         + (ztls_fr1(i)+ztls_fr2(i))*dt           & !from microphysics
+                         + (1.-zfip1d(i))*liq_conv*dt               !from convective schemes
             else
-               zrn (i) = zrn (i) + (1.-zfip1d(i))*liq_conv*dt  !from cvt schemes
+               zrn (i) = zrn(i)                                   &
+                         + (ztls_rn1(i)+ztls_rn2(i))*dt           & !from microphysics
+                         + (1.-zfip1d(i))*liq_conv*dt               !from convective schemes
             endif
             if (zazr(i) > tempo2) zzrflag(i) = 1.
-            zaip(i) = zaip(i)          &
-                 + ztss_pe1(i)*dt      &              !from MY2
-                 + zfip1d(i)*tempo*dt                 !from convective schemes
-            !note: Hail from MY2 (tss_pe2) is not included in total ice pellets (aip)
-            zsn(i)  = zsn(i)                                 &
-                 + (ztss_sn1(i)+ztss_sn2(i)+ztss_sn3(i))*dt  & !from MY2
-                 + sol_conv*dt                                 !from convective schemes
-            !note: contribution to SN from M-Y scheme is from ice, snow,
+            !add explicit + diagnostic portion of ice pellets from convective schemes:
+            zaip(i) = zaip(i)                                     &
+                      + ztss_pe1(i)*dt                            &  !from microphysics
+                      + zfip1d(i)*tempo*dt                           !from convective schemes
+            !note: Hail from M-Y (tss_pe2) is not included in total ice pellets (aip)
+            !add explicit + diagnostic portion of snow from convective schemes:
+            zsn(i)  = zsn(i)                                      &
+                      + (ztss_sn1(i)+ztss_sn2(i)+ztss_sn3(i))*dt  &  !from microphysics
+                      + sol_conv*dt                                  !from convective schemes
+            !note: contribution to SN from microphysics is from ice, snow,
             !      and graupel, instantaneous solid-to-liquid ratio for
             !      pcp rate total snow (i+s+g):
-            TEMPO =  ztss_sn1(i)+ztss_sn2(i)+ztss_sn3(i)
-            if (TEMPO > 1.e-12) then
-               ztss_s2l(i) = ztss_snd(i)/TEMPO
-            else
-               ztss_s2l(i) = 0.
-            endif
+            tempo       =  max(ztss_sn1(i)+ztss_sn2(i)+ztss_sn3(i), 1.e-18)
+            ztss_s2l(i) = ztss_snd(i)/tempo
 
          else
 
-            !diagnostic partitioning of precipitation types:
-            ! (total precipitation from all schemes)
-            ! BOURGE and NIL
-            if (pcptype == 'BOURGE' .or. pcptype == 'NIL')then
-               tempo =  liq_stra+liq_conv
-               if  (ztplus(i,nk) < tcdk) then
-                  zazr(i) = zazr(i) + (1.-zfip1d(i))*tempo*dt
-                  if (tempo > 0.) zzrflag(i) = 1.
-               else
-                  zrn(i) = zrn(i)  + (1.-zfip1d(i))*tempo*dt
-               endif
-               zaip(i) = zaip(i) + zfip1d(i)*tempo*dt
-               zsn (i) = zsn (i) + (sol_stra+sol_conv)*dt
-               !   BOURGE3D
-            else if (pcptype == 'BOURGE3D')then
-               tempo = liq_stra+liq_conv
-               if  (ztplus(i,nk) < tcdk) then
-                  zazr(i) = zazr(i) + (1.-zfip2d(i,nk))*tempo*dt
-                  if (tempo > 0.) zzrflag(i) = 1.
-               else
-                  zrn(i) = zrn(i)  + (1.-zfip2d(i,nk))*tempo*dt
-               endif
-               zaip(i) = zaip(i) + zfip2d(i,nk)*tempo*dt
-               zsn(i) = zsn(i) + (sol_stra+sol_conv)*dt
+            !diagnostic partitioning of rain vs. freezing rain:
+            tempo =  liq_stra + liq_conv
+            if  (ztplus(i,nk) < TCDK) then
+               zazr(i) = zazr(i) + (1.-zfip1d(i))*tempo*dt
+               if (tempo > 0.) zzrflag(i) = 1.
+            else
+               zrn(i) = zrn(i) + (1.-zfip1d(i))*tempo*dt
+               if (pcptype == 'BOURGE3D' .and. tempo > 0.) zzrflag(i) = 1.
             endif
+            !diagnostic ice pellets:
+            zaip(i) = zaip(i) + zfip1d(i)*tempo*dt
+            !diagnostic snow:
+            zsn (i) = zsn (i) + (sol_stra+sol_conv)*dt
 
-         endif MY2_EXPLICIT
+         endif IF_MP_EXPL
 
       end do DO_NI
 

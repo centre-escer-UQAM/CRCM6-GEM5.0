@@ -9,18 +9,252 @@
 !                                                                               !
 !_______________________________________________________________________________!
 !                                                                               !
-!  Package version:   2.25.2           (internal bookkeeping)                   !
-!  Last modified:     2016-01-04                                                !
+!  Package version:   3.2.0_BETA       (internal bookkeeping)                   !
+!  Last modified:     2018-02-27                                                !
+!
+!                ******   Adding back graupel density  ******
+!
 !_______________________________________________________________________________!
 
 MODULE mp_my2_mod
 
  private
  public  :: mp_my2_main
- private :: NccnFNC,SxFNC,gamma,gser,gammln,gammp,cfg,gamminc,polysvp,qsat,check_values
- private :: sedi_wrapper_2,sedi_1D,count_columns,des_OF_Ds,Dm_x,iLAMDA_x,N_Cooper,Nos_Thompson
+ private :: NccnFNC,SxFNC,gamma,gser,gammln,gammp,cfg,gamminc,polysvp,qv_sat,check_values,  &
+            sedi_wrapper_2,sedi_1D,count_columns,des_OF_Ds,Dm_x,iLAMDA_x,N_Cooper,          &
+            Nos_Thompson,activate,maxsat,erf,compute_graupel_parameters,rime_density
 
  CONTAINS
+
+!======================================================================!
+
+ subroutine compute_graupel_parameters(source_ind,Qg,Ng,Bg,epsQ,epsN,epsB,rhoa,PIov6,    &
+                    thrd,dmg,alpha_g,ilamda_g,afg,bfg,cmg,icmg,ckQg1,ckQg2,ckQg4,deg,    &
+                    ideg,No_g,Dg,GG09,GG11,GG12,GG13,GG31,iGG31,GG32,GG33,GG34,iGG34,    &
+                    GG35,GG36,GG40,iGG40,iGG99,cexg7)
+
+!-----------------------------------------------------------------------------
+! Computes diagnostic graupel parameters -- including the bulk density, size
+! distribution parameters, and fall velocity parameters -- from prognostic
+! variables Qg (mass mixing ratio), Bg (volume mixing ratio, and Ng (total
+! number concentration).
+!-----------------------------------------------------------------------------
+
+  implicit none
+
+ !Calling parameters:
+  integer, intent(in) :: source_ind
+  real, intent(inout) :: Bg
+  real, intent(in)    :: Qg,Ng,rhoa,dmg,PIov6,thrd,epsQ,epsN,epsB
+  real, intent(out)   :: alpha_g,ilamda_g,afg,bfg,cmg,icmg,ckQg1,ckQg2,ckQg4
+  real, intent(out), optional :: deg,ideg,No_g,Dg,GG09,GG11,GG12,GG13,GG31,iGG31,GG32,   &
+                         GG33,GG34,iGG34,GG35,GG36,GG40,iGG40,iGG99,cexg7
+
+ !Local variables:
+  real              :: tmp1,iNg,deg_tmp,ideg_tmp,GG11_tmp,GG31_tmp,iGG31_tmp,GG40_tmp,   &
+                       iGG40_tmp,iGG99_tmp,Dg_tmp
+  real,dimension(9) :: degTbl,aTbl,bTbl
+  integer           :: i
+  real, parameter   :: deg_min =  50.      !kg m-3,  minimum allowabale graupel density
+  real, parameter   :: deg_max = 900.      !kg m-3,  maximum allowabale graupel density
+  real, parameter   :: deg_mid = 400.      !kg m-3,  default graupel density
+
+  logical, parameter :: fixed_density = .false.  ! switch to revert to original fixed density and fallspeed params
+
+ !-- Look-up table for a(deg) and b(deg), where V(D,deg) = a(deg) * D^b(deg):
+ !  The following set of fall speed parameters were obtained from explicit calculations
+ !  of V(D) for a given graupel density, based on formulas from Mitchell and Heymsfield (200x),
+ !  for a range of D values, which were then fit to power law curves, V(D)=afg*D**bfg,
+ !  using regression.  For intermediate densities, the parameters are linearly interpolated
+ !  using the parameters corresponding to the nearested densities.
+  data degTbl /     50.,   150.,   250.,   350.,   450.,   550.,   650.,   750., 850. /   !deg
+ !set-1 (based on regression using range: 0.3 to 5 mm):
+ !data aTbl   /  227.60, 256.51, 279.36, 298.37, 314.92, 329.68, 343.14, 355.57, 367.14 / !a(deg)
+ !data bTbl   / 0.88595,0.79899,0.76479,0.74424,0.72988,0.71897,0.71026,0.70307,0.69696 / !b(deg)
+ !set-2 (based on regression using range: 0.3 to 30 mm):
+  data aTbl   /  62.923,  94.122,  114.74,  131.21,  145.26,  157.71,  168.98,  179.36,  189.02 / !a(deg)
+  data bTbl   / 0.67819, 0.63798, 0.62197, 0.61240, 0.60572, 0.60066, 0.59663, 0.59330, 0.59048 / !b(deg)
+ !==
+
+  if (.not.(Qg>epsQ .and. Ng>epsN .and. Bg>epsB)) then
+     print*
+     print*, '*** Stopped in MICRO, s/r COMPUTE_GRAUPEL_PARAMETERS (at entry) ***'
+     print*, 'Qg: ',Qg
+     print*, 'Ng: ',Ng
+     print*, 'Bg: ',Bg
+     print*, 'Source of call: ',source_ind
+     print*, '*** Aborting ***'
+     print*
+     stop
+  endif
+
+  deg_tmp = Qg/Bg          !bulk graupel density
+ !impose limits on deg:
+
+  if (deg_tmp<deg_min .or. deg_tmp>deg_max) then
+!      print*, '** Imposing deg trap (in S/R compute_graupel_parameters) **'
+!      print*, 'deg: ',deg,Qg,Bg,Ng
+     deg_tmp = min(deg_max,max(deg_min,deg_tmp))
+     Bg  = Qg/deg_tmp
+  endif
+
+!--***** To test with constant graupel density: ******
+  if (fixed_density) then
+     deg_tmp = 400.
+     Bg  = Qg/deg_tmp
+  endif
+!==
+
+  if (.not.(deg_tmp>0. .or. cmg>0. .or. Ng>0.)) then
+     print*
+     print*, '*** Stopped in MICRO, s/r COMPUTE_GRAUPEL_PARAMETERS ***'
+     print*, 'deg: ',deg_tmp
+     print*, 'cmg: ',cmg
+     print*, 'Ng:  ',Ng
+     print*, '*** Aborting before calculating reciprocal ***'
+     print*
+     stop
+  endif
+
+  ideg_tmp = 1./deg_tmp
+  cmg  = PIov6*deg_tmp     !mass-diameter coefficient
+  icmg = 1./cmg
+  iNg  = 1./Ng
+
+! Dg   = Dm_x(rhoa,Qg,iNg,icmg,thrd)
+  Dg_tmp = exp(thrd*log(rhoa*Qg*iNg*icmg))
+
+! if (Dg > DgMax) then
+!    print*, '*** STOPPED in s/r COMPUTE_GRAUPEL_PARAMETERS ***'
+!    print*, 'Dg (exceeds Dg_max): ',Dg
+!   !stop
+!   !ALTERNATIVE:  Could add size-limiter here
+! endif
+
+ !-- compute fall velocity parameters (function of density):
+  if (deg_tmp<degTbl(1)) then
+     afg = aTbl(1)
+     bfg = bTbl(1)
+  else if (deg_tmp>= degTbl(1) .and. deg_tmp<degTbl(9)) then
+     do i = 1,8
+        if (degTbl(i)<= deg_tmp .and. degTbl(i+1)>deg_tmp) then
+           tmp1= 1./(degTbl(i+1)-degTbl(i))
+           afg = aTbl(i)+(deg_tmp-degTbl(i))*(aTbl(i+1)-aTbl(i))*tmp1
+           bfg = bTbl(i)+(deg_tmp-degTbl(i))*(bTbl(i+1)-bTbl(i))*tmp1
+           exit
+        end if
+     enddo
+  else if (deg_tmp>=degTbl(9)) then
+     afg=aTbl(9)
+     bfg=bTbl(9)
+  end if
+ !==
+
+  if (fixed_density) then
+  !use constant fall speed parameters
+     afg = 19.300
+     bfg = 0.3700   !Ferrier (1994)
+  endif
+!==
+
+ !Diagnose or prescribe alpha_g:
+  alpha_g = 0.  ! 3.
+!==
+
+!non-optional
+!  real, intent(out)   :: alpha_g,ilamda_g,afg,bfg,cmg,icmg,ckQg1,ckQg2,ckQg4
+
+ !- the following are needed to computed the non-optional variables:
+  GG11_tmp   = gamma(1.+bfg+alpha_g)
+  GG31_tmp   = gamma(1.+alpha_g)
+  iGG31_tmp  = 1./GG31_tmp
+  GG40_tmp   = gamma(1.+alpha_g+dmg)
+  iGG40_tmp  = 1./GG40_tmp
+  iGG99_tmp  = 1./(GG40_tmp*iGG31_tmp*cmg)
+! iGG99_tmp  = iGG40_tmp*GG31_tmp*icmg)  !mathematically equivalent
+ !=
+
+  ilamda_g = exp(thrd*log(rhoa*Qg*iNg*iGG99_tmp)) !inverse of slope parameter
+  ckQg1    = afg*gamma(1.+alpha_g+dmg+bfg)*iGG40_tmp
+  ckQg2    = afg*GG11_tmp*iGG31_tmp
+  ckQg4    = 1./(cmg*GG40_tmp*iGG31_tmp)
+
+ !compute optional variables:
+  if (source_ind == 1) then  !source_in=2,3 is for call from SEDI
+  !note: It is assumed here that for (source_ind /= 2) all of the following
+  !      optional variables have been passed to the call statement.
+     GG11   = GG11_tmp
+     GG31   = GG31_tmp
+     iGG31  = iGG31_tmp
+     GG40   = GG40_tmp
+     iGG40  = iGG40_tmp
+     iGG99  = iGG99_tmp
+     GG09   = gamma(2.5+0.5*bfg+alpha_g)
+     GG12   = gamma(2.+bfg+alpha_g)
+     GG13   = gamma(3.+bfg+alpha_g)
+     GG32   = gamma(2.+alpha_g)
+     GG33   = gamma(3.+alpha_g)
+     GG34   = gamma(4.+alpha_g)
+     iGG34  = 1./GG34
+     GG35   = gamma(5.+alpha_g)
+     GG36   = gamma(6.+alpha_g)
+     cexg7  = (1.+alpha_g)/(4.+alpha_g)
+     No_g   =  Ng*iGG31/ilamda_g**(1.+alpha_g)
+     Dg     = Dg_tmp
+     deg    = deg_tmp
+     ideg   = ideg_tmp
+  endif
+ !==
+
+!--***** To test with constant graupel intercept parameter: ******
+! No_g = 4.e+6     !constant intercept parameter for graupel [m-4]
+!==
+
+ end subroutine compute_graupel_parameters
+
+
+!======================================================================!
+ real function rime_density(afd,bfd,afg,bfg,D_drop,D_grpl,gamfact,Tc)
+
+!----------------------------------------------------------------------!
+! Computes rime density [kg m-3] for graupel collecting liquid drops.
+! Based on parameterization of Cober and List, 1993 [JAS]
+!-----------------------------------------------------------------------!
+
+ implicit none
+
+ !Calling parameters:
+ real, intent(in) :: afd,bfd  !fall speed parameters of drop
+ real, intent(in) :: afg,bfg  !fall speed parameters of graupel
+ real, intent(in) :: D_drop   !mean-mass diamter of drop     [m]
+ real, intent(in) :: D_grpl   !mean-mass diamter of graupel  [m]
+ real, intent(in) :: gamfact  !air density correction factor for fall speed
+ real, intent(in) :: Tc       !ambient air tempera[deg C]
+
+ !Local variables:
+ real :: V_impact,iTc,Ri,V_drop,V_grpl
+
+ iTc = 1./min(-0.001,Tc)
+ !NOTE: Tc (ambient) is assumed for the surface temperature.  Technically,
+ !      should diagose graupel surface temperature from heat balance equation.
+ !      (but the ambient temperature is a reasonable approximation; tests show
+ !      very little sensitivity to different assumed values).
+
+ V_drop = gamfact*afd*D_drop**bfd
+ V_grpl = gamfact*afg*D_grpl**bfg
+ V_impact = abs(V_grpl-V_drop)
+ !NOTE: The value of V_impact needs to be modified based on Rassmussen and Heymsfield (1985)
+
+ Ri = -(0.5e+6*D_drop)*V_impact*iTc
+ Ri = max(1.,min(Ri,8.))
+ rime_density = (0.051 + 0.114*Ri - 0.0055*Ri*Ri)*1000.
+
+!-- alternative parameterization:  from Mansell et al. (2010)
+!rime_density = 300.*( (0.5e+6*D_drop)*0.6*V_impact*(-iTc) )**0.44
+!==
+
+ end function rime_density
+
 
 !==============================================================================!
 
@@ -75,6 +309,7 @@ MODULE mp_my2_mod
 
     print*, '*** STOPPED in MODULE ### NccnFNC  *** '
     print*, '    Parameter CCNtype incorrectly specified'
+    call flush(6)
     stop
 
   endif
@@ -134,6 +369,7 @@ MODULE mp_my2_mod
 
     print*, '*** STOPPED in MODULE ### SxFNC  *** '
     print*, '    Parameter CCNtype incorrectly specified'
+    call flush(6)
     stop
 
   endif
@@ -280,6 +516,25 @@ END SUBROUTINE gser
  END FUNCTION gammp
 !======================================================================!
 
+ real FUNCTION erf(x)                ! Added by C.Jouan april2015
+
+ ! USES gammp
+ ! Returns the error function erf(x ).
+
+ IMPLICIT NONE
+
+ real :: x
+
+ if(x.lt.0.)then
+    erf=-gammp(.5,x**2)
+ else
+    erf=gammp(.5,x**2)
+ endif
+ return
+
+ END FUNCTION erf
+!======================================================================!
+
  SUBROUTINE cfg(gammcf,a,x,gln)
 
 ! USES gammln
@@ -294,7 +549,7 @@ END SUBROUTINE gser
  integer :: i,itmax
  real    :: a,gammcf,gln,x,eps,fpmin
  real    :: an,b,c,d,de1,h
- parameter (itmax=100,eps=3.e-7)
+ parameter (itmax=100,eps=3.e-7,fpmin=1.e-30)  ! Modified by C.Jouan april2015
 
  gln=gammln(a)
  b=x+1.-a
@@ -329,30 +584,26 @@ END SUBROUTINE cfg
  end FUNCTION gamminc
 !======================================================================!
 
- real function polysvp(T,TYPE)
+ real function polysvp(T,i_type)
 
-!--------------------------------------------------------------
-! Taken from 'module_mp_morr_two_moment.F' (WRFV3.4)
-
+!-------------------------------------------
 !  COMPUTE SATURATION VAPOR PRESSURE
-
-!  POLYSVP RETURNED IN UNITS OF PA.
+!  POLYSVP1 RETURNED IN UNITS OF PA.
 !  T IS INPUT IN UNITS OF K.
-!  TYPE REFERS TO SATURATION WITH RESPECT TO LIQUID (0) OR ICE (1)
+!  i_type REFERS TO SATURATION WITH RESPECT TO LIQUID (0) OR ICE (1)
+!-------------------------------------------
 
-! REPLACE GOFF-GRATCH WITH FASTER FORMULATION FROM FLATAU ET AL. 1992,
-! TABLE 4 (RIGHT-HAND COLUMN)
-!--------------------------------------------------------------
+      implicit none
 
-      IMPLICIT NONE
+      real    :: DUM,T
+      integer :: i_type
 
-      REAL DUM
-      REAL T
-      INTEGER TYPE
+! REPLACE GOFF-GRATCH WITH FASTER FORMULATION FROM FLATAU ET AL. 1992, TABLE 4 (RIGHT-HAND COLUMN)
+
 ! ice
       real a0i,a1i,a2i,a3i,a4i,a5i,a6i,a7i,a8i
       data a0i,a1i,a2i,a3i,a4i,a5i,a6i,a7i,a8i /&
-	6.11147274, 0.503160820, 0.188439774e-1, &
+        6.11147274, 0.503160820, 0.188439774e-1, &
         0.420895665e-3, 0.615021634e-5,0.602588177e-7, &
         0.385852041e-9, 0.146898966e-11, 0.252751365e-14/
 
@@ -361,69 +612,103 @@ END SUBROUTINE cfg
 
 ! V1.7
       data a0,a1,a2,a3,a4,a5,a6,a7,a8 /&
-	6.11239921, 0.443987641, 0.142986287e-1, &
+        6.11239921, 0.443987641, 0.142986287e-1, &
         0.264847430e-3, 0.302950461e-5, 0.206739458e-7, &
         0.640689451e-10,-0.952447341e-13,-0.976195544e-15/
       real dt
 
+!-------------------------------------------
+
+      if (i_type.EQ.1 .and. T.lt.273.15) then
 ! ICE
 
-      IF (TYPE.EQ.1) THEN
+!       Flatau formulation:
+         dt       = max(-80.,t-273.16)
+         polysvp = a0i + dt*(a1i+dt*(a2i+dt*(a3i+dt*(a4i+dt*(a5i+dt*(a6i+dt*(a7i+       &
+                    a8i*dt)))))))
+         polysvp = polysvp*100.
 
-!         POLYSVP = 10.**(-9.09718*(273.16/T-1.)-3.56654*                &
-!          LOG10(273.16/T)+0.876793*(1.-T/273.16)+						&
-!          LOG10(6.1071))*100.
+!       Goff-Gratch formulation:
+!        POLYSVP1 = 10.**(-9.09718*(273.16/T-1.)-3.56654*                 &
+!          log10(273.16/T)+0.876793*(1.-T/273.16)+                        &
+!          log10(6.1071))*100.
 
 
-      dt = max(-80.,t-273.16)
-      polysvp = a0i + dt*(a1i+dt*(a2i+dt*(a3i+dt*(a4i+dt*(a5i+dt*(a6i+dt*(a7i+a8i*dt)))))))
-      polysvp = polysvp*100.
-
-      END IF
-
+      elseif (i_type.EQ.0 .or. T.ge.273.15) then
 ! LIQUID
 
-      IF (TYPE.EQ.0) THEN
+!       Flatau formulation:
+         dt       = max(-80.,t-273.16)
+         polysvp = a0 + dt*(a1+dt*(a2+dt*(a3+dt*(a4+dt*(a5+dt*(a6+dt*(a7+a8*dt)))))))
+         polysvp = polysvp*100.
 
-       dt = max(-80.,t-273.16)
-       polysvp = a0 + dt*(a1+dt*(a2+dt*(a3+dt*(a4+dt*(a5+dt*(a6+dt*(a7+a8*dt)))))))
-       polysvp = polysvp*100.
+!       Goff-Gratch formulation:
+!        POLYSVP1 = 10.**(-7.90298*(373.16/T-1.)+                         &
+!             5.02808*log10(373.16/T)-                                    &
+!             1.3816E-7*(10**(11.344*(1.-T/373.16))-1.)+                  &
+!             8.1328E-3*(10**(-3.49149*(373.16/T-1.))-1.)+                &
+!             log10(1013.246))*100.
 
-!         POLYSVP = 10.**(-7.90298*(373.16/T-1.)+                        &
-!             5.02808*LOG10(373.16/T)-									&
-!             1.3816E-7*(10**(11.344*(1.-T/373.16))-1.)+				&
-!             8.1328E-3*(10**(-3.49149*(373.16/T-1.))-1.)+				&
-!             LOG10(1013.246))*100.
+         endif
 
-         END IF
 
  end function polysvp
 
 !==============================================================================!
- real function qsat(temp,pres,wtype)
 
-!-----------------------------------------------------------------------------
-! Returns the saturation mixing ratio [kg kg-1], as a function of temperature
-! pressure, with respect to liquid water [wtype=0] or ice [wtype=1], by calling
-! function POLYSVP to obtain the saturation vapor pressure.
+!  real function qsat(temp,pres,wtype)
+!
+! !-----------------------------------------------------------------------------
+! ! Returns the saturation mixing ratio [kg kg-1], as a function of temperature
+! ! pressure, with respect to liquid water [wtype=0] or ice [wtype=1], by calling
+! ! function POLYSVP to obtain the saturation vapor pressure.
+!
+! ! 2013-08-06
+! !-----------------------------------------------------------------------------
+!
+!   implicit none
+!
+!  !Calling parameters:
+!   real, intent(in)    :: temp     !temperature [K]
+!   real, intent(in)    :: pres     !pressure    [Pa]
+!   integer, intent(in) :: wtype    !0=liquid water; 1=ice
+!
+!  !Local variables:
+!   real :: tmp1
+!
+!   tmp1 = polysvp(temp,wtype)       !esat [Pa], wrt liquid (Flatau formulation)
+!   qsat = 0.622*tmp1/(pres-tmp1)
+!
+!   end function qsat
 
-! 2013-08-06
-!-----------------------------------------------------------------------------
+!==============================================================================!
 
-  implicit none
+ real function qv_sat(t_atm,p_atm,i_wrt)
+
+!------------------------------------------------------------------------------------
+! Calls polysvp to obtain the saturation vapor pressure, and then computes
+! and returns the saturation mixing ratio, with respect to either liquid or ice,
+! depending on value of 'i_wrt'
+!------------------------------------------------------------------------------------
+
+ implicit none
 
  !Calling parameters:
-  real, intent(in)    :: temp     !temperature [K]
-  real, intent(in)    :: pres     !pressure    [Pa]
-  integer, intent(in) :: wtype    !0=liquid water; 1=ice
+ real    :: t_atm  !temperature [K]
+ real    :: p_atm  !pressure    [Pa]
+ integer :: i_wrt  !index, 0 = w.r.t. liquid, 1 = w.r.t. ice
 
  !Local variables:
-  real :: tmp1
+ real            :: e_pres         !saturation vapor pressure [Pa]
 
-  tmp1 = polysvp(temp,wtype)       !esat [Pa], wrt liquid (Flatau formulation)
-  qsat = 0.622*tmp1/(pres-tmp1)
+ !------------------
 
-  end function qsat
+ e_pres = polysvp(t_atm,i_wrt)
+!qv_sat = ep_2*e_pres/max(1.e-3,(p_atm-e_pres))
+ qv_sat = 0.622*e_pres/max(1.e-3,(p_atm-e_pres))
+
+ return
+ end function qv_sat
 
 !==============================================================================!
  subroutine check_values(Qv,T,Qc,Qr,Qi,Qn,Qg,Qh,Nc,Nr,Ny,Nn,Ng,Nh,epsQ,epsN,     &
@@ -480,11 +765,13 @@ END SUBROUTINE cfg
         if (.not.(T(i,k)>T_low .and. T(i,k)<T_high)) then
            print*,'** WARNING IN MICRO **'
            print*,'** src,i,k,T: ',source_ind,i,k,T(i,k)
+           call flush(6)
            trap = .true.
         endif
         if (.not.(Qv(i,k)>=0. .and. Qv(i,k)<Q_high)) then
            print*,'** WARNING IN MICRO **'
            print*,'** src,i,k,Qv (HU): ',source_ind,i,k,Qv(i,k)
+           call flush(6)
         endif
         !-- NAN check:
         if (.not.(Qc(i,k)>=x_low .and. Qc(i,k)<Q_high .and.                               &
@@ -498,6 +785,7 @@ END SUBROUTINE cfg
                    Qi(i,k),Qn(i,k),Qg(i,k),Qh(i,k)
            print*, '** src,i,k,Nc,Nr,Ny,Nn,Ng,Nh: ',source_ind,i,k,Nc(i,k),Nr(i,k),       &
                   Ny(i,k),Nn(i,k),Ng(i,k),Nh(i,k)
+           call flush(6)
            trap = .true.
         endif
         if (.not.(Nc(i,k)>=x_low .and. Nc(i,k)<N_high .and.                               &
@@ -511,6 +799,7 @@ END SUBROUTINE cfg
                    Qi(i,k),Qn(i,k),Qg(i,k),Qh(i,k)
            print*, '** src,i,k,Nc,Nr,Ny,Nn,Ng,Nh: ',source_ind,i,k,Nc(i,k),Nr(i,k),       &
                   Ny(i,k),Nn(i,k),Ng(i,k),Nh(i,k)
+           call flush(6)
            trap = .true.
         endif
         !==
@@ -518,31 +807,37 @@ END SUBROUTINE cfg
            if ((Qc(i,k)>epsQ.and.Nc(i,k)<epsN) .or. (Qc(i,k)<epsQ.and.Nc(i,k)>epsN)) then
               print*,'** WARNING IN MICRO **'
               print*, '** src,i,k,Qc,Nc: ',source_ind,i,k,Qc(i,k),Nc(i,k)
+              call flush(6)
               trap = .true.
            endif
            if ((Qr(i,k)>epsQ.and.Nr(i,k)<epsN) .or. (Qr(i,k)<epsQ.and.Nr(i,k)>epsN)) then
               print*,'** WARNING IN MICRO **'
               print*, '** src,i,k,Qr,Nr: ',source_ind,i,k,Qr(i,k),Nr(i,k)
+              call flush(6)
               trap = .true.
            endif
            if ((Qi(i,k)>epsQ.and.Ny(i,k)<epsN) .or. (Qi(i,k)<epsQ.and.Ny(i,k)>epsN)) then
               print*,'** WARNING IN MICRO **'
               print*, '** src,i,k,Qi,Ny: ',source_ind,i,k,Qi(i,k),Ny(i,k)
+              call flush(6)
               trap = .true.
            endif
            if ((Qn(i,k)>epsQ.and.Nn(i,k)<epsN) .or. (Qn(i,k)<epsQ.and.Nn(i,k)>epsN)) then
               print*,'** WARNING IN MICRO **'
               print*, '** src,i,k,Qn,Nn: ',source_ind,i,k,Qn(i,k),Nn(i,k)
+              call flush(6)
               trap = .true.
            endif
            if ((Qg(i,k)>epsQ.and.Ng(i,k)<epsN) .or. (Qg(i,k)<epsQ.and.Ng(i,k)>epsN)) then
               print*,'** WARNING IN MICRO **'
               print*, '** src,i,k,Qg,Ng: ',source_ind,i,k,Qg(i,k),Ng(i,k)
+              call flush(6)
               trap = .true.
            endif
            if ((Qh(i,k)>epsQ.and.Nh(i,k)<epsN) .or. (Qh(i,k)<epsQ.and.Nh(i,k)>epsN)) then
               print*,'** WARNING IN MICRO **'
               print*, '** src,i,k,Qh,Nh: ',source_ind,i,k,Qh(i,k),Nh(i,k)
+              call flush(6)
               trap = .true.
            endif
         endif !if (check_consistency)
@@ -551,6 +846,7 @@ END SUBROUTINE cfg
 
   if (trap .and. force_abort) then
      print*,'** DEBUG TRAP IN MICRO, s/r CHECK_VALUES -- source: ',source_ind
+     call flush(6)
      if (source_ind/=100) stop
   endif
 
@@ -558,9 +854,10 @@ END SUBROUTINE cfg
 
 
 !=====================================================================================!
-  SUBROUTINE sedi_wrapper_2(QX,NX,cat,epsQ,epsQ_sedi,epsN,dmx,ni,VxMax,DxMax,dt,     &
-                massFlux_bot,kdir,kbot,ktop_sedi,GRAV,zheight,nk,DE,iDE,iDP,         &
-                DZ,iDZ,gamfact,kount,afx_in,bfx_in,cmx_in,ckQx1_in,ckQx2_in,ckQx4_in)
+  SUBROUTINE sedi_wrapper_2(QX,NX,cat,epsQ,epsQ_sedi,epsN,dmx,ni,VxMax,DxMax,dt,      &
+                massFlux_bot,kdir,kbot,ktop_sedi,GRAV,zheight,nk,DE,iDE,iDP,          &
+                DZ,iDZ,gamfact,kount,afx_in,bfx_in,cmx_in,ckQx1_in,ckQx2_in,ckQx4_in, &
+                BX,epsB)
 
 !-------------------------------------------------------------------------------------!
 !  Wrapper for s/r SEDI, for computation on all vertical levels.  Called from MY2_MAIN.
@@ -569,11 +866,12 @@ END SUBROUTINE cfg
   implicit none
 
 ! PASSING PARAMETERS:
+  real, dimension(:,:), intent(inout), optional :: BX
   real, dimension(:,:), intent(inout) :: QX,NX
   real, dimension(:),   intent(out)   :: massFlux_bot
   real, dimension(:,:), intent(in)    :: zheight, DE,iDE,iDP,DZ,iDZ,gamfact
   real, intent(in)                    :: epsQ,epsQ_sedi,epsN,VxMax,dmx,DxMax,dt,GRAV
-  real, intent(in), optional          :: afx_in,bfx_in,cmx_in,ckQx1_in,ckQx2_in,ckQx4_in
+  real, intent(in), optional          :: afx_in,bfx_in,cmx_in,ckQx1_in,ckQx2_in,ckQx4_in,epsB
   integer, dimension(:), intent(in)   :: ktop_sedi
   integer, intent(in)                 :: ni,cat,kbot,kdir,nk,kount
 
@@ -637,16 +935,22 @@ END SUBROUTINE cfg
    ktop = ktop_sedi  !(i-array)  - for complete column, ktop(:)=1 (GEM) or =nk (WRF)
    call count_columns(QX,ni,epsQ_sedi,counter,activeColumn,kdir,kbot,ktop)
 
-   DO a = 1,counter
+   do a = 1,counter
       i= activeColumn(a)
      !From here, all sedi calcs are done for each column i
 
-      call sedi_1D(QX(i,:),NX(i,:),cat,DE(i,:),iDE(i,:),iDP(i,:),gamfact(i,:),epsQ,epsN,  &
-                   dmx,VxMax,DxMax,dt,DZ(i,:),iDZ(i,:),massFlux_bot(i),kdir,kbot,ktop(i), &
-                   GRAV,afx_in=afx_in,bfx_in=bfx_in,cmx_in=cmx_in,ckQx1_in=ckQx1_in,      &
-                   ckQx2_in=ckQx2_in,ckQx4_in=ckQx4_in)
+        if (present(BX)) then
+         call sedi_1D(QX(i,:),NX(i,:),cat,DE(i,:),iDE(i,:),iDP(i,:),gamfact(i,:),epsQ,   &
+             epsN,dmx,VxMax,DxMax,dt,DZ(i,:),iDZ(i,:),massFlux_bot(i),kdir,kbot,ktop(i), &
+             GRAV,BX1d=BX(i,:),epsB=epsB)
+        else
+         call sedi_1D(QX(i,:),NX(i,:),cat,DE(i,:),iDE(i,:),iDP(i,:),gamfact(i,:),epsQ,   &
+             epsN,dmx,VxMax,DxMax,dt,DZ(i,:),iDZ(i,:),massFlux_bot(i),kdir,kbot,ktop(i), &
+             GRAV,afx_in=afx_in,bfx_in=bfx_in,cmx_in=cmx_in,ckQx1_in=ckQx1_in,ckQx2_in=  &
+             ckQx2_in,ckQx4_in=ckQx4_in)
+        endif
 
-   ENDDO  !a-loop
+   enddo  !a-loop
 
  END SUBROUTINE sedi_wrapper_2
 
@@ -739,7 +1043,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
    BX_present = present(BX1d)
 
   !for rain, ice, snow, hail:
-! !    if (.not. (cat==4 .and. BX_present)) then
+   if (.not. (cat==4 .and. BX_present)) then
       afx   = afx_in
       bfx   = bfx_in
       cmx   = cmx_in
@@ -748,7 +1052,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
       ckQx2 = ckQx2_in
       ckQx4 = ckQx4_in
       ratio_Vn2Vq  = ckQx2/ckQx1
-! !    endif
+   endif
 
    massFlux_bot = 0.
    iDxMax = 1./DxMax
@@ -759,25 +1063,25 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
    VnMax  = 0.
    VVQ(:) = 0.
 
-! !    if (cat==4 .and. BX_present) then
-! !     !for graupel:
-! !       do k= kbot,ktop,kdir
-! !          QxPresent =  (QX1d(k)>epsQ .and. NX1d(k)>epsN .and. BX1d(k)>epsB)
-! !          if (QxPresent) then
-! !             call compute_graupel_parameters(2,QX1d(k),NX1d(k),BX1d(k),epsQ,epsN,epsB,    &
-! !                          DE1d(k),PIov6,thrd,dmx,alpha_x,iLAMx,afx,bfx,cmx,icmx,ckQx1,    &
-! !                          ckQx2,ckQx4)
-! !             ratio_Vn2Vq  = ckQx2/ckQx1
-! !             VVQ(k)       = VV_Qg()
-! !          endif
-! !       enddo
-! !    else
-! !     !for rain, ice, snow, hail:
+   if (cat==4 .and. BX_present) then
+    !for graupel:
+      do k= kbot,ktop,kdir
+         QxPresent =  (QX1d(k)>epsQ .and. NX1d(k)>epsN .and. BX1d(k)>epsB)
+         if (QxPresent) then
+            call compute_graupel_parameters(2,QX1d(k),NX1d(k),BX1d(k),epsQ,epsN,epsB,    &
+                         DE1d(k),PIov6,thrd,dmx,alpha_x,iLAMx,afx,bfx,cmx,icmx,ckQx1,    &
+                         ckQx2,ckQx4)
+            ratio_Vn2Vq  = ckQx2/ckQx1
+            VVQ(k)       = VV_Qg()
+         endif
+      enddo
+   else
+    !for rain, ice, snow, hail:
       do k= kbot,ktop,kdir
          QxPresent =  (QX1d(k)>epsQ .and. NX1d(k)>epsN)
          if (QxPresent) VVQ(k)= VV_Q()
       enddo
-! !    endif
+   endif
 
    Vxmaxx= min( VxMax, maxval(VVQ(:)))
    if (kdir==1) then
@@ -793,44 +1097,44 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
       firstPass = (nnn==1)
 
-! !      if (cat==4 .and. BX_present) then
-! !
-! !     !for graupel:
-! !       do k= kbot,ktop,kdir
-! !          QxPresent  = (QX1d(k)>epsQ .and. NX1d(k)>epsN .and. BX1d(k)>epsB)
-! !          if (QxPresent) then
-! !             if (firstPass) then     !to avoid re-computing VVQ on first pass
-! !                VVQ(k)= -VVQ(k)
-! !             else
-! !                call compute_graupel_parameters(3,QX1d(k),NX1d(k),BX1d(k),epsQ,epsN,epsB, &
-! !                             DE1d(k),PIov6,thrd,dmx,alpha_x,iLAMx,afx,bfx,cmx,icmx,ckQx1, &
-! !                             ckQx2,ckQx4)
-! !                ratio_Vn2Vq  = ckQx2/ckQx1
-! !                VVQ(k)       = -VV_Qg()
-! !             endif
-! !             !--
-! ! !           !to control excessive size-sorting for graupel:
-! ! !           !  note: with constant alpha_g=3, there appears to be no need for extra
-! ! !           !        control of size-sorting.  (commented code is left as a placeholder)
-! ! !           tmp1 = (icmx*QX1d(k)/NX1d(k))**thrd   !Dmg
-! ! !           tmp2 = min(50., 0.5*(1000.*tmp1))     !mu = const*Dmg [mm]
-! ! !           ratio_Vn2Vq = ((3.+tmp2)*(2.+tmp2)*(1.+tmp2))/((3.+bfx+tmp2)*             &
-! ! !                          (2.+bfx+tmp2)*(1.+bfx+tmp2))
-! !             !==
-! !             VVN(k) = VVQ(k)*ratio_Vn2Vq
-! !             VqMax  = max(VxMAX,-VVQ(k))
-! !             VnMax  = max(VxMAX,-VVN(k))
-! !          else
-! !             VVQ(k) = 0.
-! !             VVN(k) = 0.
-! !             VqMax  = 0.
-! !             VnMax  = 0.
-! !          endif
-! !       enddo  !k-loop
-! !
-! !      else
-! !
-! !     !for rain, ice, snow, hail:
+     if (cat==4 .and. BX_present) then
+
+    !for graupel:
+      do k= kbot,ktop,kdir
+         QxPresent  = (QX1d(k)>epsQ .and. NX1d(k)>epsN .and. BX1d(k)>epsB)
+         if (QxPresent) then
+            if (firstPass) then     !to avoid re-computing VVQ on first pass
+               VVQ(k)= -VVQ(k)
+            else
+               call compute_graupel_parameters(3,QX1d(k),NX1d(k),BX1d(k),epsQ,epsN,epsB, &
+                            DE1d(k),PIov6,thrd,dmx,alpha_x,iLAMx,afx,bfx,cmx,icmx,ckQx1, &
+                            ckQx2,ckQx4)
+               ratio_Vn2Vq  = ckQx2/ckQx1
+               VVQ(k)       = -VV_Qg()
+            endif
+            !--
+!           !to control excessive size-sorting for graupel:
+!           !  note: with constant alpha_g=3, there appears to be no need for extra
+!           !        control of size-sorting.  (commented code is left as a placeholder)
+!           tmp1 = (icmx*QX1d(k)/NX1d(k))**thrd   !Dmg
+!           tmp2 = min(50., 0.5*(1000.*tmp1))     !mu = const*Dmg [mm]
+!           ratio_Vn2Vq = ((3.+tmp2)*(2.+tmp2)*(1.+tmp2))/((3.+bfx+tmp2)*             &
+!                          (2.+bfx+tmp2)*(1.+bfx+tmp2))
+            !==
+            VVN(k) = VVQ(k)*ratio_Vn2Vq
+            VqMax  = max(VxMAX,-VVQ(k))
+            VnMax  = max(VxMAX,-VVN(k))
+         else
+            VVQ(k) = 0.
+            VVN(k) = 0.
+            VqMax  = 0.
+            VnMax  = 0.
+         endif
+      enddo  !k-loop
+
+     else
+
+    !for rain, ice, snow, hail:
       do k= kbot,ktop,kdir
          QxPresent  = (QX1d(k)>epsQ .and. NX1d(k)>epsN)
          if (QxPresent) then
@@ -859,7 +1163,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
          endif
       enddo  !k-loop
 
-! !      endif
+     endif
 
       !sum instantaneous surface mass flux at each split step: (for division later)
       massFlux_bot= massFlux_bot - VVQ(kbot)*DE1d(kbot)*QX1d(kbot)
@@ -996,27 +1300,182 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
  END SUBROUTINE count_columns
 !=======================================================================================!
 
+ SUBROUTINE activate( wbar, tair, rhoair, na, am, disp, hygro, n_act, s_max) ! Added by C.Jouan april2015
+!--------------------------------------------------------------------------------------
+! Calculates the number and mass of aerosols activated as CCN.
+! MKS units!
+!
+! Abdul-Razzak and Ghan, A parameterization of aerosol activation.
+! 2. Multiple aerosol types. J. Geophys. Res., 105, 6837-6844.
+!--------------------------------------------------------------------------------------
+
+   implicit NONE
+
+!---------------------------- Arguments --------------------------------
+   real, intent(in) :: &
+             wbar,         & !grid cell mean vertical velocity [m/s]
+             tair,         & !air temperature [K]
+             rhoair          !air density [kg/m3])
+
+   real, intent (in) ::    &
+             na,           & !aerosol number concentration [#/m3]
+             am,           & !aerosol mean radius [m]
+             disp,         & !aerosol size distribution
+             hygro           !aerosol hygroscopicity
+
+   real, intent(out) ::     &
+             n_act,         & !num conc of activated aerosols [kg/m3]
+             s_max            !max supersaturation
+!------------------------ Local work space  ----------------------------
+   real     :: &
+             pres,         & !pressure (Pa)
+             diff,         & !diffusivity (m2/s)
+             conduct,      & !thermal conductivity (J/m/s/deg)
+             qs,           & !water vapor saturation mixing ratio
+             dqsdt,        & !change in qs with temperature
+             dqsdp,        & !change in qs with pressure
+             gloc            !thermodynamic function (m2/s)
+
+   real, parameter ::  &
+                       tt0       = 273.15,    & ![K] ref. temp.
+                       p0        = 101325.,   & ![Pa] ref. pres.
+                       hygro_thr = 1.0e-10,   & ! hygroscopicity threshold
+                       latvap    =.2501e+7,   & !J kg-1; latent heat of condensation
+                       cpair     =.100546e+4, & !J K-1 kg-1; specific heat of dry air
+                       rair      =.28705e+3,  & !J K-1 kg-1; gas constant for dry air
+                       rh2o      =.46151e+3,  & !J K-1 kg-1; gas constant for water vapour
+                       gravit    =.980616e+1, & !M s-2; gravitational acceleration
+                       rhoh2o    =.1e+4,      & !density of liquid H2O
+                       surften   =.076,       & !surface tension water/air interface N/m
+                       mwh2o     = 18.015e-3, & !kg.mole-1 water mass molecular
+                       r_universal = 8.3143,  & !J.K-1.mole-1 constant for ideal gas
+                       pi        = 3.14159265,&
+                       sq2       = sqrt(2.0)
+
+   real     :: eta, etafactor2, amcube, smc, lnsmloc, alogsig, f1, f2
+   real     :: alpha, beta, zeta, gammaloc, etafactor1, etafactor2max, &
+               alw, sqrtalw, sqrtg, lnsmax, x, aten
+
+!-----------------------------------------------------------------------
+
+   !initialize output
+
+   if( na < 1.e-20) return
+
+   n_act = 0.
+   pres     = rair*rhoair*tair
+   diff     = 0.211e-4 * ( p0/pres ) * ( tair/tt0 )**1.94
+   conduct  = ( 5.69 + 0.017*(tair-tt0) ) * 4.186e2*1.e-5        ! convert to J/m/s/deg
+   qs       = qv_sat(tair, pres, 0)
+   alpha    = gravit*( latvap/(cpair*rh2o*tair*tair) - 1./(rair*tair) )
+   dqsdt    = latvap/( rh2o*tair*tair) * qs
+   gammaloc = ( 1. + latvap/cpair*dqsdt ) / (rhoair*qs)
+
+   !  growth coefficent below (Abdul-Razzak & Ghan 1998 eqn 16)
+   !  should take into account kinetic effects and use modified diffusivity
+   !  and thermal conductivity
+   gloc = 1./(  rhoh2o/(diff*rhoair*qs)                             &
+          + latvap*rhoh2o/(conduct*tair)*(latvap/(rh2o*tair) - 1.)  )
+   sqrtg = sqrt(gloc)
+   beta  = 4.*pi*rhoh2o*gloc*gammaloc
+   etafactor2max = 1.e10/(alpha*wbar)**1.5
+   aten     = 2.*mwh2o*surften/(r_universal*tt0*rhoh2o)
+
+   !single  updraft
+   alw        = alpha*wbar
+   sqrtalw    = sqrt(alw)
+   zeta       = 2.*sqrtalw*aten/(3.*sqrtg)
+   etafactor1 = 2.*alw*sqrtalw
+
+   alogsig      = log(disp)
+   f1           = 0.5*exp( 2.5*alogsig*alogsig )
+   f2           = 1. + 0.25*alogsig
+
+   if( na > 1.e-30 )then
+      etafactor2=1./( na*beta*sqrtg )
+      amcube = am**3
+      if( hygro > hygro_thr )then
+         smc=2.*aten*sqrt(aten/(27.*hygro*amcube))           ! critical supersaturation
+      else
+         smc=100.
+      end if
+   else
+      smc = 1.
+      etafactor2=etafactor2max
+   endif
+
+   lnsmloc = log( smc )
+   eta     = etafactor1*etafactor2
+   call maxsat( zeta, eta, f1, f2, smc, s_max )
+   lnsmax = log(s_max)
+   !activated aerosol number conc
+   x = 2.*( lnsmloc-lnsmax )/( 3.*sq2*alogsig )
+   n_act = 0.5 * ( 1.-erf(x) ) * na
+   n_act = max( n_act, 0. )
+ END SUBROUTINE activate
+!=======================================================================
+
+ SUBROUTINE maxsat( zeta, eta, f1, f2, smc, s_max ) ! Added by C.Jouan april2015
+!=======================================================================
+! Purpose:
+! Calculates maximum supersaturation for one aerosol mode.
+!
+! Abdul-Razzak and Ghan, A parameterization of aerosol activation.
+! 2. Multiple aerosol types. J. Geophys. Res., 105, 6837-6844.
+!
+!-----------------------------------------------------------------------
+
+   implicit NONE
+
+   real     :: smc        ! critical supersaturation
+   real     :: zeta, eta
+   real     :: f1, f2
+   real     :: s_max       ! maximum supersaturation
+   real     :: g1, g2
+   real     :: rdummy
+!-----------------------------------------------------------------------
+
+   if( eta > 1.e-20 )then
+     g1  = sqrt( zeta/eta )
+     g1  = g1*g1*g1
+     g2  = smc/sqrt( eta + 3*zeta )
+     g2  = sqrt(g2)
+     g2  = g2*g2*g2
+     rdummy = ( f1*g1 + f2*g2 )/( smc*smc )
+   else
+     rdummy = 1.e20
+   endif
+
+   if( s_max > 0. )then
+     s_max = 1./sqrt(rdummy)
+   else
+     s_max = 1.e-20
+   end if
+
+
+ END SUBROUTINE maxsat
+!==============================================================================!
 !_______________________________________________________________________________________!
 
- SUBROUTINE mp_my2_main(WZ,T,Q,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,PS,              & 
+ SUBROUTINE mp_my2_main(WZ,T,Q,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,BG,Naero,PS,           &
      sigma,RT_rn1,RT_rn2,RT_fr1,RT_fr2,RT_sn1,RT_sn2,RT_sn3,RT_pe1,RT_pe2,RT_peL,RT_snd,  &
-     dt,NI,NK,J,KOUNT,CCNtype,precipDiag_ON,sedi_ON,warmphase_ON,autoconv_ON,icephase_ON, &
-     snow_ON,Dm_c,Dm_r,Dm_i,Dm_s,Dm_g,Dm_h,ZET,ZEC,SS,reff_c,reff_i1,reff_i2,reff_i3,     &
-     reff_i4,cloud_bin,nk_bottom)
+     dt,NI,NK,J,KOUNT,aeroact,CCNtype,precipDiag_ON,sedi_ON,warmphase_ON,autoconv_ON,     &
+     icephase_ON,snow_ON,Dm_c,Dm_r,Dm_i,Dm_s,Dm_g,Dm_h,ZET,ZEC,SS,reff_c,reff_i1,reff_i2, &
+     reff_i3,reff_i4,cloud_bin,nk_bottom)
 
   implicit none
 
 !CALLING PARAMETERS:
-  integer,               intent(in)    :: NI,NK,J,KOUNT,CCNtype
+  integer,               intent(in)    :: NI,NK,J,KOUNT,aeroact,CCNtype
   real,                  intent(in)    :: dt
   real, dimension(:),    intent(in)    :: PS
   real, dimension(:),    intent(out)   :: RT_rn1,RT_rn2,RT_fr1,RT_fr2,RT_sn1,RT_sn2,     &
                                           RT_sn3,RT_pe1,RT_pe2,RT_peL,ZEC,RT_snd
-  real, dimension(:,:),  intent(in)    :: WZ,sigma
-  real, dimension(:,:),  intent(inout) :: T,Q,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH
+  real, dimension(:,:),  intent(in)    :: WZ,sigma,Naero
+  real, dimension(:,:),  intent(inout) :: T,Q,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,BG
   real, dimension(:,:),  intent(out)   :: ZET,reff_c,reff_i1,reff_i2,reff_i3,reff_i4,    &
   			 	          Dm_c,Dm_r,Dm_i,Dm_s,Dm_g,Dm_h
-  real, dimension(NI,NK),intent(out)   :: cloud_bin             ! cloud fraction (0 or 1)     
+  real, dimension(NI,NK),intent(out)   :: cloud_bin             ! cloud fraction (0 or 1)
   real, dimension(:,:,:),intent(out)   :: SS
   logical,               intent(in)    :: precipDiag_ON,sedi_ON,icephase_ON,snow_ON,     &
                                           warmphase_ON,autoconv_ON,nk_BOTTOM
@@ -1087,12 +1546,16 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 ! J                  y-dir index (local subdomain)
 ! KOUNT              current model time step number
 ! dt                 model time step                                      [s]
+! aeroact            switch for aerosol activations scheme                           ! Added by C.Jouan april2015
+!                      1 = default                            Last Version (Polynomial approximations of CP00a approach using a hypergeometric function)
+!                      2 = ARG + aerosol climatology          Abdul-Razzak and Ghan, A parameterization of aerosol activation
 ! CCNtype            switch for airmass type
 !                      1 = maritime                   --> N_c =  80 cm-3  (1-moment cloud)
 !                      2 = continental 1              --> N_c = 200 cm-3     "       "
 !                      3 = continental 2  (polluted)  --> N_c = 500 cm-3     "       "
 !                      4 = land-sea-mask-dependent (TBA)
 ! WZ                 vertical velocity                                    [m s-1]
+! Naero              total number concentration for CCN climatology       [#.kg-1]  ! Added by C.Jouan april2015
 ! sigma              sigma = p/p_sfc
 ! precipDiag_ON      logical switch, .F. to suppress calc. of sfc precip types
 ! sedi_ON            logical switch, .F. to suppress sedimentation
@@ -1170,7 +1633,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        iLAMs,iLAMs2,iLAMsB0,iLAMsB1,iLAMsB2,iLAMr,iLAMr2,iLAMr3,iLAMr4,iLAMr5,      &
        iLAMc2,iLAMc3,iLAMc4,iLAMc5,iLAMc6,iQC,iQR,iQI,iQN,iQG,iQH,iEih,iEsh,        &
        N_c,N_r,N_i,N_s,N_g,N_h,fluxV_i,fluxV_g,fluxV_s,rhos_mlt,fracLiq,            &
-       cloudliq,cloudice,cloudsnow
+       cloudliq,cloudice,cloudsnow,BCNsg,BCLcg,BCLirg,BCLig,BCLsrg,deg,ideg_srg,    &
+       BCLgrg,mgo,alpha_g,iGG40,afg,bfg,deg_rime
 
  !Variables that only need to be calulated on the first step (and saved):
   real, save :: idt,iMUc,cmr,cmi,cms,cmg,cmh,icmr,icmi,icmg,icms,icmh,idew,idei,    &
@@ -1184,7 +1648,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        GS09,GS11,GS12,GS13,iGS20,GS31,iGS31,GS32,GS33,GS34,GS35,GS36,GS40,iGS40,    &
        GS50,GG09,GG11,GG12,GG13,GG31,iGG31,GG32,GG33,GG34,GG35,GG36,GG40,iGG99,GH09,&
        GH11,GH12,GH13,GH31,GH32,GH33,GH40,GR50,GG50,iGH34,GH50,iGH99,iGH31,iGS34,   &
-       iGS20_D3,GS40_D3,cms_D3,eds,fds,rfact_FvFm
+       iGS20_D3,GS40_D3,cms_D3,eds,fds,rfact_FvFm,cexg7
 
 !Size distribution parameters:
   real, parameter :: MUc      =  3.    !shape parameter for cloud
@@ -1192,7 +1656,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   real, parameter :: alpha_r  =  0.    !shape parameter for rain
   real, parameter :: alpha_i  =  0.    !shape parameter for ice
   real, parameter :: alpha_s  =  0.    !shape parameter for snow
-  real, parameter :: alpha_g  =  0.    !shape parameter for graupel
+! real, parameter :: alpha_g  =  0.    !shape parameter for graupel
   real, parameter :: alpha_h  =  0.    !shape parameter for hail
   real, parameter :: No_s_max =  1.e+8 !max. allowable intercept for snow [m-4]
   real, parameter :: lamdas_min= 500.  !min. allowable LAMDA_s [m-1]
@@ -1214,10 +1678,11 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   !        Explicit appearance of MUr = 1. has been removed.
 
   ! Fallspeed parameters:
+  real, parameter :: afc= 2.975e+7,  bfc= 2.0000   !Rogers and Yau (1989)
   real, parameter :: afr=  149.100,  bfr= 0.5000   !Tripoloi and Cotton (1980)
   real, parameter :: afi=   71.340,  bfi= 0.6635   !Ferrier (1994)
   real, parameter :: afs=   11.720,  bfs= 0.4100   !Locatelli and Hobbs (1974)
-  real, parameter :: afg=   19.300,  bfg= 0.3700   !Ferrier (1994)
+!  real, parameter :: afg=   19.300,  bfg= 0.3700   !Ferrier (1994)
   real, parameter :: afh=  206.890,  bfh= 0.6384   !Ferrier (1994)
  !options:
  !real, parameter :: afs=    8.996,  bfs= 0.4200   !Ferrier (1994)
@@ -1226,13 +1691,15 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   real, parameter :: epsQ  = 1.e-14   !kg kg-1, min. allowable mixing ratio
   real, parameter :: epsN  = 1.e-3    !m-3,     min. allowable number concentration
   real, parameter :: epsQ2 = 1.e-6    !kg kg-1, mixing ratio threshold for diagnostics
+  real, parameter :: epsB  = 1.e-20   !m3 kg-1, min. allowable bulk volume mixing ratio
   real, parameter :: epsVIS= 1.       !m,       min. allowable visibility
 
   real, parameter :: iLAMmin1= 1.e-6  !min. iLAMx (prevents underflow in Nox and VENTx calcs)
   real, parameter :: iLAMmin2= 1.e-10 !min. iLAMx (prevents underflow in Nox and VENTx calcs)
   real, parameter :: eps   = 1.e-32
 
-  real, parameter :: deg   =  400., mgo= 1.6e-10
+! real, parameter :: deg   =  400.
+! real, parameter :: mgo   = 1.6e-10  !corresponds to embry diameter of ~ 0.1 mm
   real, parameter :: deh   =  900.
   real, parameter :: dei   =  500., mio=1.e-12, Nti0=1.e3
   real, parameter :: dew   = 1000.
@@ -1247,7 +1714,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   real, parameter :: DrMax=  5.e-3,   VrMax= 16.,   epsQr_sedi= 1.e-8
   real, parameter :: DiMax=  5.e-3,   ViMax=  2.,   epsQi_sedi= 1.e-10
   real, parameter :: DsMax=  5.e-3,   VsMax=  4.,   epsQs_sedi= 1.e-8
-  real, parameter :: DgMax=  2.e-3,   VgMax=  6.,   epsQg_sedi= 1.e-8
+  real, parameter :: DgMax= 50.e-3,   VgMax= 25.,   epsQg_sedi= 1.e-8
   real, parameter :: DhMax= 80.e-3,   VhMax= 25.,   epsQh_sedi= 1.e-10
 
   real, parameter :: CPW     = 4218.              ![J kg-1 K-1] specific heat capacity of water
@@ -1285,6 +1752,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   real, parameter :: Fv_Dsmax    = 0.008          ![m] max snow size to compute volume flux
   real, parameter :: Ni_max      = 1.e+7          ![m-3] max ice crystal concentration
   real, parameter :: satw_peak   = 1.01           !assumed max. peak saturation w.r.t. water (for calc of Simax)
+  real, parameter :: dei_solid   = 917.           ![kg m-3] density of solid ice
+  real, parameter :: ideg_irg    = 1./dei_solid   ![kg m-3] density of new graupel for i+r=g
 
 !------------------------------------------------------------------------------!
 !-- For GEM:
@@ -1352,16 +1821,27 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
  !real, dimension(:,:), allocatable              :: DE_sub,iDE_sub,iDP_sub,pres_sub,     &
  !==                                                DZ_sub,zheight_sub,iDZ_sub,gamfact_sub
 
+ !--Constants used for activation scheme: ! ADD CJ april2015
+   real, dimension(size(QC,dim=1),size(QC,dim=2)) :: Nact,Smax,Ncn                        !activated aerosol num conc. [ #/kg]
+ ! Coefficient for NWFA used in Thomspon and Eidhammer (2014)
+   real, parameter :: dispersion_aer  = 1.8     , & !size distribution sigma [m]
+                      radius_aer      = 0.04e-6 , & !mean radius [m]
+                      hygro_aer       = 0.4         !hygroscopicity
   !==================================================================================!
 
   !----------------------------------------------------------------------------------!
   !                      PART 1:   Prelimiary Calculations                           !
   !----------------------------------------------------------------------------------!
 
+  if (kount==0) print*, '** MY2 microphysics (v3.2_beta; prognostic graupel density)'
+
+
+!print*, '***HERE 100 '
+
   !Switch on here later, once it is certain that calling routine is not supposed to
   !pass negative values of tracers.
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,100)
-  
+
   if (nk_BOTTOM) then
 !    !GEM / kin_1d:
      ktop  = 1          !k of top level
@@ -1377,8 +1857,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   do k= kbot,ktop,kdir
      pres(:,k)= PS(:)*sigma(:,k)               !air pressure [Pa]
      do i=1,ni
-        QSW(i,k) = qsat(T(i,k),pres(i,k),0)    !wrt. liquid water
-        QSI(i,k) = qsat(T(i,k),pres(i,k),1)    !wrt. ice
+        QSW(i,k) = qv_sat(T(i,k),pres(i,k),0)    !wrt. liquid water
+        QSI(i,k) = qv_sat(T(i,k),pres(i,k),1)    !wrt. ice
      enddo
   enddo
 
@@ -1387,6 +1867,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   iDE = 1./DE
 
  !Convert N from #/kg to #/m3:
+  Ncn = Naero*DE ! Added by C.Jouan april2015
   NC = NC*DE
   NR = NR*DE
   NY = NY*DE
@@ -1401,7 +1882,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   ! appropriate place.  It can then be output as a 3-D physics variable by adding
   ! SS01 to the sortie_p list in 'outcfgs.out'
   SS= 0.
-  
+
  !Compute diagnostic values only every 'outfreq' minutes:
  !calcDiag= (mod(DT*float(KOUNT),outfreq)==0.)
   calcDiag = .true.  !compute diagnostics every step (for time-series output)
@@ -1429,10 +1910,10 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
    ck5    = 4098.170*LCP
    ck6    = 5806.485*LSP
    idt    = 1./dt
-   imgo   = 1./mgo
+!   imgo   = 1./mgo
    idew   = 1./dew
    idei   = 1./dei
-   ideg   = 1./deg
+!   ideg   = 1./deg
    ideh   = 1./deh
 
    !Constants based on size distribution parameters:
@@ -1440,7 +1921,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
    ! Mass parameters [ m(D) = cD^d ]
    cmr    = PIov6*dew;  icmr= 1./cmr
    cmi    = 440.;       icmi= 1./cmi
-   cmg    = PIov6*deg;  icmg= 1./cmg
+!   cmg    = PIov6*deg;  icmg= 1./cmg
    cmh    = PIov6*deh;  icmh= 1./cmh
 
    cms_D3 = PIov6*desFix !used for snowSpherical = .T. or .F.
@@ -1561,24 +2042,25 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
    rfact_FvFm= PIov6*icms*gamma(4.+bfs+alpha_s)/gamma(1.+dms+bfs+alpha_s)
 
    ! Graupel:
-   GG09   = gamma(2.5+0.5*bfg+alpha_g)
-   GG11   = gamma(1.+bfg+alpha_g)
-   GG12   = gamma(2.+bfg+alpha_g)
-   GG13   = gamma(3.+bfg+alpha_g)
-   GG31   = gamma(1.+alpha_g)
-   iGG31  = 1./GG31
-   GG32   = gamma(2.+alpha_g)
-   GG33   = gamma(3.+alpha_g)
-   GG34   = gamma(4.+alpha_g)
-   iGG34  = 1./GG34
-   GG35   = gamma(5.+alpha_g)
-   GG36   = gamma(6.+alpha_g)
-   GG40   = gamma(1.+alpha_g+dmg)
-   iGG99  = 1./(GG40*iGG31*cmg)
-   GG50   = (No_g_SM*GG31)**0.75     !for 1-moment only
-   ckQg1  = afg*gamma(1.+alpha_g+dmg+bfg)/GG40
-   ckQg2  = afg*GG11*iGG31
-   ckQg4  = 1./(cmg*GG40*iGG31)
+! !    GG09   = gamma(2.5+0.5*bfg+alpha_g)
+! !    GG11   = gamma(1.+bfg+alpha_g)
+! !    GG12   = gamma(2.+bfg+alpha_g)
+! !    GG13   = gamma(3.+bfg+alpha_g)
+! !    GG31   = gamma(1.+alpha_g)
+! !    iGG31  = 1./GG31
+! !    GG32   = gamma(2.+alpha_g)
+! !    GG33   = gamma(3.+alpha_g)
+! !    GG34   = gamma(4.+alpha_g)
+! !    iGG34  = 1./GG34
+! !    GG35   = gamma(5.+alpha_g)
+! !    GG36   = gamma(6.+alpha_g)
+! !    GG40   = gamma(1.+alpha_g+dmg)
+! !    iGG99  = 1./(GG40*iGG31*cmg)
+! !    GG50   = (No_g_SM*GG31)**0.75     !for 1-moment only
+! !    ckQg1  = afg*gamma(1.+alpha_g+dmg+bfg)/GG40
+! !    ckQg2  = afg*GG11*iGG31
+! !    ckQg4  = 1./(cmg*GG40*iGG31)
+   !  (none - values are computed below via call to 'compute_graupel_parameters')
 
    ! Hail:
    GH09   = gamma(2.5+bfh*0.5+alpha_h)
@@ -1602,6 +2084,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
 !=======================================================================================!
 !  if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,200)
+!print*, '***HERE 200 '
 
 !--- Ensure consistency between moments:
   do k= kbot,ktop,kdir
@@ -1665,15 +2148,21 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
         endif
 
        !grpl:
-      if (QG(i,k)>epsQ .and. NG(i,k)<epsN) then
+      if (QG(i,k)>epsQ .and. (NG(i,k)<epsN .or. BG(i,k)<epsB)) then
+           deg      = 250.  !100.
+           icmg     = 1./(PIov6*deg)
+           alpha_g  = 0.
+           GG31     = gamma(1.+alpha_g)
+           iGG34    = 1./gamma(4.+alpha_g)
+           BG(i,k) = QG(i,k)/deg
            NG(i,k) = (No_g_SM*GG31)**(3./(4.+alpha_g))*(GG31*iGG34*DE(i,k)*QG(i,k)*      &
                      icmg)**((1.+alpha_g)/(4.+alpha_g))
         elseif (QG(i,k)<=epsQ .or. (QG(i,k)<epsQ2 .and. tmp2<0.80)) then
-           tmp3    = max(0., QG(i,k))
-           Q(i,k)  = Q(i,k) + tmp3
-           T(i,k)  = T(i,k) - LSP*tmp3
+           Q(i,k)  = Q(i,k) + QG(i,k)
+           T(i,k)  = T(i,k) - LSP*QG(i,k)
            QG(i,k) = 0.
            NG(i,k) = 0.
+           BG(i,k) = 0.
         endif
 
        !hail:
@@ -1691,6 +2180,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
      enddo !i-loop
   enddo    !k-loop
 !===
+
+!!print*, '***HERE 300 '
 
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.true.,DEBUG_abort,300)
 
@@ -1742,6 +2233,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   !                 End of Preliminary Calculation section (Part 1)                  !
   !----------------------------------------------------------------------------------!
 
+!print*, '***HERE 400 '
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.true.,DEBUG_abort,400)
 
   !----------------------------------------------------------------------------------!
@@ -1775,6 +2267,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        Tc= T(i,k)-TRPL
        if (Tc<-120. .or. Tc>50.) then
           print*, '***WARNING*** -- In MICROPHYSICS --  Ambient Temp.(C),step,i,k:',Tc,kount,i,k
+          call flush(6)
          !stop
        endif
        Cdiff = (2.2157e-5+0.0155e-5*Tc)*1.e5/pres(i,k)
@@ -1799,7 +2292,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        !       - Ecg is computed in CLcg section
        !       - Erg is computed in CLrg section
 
-       qvs0   = qsat(TRPL,pres(i,k),0)      !sat.mix.ratio at 0C
+       qvs0   = qv_sat(TRPL,pres(i,k),0)      !sat.mix.ratio at 0C
        DELqvs = qvs0-(Q(i,k))
 
     ! Cloud:
@@ -1898,21 +2391,37 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
 
     ! Graupel:
-       if (QG(i,k)>epsQ) then
+       if (QG(i,k)>epsQ .and. NG(i,k)>epsN .and. BG(i,k)>epsB) then
           iQG    = 1./QG(i,k)
           iNG    = 1./NG(i,k)
-          iLAMg  = max( iLAMmin1, iLAMDA_x(DE(i,k),QG(i,k),iNG,iGG99,thrd) )
-          iLAMg2 = iLAMg**2
-          iLAMgB0= iLAMg**(bfg)
-          iLAMgB1= iLAMg**(bfg+1.)
-          iLAMgB2= iLAMg**(bfg+2.)
-         !No_g = (NG(i,k))*iGG31/iLAMg**(1.+alpha_g)
-          No_g= NG(i,k)*iGG31/iLAMg     !optimized for alpha_g=0
-          vg0    = gamfact(i,k)*ckQg1*iLAMgB0
-          Dg     = Dm_x(DE(i,k),QG(i,k),iNG,icmg,thrd)
+
+    !-- orig
+! !           iLAMg  = max( iLAMmin1, iLAMDA_x(DE(i,k),QG(i,k),iNG,iGG99,thrd) )
+! !           iLAMg2 = iLAMg**2
+! !           iLAMgB0= iLAMg**(bfg)
+! !           iLAMgB1= iLAMg**(bfg+1.)
+! !           iLAMgB2= iLAMg**(bfg+2.)
+! !          !No_g = (NG(i,k))*iGG31/iLAMg**(1.+alpha_g)
+! !           No_g= NG(i,k)*iGG31/iLAMg     !optimized for alpha_g=0
+! !           vg0    = gamfact(i,k)*ckQg1*iLAMgB0
+! !           Dg     = Dm_x(DE(i,k),QG(i,k),iNG,icmg,thrd)
+    !==
+          call compute_graupel_parameters(1,QG(i,k),NG(i,k),BG(i,k),epsQ,epsN,epsB,      &
+                       DE(i,k),PIov6,thrd,dmg,alpha_g,iLAMg,afg,bfg,cmg,icmg,ckQg1,      &
+                       ckQg2,ckQg4,deg,ideg,No_g,Dg,GG09,GG11,GG12,GG13,GG31,iGG31,      &
+                       GG32,GG33,GG34,iGG34,GG35,GG36,GG40,iGG40,iGG99,cexg7)
+          iLAMg   = max( iLAMmin1, iLAMg)  !put in compute_graupel_parameters
+          iLAMg2  = iLAMg**2
+          iLAMgB0 = iLAMg**(bfg)
+          iLAMgB1 = iLAMg**(bfg+1.)
+          iLAMgB2 = iLAMg**(bfg+2.)
+          vg0     = gamfact(i,k)*ckQg1*iLAMgB0
+
        else
           iLAMg  = 0.;  vg0    = 0.;  Dg     = 0.;  No_g   = 0.
           iLAMg2 = 0.;  iLAMgB0= 0.;  iLAMgB1= 0.;  iLAMgB1= 0.
+          deg    = 0.
+          ideg   = 0.
        endif
 
     ! Hail:
@@ -1951,6 +2460,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        NCLss= 0.; NCLsr=0.;  NCLsh=0.;  NCLsrs=0.; NCLgrg=0.;  NgCNgh=0.
        NVDvg= 0.; NCLirg=0.; NCLsrg=0.; NCLgrh=0.; NrFZrh=0.;  NhFZrh=0.
        NCLirh=0.
+
+       BCNsg= 0.; BCLcg= 0.; BCLirg= 0.; BCLsrg= 0.
 
        Dirg=0.; Dirh=0.; Dsrs= 0.; Dsrg= 0.; Dsrh= 0.; Dgrg=0.; Dgrh=0.
 
@@ -2046,24 +2557,33 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
              QCLcg= min(QCLcg, (QC(i,k)))
              NCLcg= min(NCLcg, (NC(i,k)))
+
+             deg_rime = rime_density(afc,bfc,afg,bfg,Dc,Dg,gamfact(i,k),Tc)
+             BCLcg  = QCLcg/deg_rime
+
           else
-             QCLcg= 0.;   NCLcg= 0.
+             QCLcg = 0.
+             NCLcg = 0.
+             BCLcg = 0.
           endif
 
           ! ice:
           if (QI(i,k)>epsQ) then
-             tmp1= vg0-vi0
-             tmp3= sqrt(tmp1*tmp1+0.04*vg0*vi0)
+             tmp3= sqrt((vg0-vi0)**2+0.04*vg0*vi0)
 
              QCLig= dt*cmi*iDE(i,k)*PI*6.*Eig*(NY(i,k)*NG(i,k))*tmp3*iGI31*iGG31*(0.5*   &
                     iLAMg2*iLAMi3+2.*iLAMg*iLAMi4+5.*iLAMi5)
+
              NCLig= dt*PIov4*Eig*(NY(i,k)*NG(i,k))*GI31*GG31*tmp3*(GI33*GG31*iLAMi2+     &
                     2.*GI32*GG32*iLAMi*iLAMg+GI31*GG33*iLAMg2)
 
-             QCLig= min(QCLig, (QI(i,k)))
+             QCLig= min(QCLig, QI(i,k))
              NCLig= min(QCLig*(NY(i,k)*iQI), NCLig)
+             BCLig= QCLig/dei
           else
-             QCLig= 0.;   NCLig= 0.
+             QCLig= 0.
+             NCLig= 0.
+             BCLig= 0.
           endif
 
          !Deposition/sublimation:
@@ -2086,6 +2606,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        else
           QCLcg= 0.;   QCLrg= 0.;   QCLig= 0.
           NCLcg= 0.;   NCLrg= 0.;   NCLig= 0.
+          BCLcg= 0.;   BCLig= 0.
        endif
 
        ! Collection by HAIL:
@@ -2247,6 +2768,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
           NCLis= 0.;   NVDvi= 0.;   NVDvs= 0.;   NCLri= 0.;   NCLsr= 0.
           NCNsg= 0.;   NhCNgh= 0.;  NiCNis=0.;   NsCNis=0.
           NIMsi= 0.;   NIMgi= 0.;   NCLir= 0.;   NCLrs= 0.
+
+          BCNsg= 0.
 
        ELSE  !----------!
              !  T < To  !
@@ -2429,16 +2952,24 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
                 !Determine destination of 3-comp.freezing:
                 tmp1= max(Di,Dr)
-                dey= (dei*Di*Di*Di+dew*Dr*Dr*Dr)/(tmp1*tmp1*tmp1)
+                dey = (dei*Di*Di*Di+dew*Dr*Dr*Dr)/(tmp1*tmp1*tmp1)
+                if (.not.(QG(i,k)>epsQ)) then
+                   deg = 400.
+                   ideg = 1./deg
+                endif
                 if (dey>0.5*(deg+deh) .and. Dr>Dr_3cmpThrs .and. hail_ON) then
-                   Dirg= 0.;  Dirh= 1.
+                   Dirg= 0.
+                   Dirh= 1.
                 else
-                   Dirg= 1.;  Dirh= 0.
+                   Dirg= 1.
+                   Dirh= 0.
                 endif
                 if (.not. grpl_ON) Dirg= 0.
+                !Compute BG for i+r=g:
+                BCLirg = Dirg*(QCLir+QCLri)*ideg_irg
 
              else
-                QCLir= 0.;  NCLir= 0.;  QCLri= 0.
+                QCLir= 0.;  NCLir= 0.;  QCLri= 0.;   BCLirg= 0.
                 NCLri= 0.;  Dirh = 0.;  Dirg= 0.
              endif
 
@@ -2493,9 +3024,18 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
                !NCNsg = DE(i,k)*QCNsg/mgo
                !calculate NCNsg: [optimized; substituting mgo and factoring]
                 NCNsg = DE(i,k)*QCNsg/(QN(i,k)+QCLcs)
+                if (des>0.) then
+                   BCNsg = QCNsg/des
+                else
+                   print*, '** Stopped in MICRO, Part 2 **'
+                   print*, '** Calculation of BCNsg.  des = ',des
+                   print*, '** (Snow should be present, so des should be positive) '
+                   stop
+                endif
              else
                 QCNsg = 0.
                 NCNsg = 0.
+                BCNsg = 0.
              endif
 
              ! 3-component freezing (collisions with rain):
@@ -2533,6 +3073,10 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
                 tmp1= max(Ds,Dr)
                 tmp2= tmp1*tmp1*tmp1
                 dey = (des*Ds*Ds*Ds + dew*Dr*Dr*Dr)/tmp2
+                if (.not.(QG(i,k)>epsQ)) then
+                   deg = 400.
+                   ideg = 1./deg
+                endif
                 if (dey<=0.5*(des+deg)                        ) Dsrs= 1.  !snow
                 if (dey >0.5*(des+deg) .and. dey<0.5*(deg+deh)) Dsrg= 1.  !graupel
                 if (dey>=0.5*(deg+deh)) then
@@ -2623,16 +3167,29 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
                 NCLrg= min(NCLrg, NR(i,k));  NCLgr= min(NCLgr, NG(i,k))
 
                ! Determine destination of 3-comp.freezing:
-                tmp1= max(Dg,Dr)
-                tmp2= tmp1*tmp1*tmp1
-                dey = (deg*Dg*Dg*Dg + dew*Dr*Dr*Dr)/tmp2
+                dey = (deg*Dg**3 + dew*Dr*3)/max(Dg,Dr)**3
                 if (dey>0.5*(deg+deh) .and. Dr>Dr_3cmpThrs .and. hail_ON) then
-                   Dgrg= 0.;  Dgrh= 1.
+                   Dgrg= 0.
+                   Dgrh= 1.
                 else
-                   Dgrg= 1.;  Dgrh= 0.
+                   Dgrg= 1.
+                   Dgrh= 0.
                 endif
+
+                if (Dgrg==1) then
+                   !compute deg_rimeR
+                   deg_rime = rime_density(afr,bfr,afg,bfg,Dr,Dg,gamfact(i,k),Tc)
+                   BCLgrg   = (QCLrg+QCLgr)/deg_rime
+                else
+                   BCLgrg   = 0.  !*** NEED A SINK FOR bg IF Dgrh=1
+                endif
+
              else
-                QCLgr= 0.;  QCLrg= 0.;  NCLgr= 0.;  NCLrg= 0.
+                QCLgr = 0.
+                QCLrg = 0.
+                NCLgr = 0.
+                NCLrg = 0.
+                BCLgrg= 0.
              endif
 
           ELSE
@@ -2641,6 +3198,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
              NhCNgh= 0.; NCLgr= 0.;  NCLrg= 0.
 
           ENDIF
+
           !---------!
           !  HAIL:  !
           !---------!
@@ -2686,18 +3244,22 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
       !estimate NG after S/S:
        tmp2= NG(i,k) +NCNsg -NCLgr -NVDvg -NMLgr +NCLirg +NCLsrg +NCLgrg -NgCNgh
        if (tmp2<epsN) then
-          QCLcg = 0.
-          NCLcg = 0.
-          QCLrg = 0.
-          NCLrg = 0.
-          if (Dirg==1.) then
-             QCLri = 0.
-             QCLir = 0.
-          endif
-          if (Dsrg==1.) then
-             QCLrs = 0.
-             QCLsr = 0.
-          endif
+             QCLcg = 0.
+             NCLcg = 0.
+             BCLcg = 0.
+             QCLrg = 0.
+             NCLrg = 0.
+             BCLgrg= 0.
+             if (Dirg==1.) then
+                QCLri = 0.
+                QCLir = 0.
+                BCLirg= 0.
+             endif
+             if (Dsrg==1.) then
+                QCLrs = 0.
+                QCLsr = 0.
+                BCLsrg= 0.
+             endif
        endif
       !estimate NH after S/S:
        tmp3= NH(i,k) +NhFZrh +NhCNgh -NMLhr -NVDvh +NCLirh +NCLsrh +NCLgrh
@@ -2728,26 +3290,30 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
           sour  = max(source,0.)
           if(sink>sour) then
              ratio= sour/sink
-             QNUvi= ratio*QNUvi;   NNUvi= ratio*NNUvi
+             QNUvi= ratio*QNUvi
+             NNUvi= ratio*NNUvi
              if(QVDvi>0.) then
-               QVDvi= ratio*QVDvi; NVDvi= ratio*NVDvi
+               QVDvi= ratio*QVDvi
+               NVDvi= ratio*NVDvi
              endif
              if(QVDvs>0.) then
-               QVDvs=ratio*QVDvs;  NVDvs=ratio*NVDvs
+               QVDvs=ratio*QVDvs
+               NVDvs=ratio*NVDvs
              endif
-             QVDvg= ratio*QVDvg;   NVDvg= ratio*NVDvg
-             QVDvh= ratio*QVDvh;   NVDvh= ratio*NVDvh
+             QVDvg= ratio*QVDvg
+             NVDvg= ratio*NVDvg
+             QVDvh= ratio*QVDvh
+             NVDvh= ratio*NVDvh
           endif
 
           ! (2) Cloud:
           source= QC(i,k)
-          sink  = QCLcs+QCLcg+QCLch+QFZci
+          sink  = QCLcs+QCLcg+QCLch
           sour  = max(source,0.)
           if(sink>sour) then
              ratio= sour/sink
-             QFZci= ratio*QFZci;   NFZci= ratio*NFZci
              QCLcs= ratio*QCLcs;   NCLcs= ratio*NCLcs
-             QCLcg= ratio*QCLcg;   NCLcg= ratio*NCLcg
+             QCLcg= ratio*QCLcg;   NCLcg= ratio*NCLcg;   BCLcg= ratio*BCLcg
              QCLch= ratio*QCLch;   NCLch= ratio*NCLch
           endif
 
@@ -2757,10 +3323,10 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
           sour  = max(source,0.)
           if(sink>sour) then
              ratio= sour/sink
-             QCLrg= ratio*QCLrg;   QCLri= ratio*QCLri;   NCLri= ratio*NCLri
-             QCLrs= ratio*QCLrs;   NCLrs= ratio*NCLrs
-             NCLrg= ratio*NCLrg;   QCLrh= ratio*QCLrh;   NCLrh= ratio*NCLrh
-             QFZrh= ratio*QFZrh;   NrFZrh=ratio*NrFZrh;  NhFZrh=ratio*NhFZrh
+             QCLrg= ratio*QCLrg;   QCLri= ratio*QCLri;   NCLri = ratio*NCLri
+             QCLrs= ratio*QCLrs;   NCLrs= ratio*NCLrs;   NhFZrh= ratio*NhFZrh
+             NCLrg= ratio*NCLrg;   QCLrh= ratio*QCLrh;   NCLrh = ratio*NCLrh
+             QFZrh= ratio*QFZrh;   NrFZrh=ratio*NrFZrh;  BCLgrg= ratio*BCLgrg
              if (ratio==0.) then
                 Dirg= 0.; Dirh= 0.; Dgrg= 0.; Dgrh= 0.
                 Dsrs= 0.; Dsrg= 0.; Dsrh= 0.
@@ -2768,7 +3334,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
           endif
 
           ! (4) Ice:
-          source= QI(i,k)+QNUvi+dim(QVDvi,0.)+QFZci
+          source= QI(i,k)+QNUvi+dim(QVDvi,0.)
           sink  = QCNis+QCLir+dim(-QVDvi,0.)+QCLis+QCLig+QCLih+QMLir
           sour  = max(source,0.)
           if(sink>sour) then
@@ -2778,11 +3344,12 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
                 QVDvi= ratio*QVDvi; NVDvi= ratio*NVDvi
              endif
              QCNis=  ratio*QCNis;   NiCNis= ratio*NiCNis;   NsCNis= ratio*NsCNis
-             QCLir=  ratio*QCLir;   NCLir=  ratio*NCLir;    QCLig=  ratio*QCLig
-             QCLis=  ratio*QCLis;   NCLis=  ratio*NCLis
-             QCLih=  ratio*QCLih;   NCLih=  ratio*NCLih
+             QCLir=  ratio*QCLir;   NCLir=  ratio*NCLir;    QCLig = ratio*QCLig
+             QCLis=  ratio*QCLis;   NCLis=  ratio*NCLis;    BCLirg= ratio*BCLirg
+             QCLih=  ratio*QCLih;   NCLih=  ratio*NCLih;    BCLig = ratio*BCLig
              if (ratio==0.) then
-                Dirg= 0.; Dirh= 0.
+                Dirg= 0.
+                Dirh= 0.
              endif
           endif
 
@@ -2797,9 +3364,12 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
              endif
              QCNsg= ratio*QCNsg;   NCNsg= ratio*NCNsg;   QMLsr= ratio*QMLsr
              NMLsr= ratio*NMLsr;   QCLsr= ratio*QCLsr;   NCLsr= ratio*NCLsr
-             QCLsh= ratio*QCLsh;   NCLsh= ratio*NCLsh
+             QCLsh= ratio*QCLsh;   NCLsh= ratio*NCLsh;   BCLsrg= ratio*BCLsrg
+             BCNsg= ratio*BCNsg
              if (ratio==0.) then
-                Dsrs= 0.; Dsrg= 0.; Dsrh= 0.
+                Dsrs= 0.
+                Dsrg= 0.
+                Dsrh= 0.
              endif
           endif
 
@@ -2814,12 +3384,13 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
              NMLgr= ratio*NMLgr;   QCNgh= ratio*QCNgh;   NgCNgh= ratio*NgCNgh
              QCLgr= ratio*QCLgr;   NCLgr= ratio*NCLgr;   NhCNgh= ratio*NhCNgh
              if (ratio==0.) then
-                Dgrg= 0.; Dgrh= 0.
+                Dgrg= 0.
+                Dgrh= 0.
              endif
           endif
 
           !  (7) Hail:
-          source= QH(i,k)+dim(QVDvh,0.)+QCLch+QCLrh+Dirh*(QCLri+QCLir)+QCLih+QCLsh+      &
+          source= QH(i,k)+dim(QVDvh,0.)+QCLch+QCLrh+Dirh*(QCLri+QCLir)+QCLih+QCLsh+    &
                   Dsrh*(QCLrs+QCLsr)+QCNgh+Dgrh*(QCLrg+QCLgr)+QFZrh
           sink  = dim(-QVDvh,0.)+QMLhr
           sour  = max(source,0.)
@@ -2888,8 +3459,12 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
        NG(i,k)= NG(i,k) +NCNsg -NCLgr -NVDvg -NMLgr +NCLirg +NCLsrg +NCLgrg -NgCNgh
        NH(i,k)= NH(i,k) +NhFZrh +NhCNgh -NMLhr -NVDvh +NCLirh +NCLsrh +NCLgrh
 
+       BG(i,k)= BG(i,k) +BCNsg +BCLcg +BCLgrg +BCLig +BCLirg +BCLsrg +ideg*(QVDvg -QCLgr &
+                        -QMLgr -QCNgh -QIMgi)
+
        T(i,k)= T(i,k)   +LFP*(QCLri+QCLcs+QCLrs+QFZci-QMLsr+QCLcg+QCLrg-QMLir-QMLgr      &
                         -QMLhr+QCLch+QCLrh+QFZrh) +LSP*(QNUvi+QVDvi+QVDvs+QVDvg+QVDvh)
+
 
 !--- Ensure consistency between moments: (prescribe NX (and BG) in case of inconsistency)
          tmp1= pres(i,k)/(RGASD*T(i,k))    !updated air density
@@ -2940,7 +3515,14 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
          endif
 
         !grpl:
-         if (QG(i,k)>epsQ .and. NG(i,k)<epsN) then
+         if (QG(i,k)>epsQ .and. (NG(i,k)<epsN .or. BG(i,k)<epsB)) then
+            deg     = 300.  !100.
+            icmg    = 1./(PIov6*deg)
+            alpha_g = 0.
+            GG31    = gamma(1.+alpha_g)
+            iGG34   = 1./gamma(4.+alpha_g)
+            BG(i,k) = QG(i,k)/deg
+         !* later, simplify the NG= code below (hardcode for alpha_g=0)
             NG(i,k) = (No_g_SM*GG31)**(3./(4.+alpha_g))*(GG31*iGG34*tmp1*QG(i,k)*        &
                       icmg)**((1.+alpha_g)/(4.+alpha_g))
          elseif (QG(i,k)<=epsQ) then
@@ -2948,6 +3530,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
             T(i,k)  = T(i,k) - LSP*QG(i,k)
             QG(i,k) = 0.
             NG(i,k) = 0.
+            BG(i,k) = 0.
          endif
 
         !hail:
@@ -2967,6 +3550,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
             if (Dh < Dh_min) then
                QG(i,k) = QG(i,k) + QH(i,k)
                NG(i,k) = NG(i,k) + NH(i,k)
+               BG(i,k) = BG(i,k) + QH(i,k)*ideh
                QH(i,k) = 0.
                NH(i,k) = 0.
             endif
@@ -2979,6 +3563,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   if ( T(i,k)<173. .or. T(i,k)>323.) then                            !** DEBUG **
      print*, '** STOPPING IN MICROPHYSICS: (Part 2, end) **'         !** DEBUG **
      print*, '** i,k,T [K]: ',i,k,T(i,k)                             !** DEBUG **
+     call flush(6)
      stop                                                            !** DEBUG **
   endif                                                              !** DEBUG **
 !=====
@@ -2990,6 +3575,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   !----------------------------------------------------------------------------------!
   !                    End of ice phase microphysics (Part 2)                        !
   !----------------------------------------------------------------------------------!
+
+!!print*, '***HERE 450'
 
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.true.,DEBUG_abort,450)
 
@@ -3012,7 +3599,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
         RCACCR= 0.;  CCSCOC= 0.;  Dr= 0.;  iLAMr= 0.;  TAU= 0.
         CCAUTR= 0.;  CRSCOR= 0.;  SIGc= 0.;  DrINIT= 0.
         iLAMc3= 0.;  iLAMc6= 0.;  iLAMr3= 0.;  iLAMr6= 0.
-        
+        Smax(i,k)= 0.; Nact(i,k)= 0.
+
         rainPresent= (QR_in(i,k)>epsQ .and. NR_in(i,k)>epsN)
 
         if (QC_in(i,k)>epsQ .and. NC_in(i,k)>epsN) then
@@ -3149,7 +3737,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
   ! Part 3b - Condensation/Evaporation:
 
-        QSW(i,k) = qsat(T(i,k),pres(i,k),0)              !Flatau formulation
+        QSW(i,k) = qv_sat(T(i,k),pres(i,k),0)              !Flatau formulation
         if (QSW(i,k)>1.e-20) then
            ssat = Q(i,k)/QSW(i,k)-1.                     !supersaturation ratio
         else
@@ -3166,20 +3754,37 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
         T(i,k)  = T(i,k)  + LCP*X
 
         if (X>0.) then
-          !nucleation of cloud droplets:          
-           if (WZ(i,k)>0.001) then
+          !nucleation of cloud droplets:
+           if (aeroact==2) then ! Added by C.Jouan april2015
+              if( WZ(i,k) > 0.) then ! ADD CJ april2015
+                 !print*, "WZ, T, DE, Ncn, radius_aer, dispersion_aer, hygro_aer:",WZ(i,k), T(i,k), DE(i,k), Ncn(i,k), radius_aer, dispersion_aer, hygro_aer
+                 call activate(WZ(i,k), T(i,k), DE(i,k), Ncn(i,k), radius_aer, dispersion_aer, &
+                            hygro_aer, Nact(i,k), Smax(i,k))
+                 !print*, "NC, Nact, Smax:", NC(i,k), Nact(i,k), Smax(i,k)
+                 NC(i,k) = max(NC(i,k), Nact(i,k))
+              else
+                 !condensation and negible or downward vertical motion:
+                 NC(i,k) = max(NC(i,k), N_c_SM)
+              endif
+           else if (aeroact==1) then
+              if (WZ(i,k)>0.001) then
                  !condensation and non-negligible upward motion:
                  !note: WZ threshold of 1 mm/s is to overflow problem in NccnFNC, which
                  !      uses a polynomial approximation that is invalid for tiny WZ.
-              NC(i,k) = max(NC(i,k), NccnFNC(WZ(i,k),T(i,k),pres(i,k),CCNtype)) 
-           else
+                 NC(i,k) = max(NC(i,k), NccnFNC(WZ(i,k),T(i,k),pres(i,k),CCNtype))
+              else
                  !condensation and negible or downward vertical motion:
-              NC(i,k) = max(NC(i,k), N_c_SM)
+                 NC(i,k) = max(NC(i,k), N_c_SM)
+              endif
+           else
+                print*, 'Parameter aeroact incorrectly specified'
+                call flush(6)
+                stop
            endif
         else
            if (QC(i,k)>epsQ) then
               !partial evaporation of cloud droplets:
-              NC(i,k) = max(0., NC(i,k) + X*NC(i,k)/max(QC(i,k),epsQ) ) !(dNc/dt)|evap
+              NC(i,k) = max(0., NC(i,k) + X*NC_in(i,k)/max(QC_in(i,k),epsQ) ) !(dNc/dt)|evap ! Modified by C.Jouan april2015
            else
               NC(i,k) = 0.
            endif
@@ -3188,7 +3793,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
        !rain evaporation:
        !saturation adjustment:
-        QSW(i,k) = qsat(T(i,k),pres(i,k),0)              !Flatau formulation
+        QSW(i,k) = qv_sat(T(i,k),pres(i,k),0)              !Flatau formulation
         if (Q(i,k)<QSW(i,k) .and. QR(i,k)>epsQ .and. NR(i,k)>epsN) then
            ssat    = Q(i,k)/QSW(i,k)-1.
            Tc      = T(i,k)-TRPL
@@ -3288,6 +3893,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
   !                    End of warm-phase microphysics (Part 3)                       !
   !----------------------------------------------------------------------------------!
 
+!!print*, '***HERE 500 '
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.true.,DEBUG_abort,500)
 
   !----------------------------------------------------------------------------------!
@@ -3296,10 +3902,10 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
  IF (sedi_ON) THEN
 
-   fluxM_r= 0.;  fluxM_i= 0.;  fluxM_s= 0.;  fluxM_g= 0.;  fluxM_h= 0.
-   RT_rn1 = 0.;  RT_rn2 = 0.;  RT_fr1 = 0.;  RT_fr2 = 0.;  RT_sn1 = 0.
-   RT_sn2 = 0.;  RT_sn3 = 0.;  RT_pe1 = 0.;  RT_pe2 = 0.;  RT_peL = 0.
- 
+    fluxM_r= 0.;  fluxM_i= 0.;  fluxM_s= 0.;  fluxM_g= 0.;  fluxM_h= 0.
+    RT_rn1 = 0.;  RT_rn2 = 0.;  RT_fr1 = 0.;  RT_fr2 = 0.;  RT_sn1 = 0.
+    RT_sn2 = 0.;  RT_sn3 = 0.;  RT_pe1 = 0.;  RT_pe2 = 0.;  RT_peL = 0.
+
 !---- For sedimentation on all levels:
     call sedi_wrapper_2(QR,NR,1,epsQ,epsQr_sedi,epsN,dmr,ni,VrMax,DrMax,dt,fluxM_r,kdir, &
                         kbot,ktop_sedi,GRAV,zheight,nk,DE,iDE,iDP,DZ,iDZ,gamfact,kount,  &
@@ -3319,9 +3925,13 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,630)
 
+!     call sedi_wrapper_2(QG,NG,4,epsQ,epsQg_sedi,epsN,dmg,ni,VgMax,DgMax,dt,fluxM_g,kdir, &
+!                         kbot,ktop_sedi,GRAV,zheight,nk,DE,iDE,iDP,DZ,iDZ,gamfact,kount,  &
+!                         afg,bfg,cmg,ckQg1,ckQg2,ckQg4)
+
     call sedi_wrapper_2(QG,NG,4,epsQ,epsQg_sedi,epsN,dmg,ni,VgMax,DgMax,dt,fluxM_g,kdir, &
                         kbot,ktop_sedi,GRAV,zheight,nk,DE,iDE,iDP,DZ,iDZ,gamfact,kount,  &
-                        afg,bfg,cmg,ckQg1,ckQg2,ckQg4)
+                        BX=BG,epsB=epsB)
 
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,640)
 
@@ -3384,6 +3994,11 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
    do i= 1,ni
 
       fluxV_i= fluxM_i(i)*idei
+      if (QG(i,nk)>0.) then
+         ideg = BG(i,nk)/QG(i,nk)
+      else
+         ideg = 0.
+      endif
       fluxV_g= fluxM_g(i)*ideg
      !Compute unmelted volume flux for snow:
          ! note: This is based on the strict calculation of the volume flux, where vol=(pi/6)D^3,
@@ -3499,6 +4114,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
  !                     End of sedimentation calculations (Part 4)                    !
  !-----------------------------------------------------------------------------------!
 
+!print*, '***HERE 800 '
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,800)
 
  !===================================================================================!
@@ -3544,11 +4160,16 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
            reff_i2(i,k) = 0.
         endif
 
+
       !graupel:
-        if (QG(i,k)>epsQ .and. NG(i,k)>epsN) then
+        if (QG(i,k)>epsQ .and. NG(i,k)>epsN .and. BG(i,k)>epsB) then
+
           !hardcoded for alpha_g = 0. and mu_g = 1.
-           iNG   = 1./NG(i,k)
-           iLAMg = max( iLAMmin1, iLAMDA_x(DE(i,k),QG(i,k),iNG,iGG99,thrd) )
+           call compute_graupel_parameters(1,QG(i,k),NG(i,k),BG(i,k),epsQ,epsN,epsB,     &
+                       DE(i,k),PIov6,thrd,dmg,alpha_g,iLAMg,afg,bfg,cmg,icmg,ckQg1,      &
+                       ckQg2,ckQg4,deg,ideg,No_g,Dg,GG09,GG11,GG12,GG13,GG31,iGG31,      &
+                       GG32,GG33,GG34,iGG34,GG35,GG36,GG40,iGG40,iGG99,cexg7)
+           iLAMg   = max( iLAMmin1, iLAMg)  !put in compute_graupel_parameters
            reff_i3(i,k) = 1.5*iLAMg
         else
            reff_i3(i,k) = 0.
@@ -3564,7 +4185,7 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
            reff_i4(i,k) = 0.
         endif
 
-        ! DPR-june2017: calculate a 'binary' cloud fraction (0 or 1) based on supersaturation
+        ! calculate a 'binary' cloud fraction (0 or 1) based on supersaturation
         cloud_bin(i,k)=0.
         cloudliq=0.
         cloudice=0.
@@ -3594,6 +4215,8 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
      else                     !dms=2
         Gzs= (4.+alpha_s)*(3.+alpha_s)/((2.+alpha_s)*(1.+alpha_s))
      endif
+
+     alpha_g = 0. !tmp
      Gzg= (6.+alpha_g)*(5.+alpha_g)*(4.+alpha_g)/((3.+alpha_g)*(2.+alpha_g)*(1.+alpha_g))
      Gzh= (6.+alpha_h)*(5.+alpha_h)*(4.+alpha_h)/((3.+alpha_h)*(2.+alpha_h)*(1.+alpha_h))
 
@@ -3682,8 +4305,13 @@ SUBROUTINE sedi_1D(QX1d,NX1d,cat,DE1d,iDE1d,iDP1d,gamfact1d,epsQ,epsN,dmx,VxMax,
 !   QG = max(QG, 0.);   NG = max(NG, 0.)
 !   QH = max(QH, 0.);   NH = max(NH, 0.)
 
+  where (BG(:,:)>0.) SS(:,:,1)= QG(:,:)/BG(:,:)  !graupel density for output
+
+ !print*, '***HERE 900 '
   if (DEBUG_ON) call check_values(Q,T,QC,QR,QI,QN,QG,QH,NC,NR,NY,NN,NG,NH,epsQ,epsN,.false.,DEBUG_abort,900)
-  
+
+9999 continue
+
  END SUBROUTINE mp_my2_main
 
 !___________________________________________________________________________________!

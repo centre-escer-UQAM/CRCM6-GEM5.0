@@ -42,7 +42,7 @@ subroutine phybusinit(n,nk)
 
    character(len=2)  :: nagg, nipt, nm, nmar, need_wz
    integer :: options, ier, tmp, iverb
-   logical :: lcn_mpx,lcn_my2,lcn_p3i1,lcn_p3i2,lcn_p3i3,lcn_p3i4
+   logical :: lcn_mpx,lcn_my2,lcn_p3i1,lcn_p3i2,lcn_p3i3,lcn_p3i4,lcn_p3_my2g
    logical :: lbourg3d,lbourg
    logical :: lpblcpl
    logical :: lrslp
@@ -81,6 +81,7 @@ subroutine phybusinit(n,nk)
    lcn_p3i2 = (stcond == 'MP_P3' .and. p3_ncat >= 2)
    lcn_p3i3 = (stcond == 'MP_P3' .and. p3_ncat >= 3)
    lcn_p3i4 = (stcond == 'MP_P3' .and. p3_ncat == 4)
+   lcn_p3_my2g = (stcond == 'MP_P3' .or. stcond == 'MP_MY2') !i.e. exclude stcond=='mp_my2_old'
 
    lbourg3d= (pcptype == 'BOURGE3D')
    lpblcpl = pbl_coupled
@@ -683,7 +684,7 @@ subroutine phybusinit(n,nk)
  if(lcn_p3i1)  call gesdict(n, nk, i1qtmoins,   'VN=TR/i1qt:M,wload=1,min=0 ;ON=QI1M ;VD=total mass, ice cat 1 (P3), t-dT     ;VS=slc    ; VB=d1')
  if(lcn_p3i1)  call gesdict (n, nk, i1qmplus,   'VN=TR/i1qm:P,min=0      ;ON=5M   ;VD=rime mass, ice cat 1 (P3), t+dT         ;VS=slc                    ;VB=d1;IN=I1QM')
  if(lcn_p3i1)  call gesdict (n, nk, i1ntplus,   'VN=TR/i1nt:P,min=0      ;ON=3M   ;VD=total number, ice cat 1 (P3), t+dT      ;VS=slc                    ;VB=d1;IN=I1NT')
- if(lcn_p3i1)  call gesdict (n, nk, i1bmplus,   'VN=TR/i1bm:P,min=0      ;ON=6M   ;VD=bulk volume, ice cat 1 (P3), t+dT       ;VS=slc                    ;VB=d1;IN=I1BM')
+ if(lcn_p3_my2g) call gesdict (n, nk, i1bmplus, 'VN=TR/i1bm:P,min=0      ;ON=6M   ;VD=bulk volume, ice cat 1 (P3), t+dT       ;VS=slc                    ;VB=d1;IN=I1BM')
 
  if(lcn_p3i2)  call gesdict (n, nk, i2qtplus,   'VN=TR/i2qt:P,wload=1,min=0 ;ON=QI2  ;VD=total mass, ice cat 2 (P3), t+dT     ;VS=slc                    ;VB=d1;IN=I2QT')
  if(lcn_p3i2)  call gesdict(n, nk, i2qtmoins,   'VN=TR/i2qt:M,wload=1,min=0 ;ON=Q21M ;VD=total mass, ice cat 2 (P3), t-dT     ;VS=slc    ; VB=d1')

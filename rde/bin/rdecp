@@ -92,9 +92,9 @@ fi
 myecho 1 "Files will be copied to ${dst_path}"
 
 # Import source files from specified path
-mywild="$(rdevar rdesuffix | sed 's/\./*./g')"
+mywild="$(echo ${CONST_RDESUFFIX} | sed 's/\./*./g')"
 mywild="${mywild} $(rdevar rde_setenv_dot rde_config_file srcpathfile Makefile_user Makefile_root)"
-for src in ${src_path} ; do     
+for src in ${src_path} ; do
    if [[ ! -d ${src} ]] ; then
       mystderr 0 "WARNING: Ignoring not dir: $src"
    else

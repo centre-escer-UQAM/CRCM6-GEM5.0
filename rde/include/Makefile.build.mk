@@ -117,7 +117,7 @@ RDEALL_CFLAGS = $(RDE_CFLAGS) $(MODEL_CPPFLAGS1) $(MODEL_CFLAGS1) $(CPPFLAGS) $(
 #USER:  LFLAGS
 
 RDE_LFLAGS       = $(OMP) $(MPI) $(DEBUG) $(SHARED_O_DYNAMIC) $(PROFIL) $(RDE_LFLAGS_ARCH) $(RDE_LFLAGS_COMP)
-RDE_LFLAGS_NOMPI = $(OMP) $(DEBUG) $(SHARED_O_DYNAMIC) $(PROFIL) $(RDE_LFLAGS_ARCH) $(RDE_LFLAGS_COMP)
+RDE_LFLAGS_NOMPI = $(OMP) $(DEBUG) $(SHARED_O_DYNAMIC) $(PROFIL) $(RDE_LFLAGS_ARCH) $(RDE_LFLAGS_COMP) $(RDE_MKL_NOMPI)
 
 MODEL_LFLAGS1    = $(MODEL_LFLAGS) $(MODEL1_LFLAGS) $(MODEL2_LFLAGS) $(MODEL3_LFLAGS) $(MODEL4_LFLAGS) $(MODEL5_LFLAGS)
 
@@ -231,30 +231,25 @@ ln -s lib$(1)_$$($(2)_VERSION).a $$@
 
 ## ==== Arch specific and Local/user definitions, targets and overrides
 #TODO: move these back into separated files RDEINC/ARCH/COMP/Makefile.comp.mk
-ifneq (,$(filter aix-%,$(RDE_BASE_ARCH))$(filter AIX-%,$(RDE_BASE_ARCH)))
-RDE_DEFINES_ARCH = -DAIX_POWERPC7
-LAPACK   = lapack-3.4.0
-BLAS     = essl
-LLAPI    = 
-IBM_LD   = 
-LIBHPC   = hpc
-LIBPMAPI = pmapi
-#LIBMASSWRAP =  modelutils_massvp7_wrap
-RDE_OPTF_MODULE = -qmoddir=$(BUILDMOD)
-LIBMASS  = $(LIBMASSWRAP) massvp7 mass
-RDE_LIBPATH_ARCH = /opt/ibmhpc/ppedev.hpct/lib64
-endif
-
 ifneq (,$(filter Linux_x86-64,$(RDE_BASE_ARCH))$(filter linux26-%,$(RDE_BASE_ARCH))$(filter rhel-%,$(RDE_BASE_ARCH))$(filter ubuntu-%,$(RDE_BASE_ARCH))$(filter sles-%,$(RDE_BASE_ARCH)))
 RDE_DEFINES_ARCH = -DLINUX_X86_64
 LAPACK      = lapack
 BLAS        = blas
 LIBMASSWRAP =  
 LIBMASS     = $(LIBMASSWRAP) massv_p4
+
+#RDE_OPTF_MODULE = -module $(BUILDMOD)
+ifneq (,$(filter pgi%,$(COMP_ARCH)))
 RDE_OPTF_MODULE = -module $(BUILDMOD)
+endif
+ifneq (,$(filter gfortran%,$(COMP_ARCH)))
+RDE_OPTF_MODULE = -J $(BUILDMOD)
+endif
 ifneq (,$(filter intel%,$(COMP_ARCH)))
+RDE_OPTF_MODULE = -module $(BUILDMOD)
 RDE_MKL     = -mkl
 endif
+
 ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
 LAPACK      = 
 BLAS        = 
@@ -264,8 +259,10 @@ RDE_FFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
 RDE_CFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
 RDE_LFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
 endif
+ifneq (,$(filter PrgEnv-intel%,$(COMP_ARCH)))
+RDE_MKL_NOMPI   = -mkl
+endif
 ifneq (,$(filter pgi%,$(COMP_ARCH)))
-#RDE_OPTF_MODULE = -module $(BUILDMOD)
 RDE_KIEEE = -Kieee
 RDE_FFLAGS_COMP = $(RDE_KIEEE)
 endif
@@ -302,6 +299,20 @@ else
 endif
 endif
 
+RDEBUILDNAMEFILE = $(wildcard $(ROOT)/.rde.buildname)
+ifneq (,$(RDEBUILDNAMEFILE))
+   ifneq (,$(DEBUGMAKE))
+      $(info include $(RDEBUILDNAMEFILE))
+   endif
+   include $(RDEBUILDNAMEFILE)
+endif
+
+ifneq (,$(BUILDNAME))
+   export RDE_BUILDNAME=$(BUILDNAME)
+# else
+#    #TODO:
+endif
+
 RDE_COMP_RULES_FILE_USER = 
 ifneq (,$(COMP_RULES_FILE))
    ifneq (,$(wildcard $(ROOT)/$(COMP_RULES_FILE)))
@@ -324,7 +335,7 @@ endif
 .DEFAULT: 
 	@if [[ x$$(echo $@ | cut -c1-9) == x_invdep_. ]] ; then \
 	   echo > /dev/null ;\
-	elif [[ x"$$(.rdeisext --ext="$(CONST_RDESUFFIX) .mk" $@)" == x1 ]] ; then \
+	elif [[ x"$(filter $(suffix $@),$(CONST_RDESUFFIX) .mk)" != x"" ]] ; then \
 	   rdeco -q $@  && echo "Checking out: $@" || (echo "ERROR: File Not found: $@" && exit 1);\
 	else \
 	   echo "ERROR: No such target: $@" 1>&2 ; \

@@ -127,6 +127,8 @@ RDE_TARGET_OBJ = obj
 RDE_TARGET_OBJ_FORCES = obj_forced
 RDE_TARGET_OBJ_TOUCH = obj_touch
 RDE_TARGET_CLEAN = clean
+RDE_TARGET_BINCLEAN = binclean
+RDE_TARGET_LIBCLEAN = libclean
 RDE_TARGET_BUILDCLEAN = buildclean
 RDE_TARGET_BUILDCLEAN_PLUS = buildclean+
 RDE_TARGET_DISTCLEAN = distclean
@@ -178,13 +180,9 @@ deplocal: #$(MAKEFILE_CONST)
 	$(MYTIME) rdemkdep -v --supp $(RDE_DEP_SUPP_FILE) --arch $(RDE_BASE_ARCH_EQUIV)
 .PHONY: dep
 
-ifneq (,$(filter aix-%,$(RDE_BASE_ARCH))$(filter AIX-%,$(RDE_BASE_ARCH)))
-dep: deplocal
-else
 dep: #$(MAKEFILE_CONST)
 	rm -f Makefile.dep.*.mk 2>/dev/null || true
 	$(MYTIME) rdemkdep -v --supp $(RDE_DEP_SUPP_FILE) --arch "$(RDE_ARCH_LIST)"
-endif
 
 #$(MAKEFILE_CONST) 
 .PHONY: sanity
@@ -241,6 +239,10 @@ $(RDE_TARGET_OBJ_FORCES): $(RDE_TARGET_OBJ_TOUCH)
 $(RDE_TARGET_OBJ_TOUCH):
 	touch `ls *.f* *.c* *.h* *.F* *.t* 2>/dev/null` 2>/dev/null || true
 
+.PHONY: hash
+hash:
+	echo "export RDE_BUILDNAME=`rdediff --hashstat`" >> .rde.buildname
+
 .PHONY: rmpo
 rmpo: $(RDE_TARGET_CLEAN)
 .PHONY: $(RDE_TARGET_CLEAN)
@@ -260,6 +262,22 @@ $(RDE_TARGET_CLEAN):
 $(RDE_TARGET_BUILDCLEAN_PLUS): 
 	chmod u+w -R $(BUILD)/
 	rm -f $$(find $(BUILD)/ -type f) 2>/dev//null || true
+	rm -f $(MAKEFILE_CONST)
+
+.PHONY: $(RDE_TARGET_BINCLEAN)
+$(RDE_TARGET_BINCLEAN): 
+	for mydir in $(BUILDBIN) ;do\
+	  chmod u+w $${mydir}/* $${mydir}/.[a-zA-Z0-9_-]* 2>/dev/null || true ;\
+	  rm -f     $${mydir}/* $${mydir}/.[a-zA-Z0-9_-]* 2>/dev/null || true ;\
+	done
+	rm -f $(MAKEFILE_CONST)
+
+.PHONY: $(RDE_TARGET_LIBCLEAN)
+$(RDE_TARGET_LIBCLEAN): 
+	for mydir in $(BUILDLIB) ;do\
+	  chmod u+w $${mydir}/* $${mydir}/.[a-zA-Z0-9_-]* 2>/dev/null || true ;\
+	  rm -f     $${mydir}/* $${mydir}/.[a-zA-Z0-9_-]* 2>/dev/null || true ;\
+	done
 	rm -f $(MAKEFILE_CONST)
 
 .PHONY: $(RDE_TARGET_BUILDCLEAN)

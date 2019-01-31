@@ -164,6 +164,7 @@ for file in ${domain_list} ; do
          # Transfer up to "$nthreads" files simultaneously
          set -ex
          ext=$(echo $fn | sed 's|/|_|g')
+         echo ${mydomain}/${path_dest}:${fname_dest} >> ${TASK_OUTPUT}/${mydomain}/List_${Sortie}
          transfer ${fn} ${mydomain}/${path_dest} ${fname_dest} ${ext} 1> transfer_$(basename ${fn}).lis 2>&1 &
          if [[ $count -eq $nthreads ]]; then
            date ; wait ; date
@@ -214,6 +215,19 @@ else
       /bin/rm -rf ${SEQ_WORKBASE}/${SEQ_CONTAINER}/Sortie${SEQ_LOOP_EXT}/output \
                   ${SEQ_WORKBASE}/${SEQ_CONTAINER}/Sortie${SEQ_LOOP_EXT}/work
    fi
+fi
+
+# Launch user specified child npass task (MOD_GEM_tailsubmit)
+if [ -n "${MOD_GEM_tailsubmit}" ] ;then
+  tailjob=$(basename ${MOD_GEM_tailsubmit})
+  if [[ ${SEQ_XFER} != "stop" ]] ; then
+    echo "$SEQ_LOOP_EXT" | grep "\^last" && last=^last || last=
+    if [[ -n "$SEQ_CONTAINER_LOOP_ARGS" ]]; then
+      $SEQ_BIN/maestro -n ${MOD_GEM_tailsubmit} -s submit ${SEQ_CONTAINER_LOOP_ARGS},${tailjob}=${Sortie}${last} -f ${SEQ_XFER}
+    else
+      $SEQ_BIN/maestro -n ${MOD_GEM_tailsubmit} -s submit -l ${tailjob}=${Sortie}${last} -f ${SEQ_XFER}
+    fi
+  fi
 fi
 
 printf "\n=====>  Sortie.tsk ends: `date` ###########\n\n"

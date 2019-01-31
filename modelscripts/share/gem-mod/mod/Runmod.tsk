@@ -56,7 +56,7 @@ fi
 . r.call.dot ${TASK_BIN}/Um_runmod.ksh \
    -ptopo ${ptopo} -smt ${nthreads} -bind 0 -inorder ${MOD_GEM_inorder} \
    -barrier  ${MOD_GEM_barrier} -timing ${MOD_GEM_timing} \
-   -cfg ${domain_cfgs} -no_setup
+   -cfg ${domain_cfgs} -no_setup -debug ${MOD_GEM_debug}
 
 # Handle model return status
 if [[ "$_status" == "ABORT" ]] ; then

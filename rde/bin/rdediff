@@ -1,10 +1,9 @@
-#!/bin/bash
+#!/bin/ksh
 . .rdebase.inc.dot
 
 DESC='Diff locally modified src compared to library version'
 USAGE="USAGE: ${MYSELF} [-h] [-v] [-l|--list|--status] [-d|--dirmode] [--diff=DIFF_TOOL] [DIFFARGS] [FILES]"
-BUILDDIFF=${ROOT}/${CONST_BUILD}/tmp-diff-$$
-RDESUFFIXES="${CONST_RDESUFFIX}"
+BUILDDIFF=${ROOT}/$(rdevar build)/tmp-diff-$$
 
 usage_long() {
 	 toto=$(echo -e $USAGE)
@@ -22,9 +21,6 @@ Options:
     -R  --recurse        : recursively look into SRCPATH dirs
     --diff=DIFF_TOOL     : diff tool to use 
                            DEFAULT: \${ECDIFF:-diff} (${ECDIFF:-diff})
-    --hash               : print a md5sum hash of the diff
-    --haststat           : print a md5sum hash of the diff + diff stats
-    --fullpath           : print full path of files (only in list/status mode)
     DIFFARGS             : arguments to pass to the diff tool
                            DEFAULT: \$ECDIFFARGS ($ECDIFFARGS)
     FILES                : space separated list of src files or dir
@@ -36,8 +32,6 @@ mystatus=0
 listmode=0
 dirmode=0
 myrecurse=0
-myhash=0
-myfullpath=0
 ECDIFF=${ECDIFF:-diff}
 ECDIFFARGS=${ECDIFFARGS}
 PATHLIST=""
@@ -52,9 +46,6 @@ while [[ $# -gt 0 ]] ; do
       (-l|--list|--status) listmode=1;;
       (-d|--dirmode) dirmode=1;;
       (-R|--recurse) myrecurse=1;;
-      (--hash) myhash=1;;
-      (--hashstat) myhash=2;;
-      (--fullpath) myfullpath=1;;
       (--diff=*) ECDIFF=${1#*=};;
       (-*) ECDIFFARGS="${ECDIFFARGS} $1";;
         *) PATHLIST="$PATHLIST $1";;
@@ -102,8 +93,8 @@ find_src_file_list() {
          _mypath="$(rdefind ${followlinks} ${_myfile} --type f --maxdepth 0 2>/dev/null)"
       fi
       for _myfile2 in $_mypath ; do
-         mytype="$(echo $RDESUFFIXES | tr ' ' '\n' | grep $(echo ${_myfile2##*.}))"
-         if [[ "x$mytype" != "x" ]] ; then
+         mytype="$(echo ${_myfile2##*.} | cut -c1 | tr 'cfhiCFHIt' 'fffffffff')"
+         if [[ x$mytype == xf ]] ; then
             echo ${_myfile2#./}
          fi
       done
@@ -249,20 +240,7 @@ do_dir_diff() {
    cd ${ROOT}
 }
 
-do_dir_diff_hash() {
-   _mydir=$1
-   cd ${BUILDDIFF}
-   mystderr 0 "+ diff ${ECDIFFARGS} SRC_REF/${_mydir} SRC_USR/${_mydir} | md5sum"
-   if [[ $myhash == 1 ]] ; then
-      diff ${ECDIFFARGS} SRC_REF/${_mydir} SRC_USR/${_mydir} | md5sum | cut -d" " -f1
-   else
-      echo "nf=$(ls -l SRC_USR/${_mydir} | wc -l | cut -d' ' -f1):nl=$(diff ${ECDIFFARGS} SRC_REF/${_mydir} SRC_USR/${_mydir} | wc -l | cut -d' ' -f1):h=$(diff ${ECDIFFARGS} SRC_REF/${_mydir} SRC_USR/${_mydir} | md5sum | cut -d" " -f1)"
-   fi
-   cd ${ROOT}
-}
-
 do_list_diff() {
-   TOPDIRS="$(rdevar srcpath_topdirs)"
    for mypath in $PATHLIST ; do
       mystderr 0 "+ build_file_list"
       myfilelist="$(find_src_file_list ${SRC_USR} $mypath $myrecurse)"
@@ -273,29 +251,10 @@ do_list_diff() {
             if [[ x${file_ref} != x ]] ; then
                _isdiff=1
                diff ${file_ref} ${myfile} >/dev/null 2>&1 && _isdiff=0
-               if [[ $myfullpath == 1 ]] ; then
-                  for topdir in $TOPDIRS ; do
-                     file_ref0=$file_ref
-                     file_ref="$(echo $file_ref | sed s:$topdir/::)"
-                     if [[ $file_ref != $file_ref0 ]] ; then
-                        topdirname="$(echo ${topdir##*/})"
-                        if [[ "x${topdirname}" != "x" ]] ; then
-                           file_ref="\${${topdirname%%_*}}/$file_ref"
-                        else
-                           file_ref=$file_ref0
-                        fi
-                        break
-                     fi
-                  done
-                  # myfile2="(${file_ref})"
-                  myfile2="${file_ref}"
-               fi
                if [[ ${_isdiff} == 1 ]] ; then
-                  # echo MOD ${myfile}   ${myfile2}
-                  printf "%3s %-32s %s\n" MOD ${myfile} ${myfile2}
+                  echo MOD ${myfile}
                else
-                  # echo REF ${myfile}   ${myfile2}
-                  printf "%3s %-32s %s\n" REF ${myfile} ${myfile2}
+                  echo REF ${myfile}
                fi
             else
                echo NEW ${myfile}
@@ -312,7 +271,7 @@ if [[ $listmode == 1 ]] ; then
    exit 0
 fi
 
-if [[ $dirmode == 1 || $myhash != 0 ]] ; then
+if [[ $dirmode == 1 ]] ; then
    build_diff_tree
 fi
 
@@ -321,9 +280,7 @@ for mypath in $PATHLIST ; do
    if [[ x"$myfilelist" == x ]] ; then
       myecho 1 "No file for: $mypath"
    else
-      if [[ $myhash != 0 ]] ; then
-         do_dir_diff_hash $mypath
-      elif [[ $dirmode == 0 ]] ; then
+      if [[ $dirmode == 0 ]] ; then
          for myfile in $myfilelist ; do
             do_file_diff $myfile
          done

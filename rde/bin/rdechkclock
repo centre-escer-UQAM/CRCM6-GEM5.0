@@ -45,7 +45,7 @@ while [[ $# -gt 0 ]] ; do
 done
 
 
-BUILDOBJ=${CONST_BUILDOBJ}
+BUILDOBJ=$(rdevar build/obj 2>/dev/null)
 if [[ ! -d $BUILDOBJ || ! -w $BUILDOBJ ]] ; then
    BUILDOBJ=$TMPDIR
 fi

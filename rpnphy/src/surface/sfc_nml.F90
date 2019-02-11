@@ -134,16 +134,19 @@ contains
 
 
    function sfc_nml_check() result(m_istat)
+      use sfc_options, only : nl_svs_default, dp_svs_default
+      use svs_configs, only : nl_svs,dl_svs
       implicit none
       integer :: m_istat
 
-      integer :: istat
+      integer :: istat,k,nk
       character(len=512) :: str512
       !----------------------------------------------------------------
       m_istat = RMN_ERR
 
       istat = clib_toupper(schmsol)
       istat = clib_toupper(schmurb)
+      istat = clib_toupper(soiltext)
       istat = clib_toupper(diusst)
       istat = clib_toupper(z0mtype)
 
@@ -178,6 +181,76 @@ contains
          call msg(MSG_ERROR, '(sfc_nml_check) zz0tlat = '//trim(str512)//' : should be in 0. to 90. and z0tlat(1) < z0tlat(2)')
          return
       endif
+
+      ! ------ CHECK SVS OPTIONS --------------
+      if( schmsol == 'SVS') then
+         ! check number of SOIL LEVELS 
+         nk=0
+         do k=1,size(dp_svs)
+            if (dp_svs(k)< 0.) exit
+            nk=nk+1
+         enddo
+
+         ! USE DEFAULT NUMBER & DEPTH of LAYERS if NOT SPECIFIED
+         ! FOR KHYD: the "last soil layer considered during the accumulation of lateral flow and drainage"
+         ! (1) if using default layers, and khyd not specified then:
+         ! set khyd = last SVS layer
+         ! (2) if using default layer and khyd specified, use khyd
+         ! (3) if users specifies soil layers, then forced user to specify khyd also.
+         if (nk == 0) then
+            call msg(MSG_INFO,'(sfc_nml_check) SVS soil layer depth dp_svs NOT SPECIFIED by user, will use DEFAULT VALUE')
+            ! default number of soil layers
+            nk=nl_svs_default
+            ! By default "last soil layer for accumulation of lateral flow and drainage" LEVEL = nk, 
+            if ( khyd .le. 1 ) then
+                call msg(MSG_INFO,'(sfc_nml_check) Using default SVS configuration with "last hydro drainage/lateral flow layer" level KHYD = last soil layer')
+                khyd=nl_svs_default
+            else
+               call msg(MSG_INFO,'(sfc_nml_check) Using default SVS configuration for soil layer but NOT for "last hydro drainage/lateral flow layer" KHYD')
+            endif
+            ! default values for depth of SVS values [in meters]
+            do k=1,nk
+               dp_svs(k) = dp_svs_default(k)
+            enddo
+         else if ( nk < 3 ) then
+            write(str512,*) ' (sfc_nml_check) SVS requires a minimum of 3 soil layers. Only ',nk, ' depths were specified in dp_svs=' , dp_svs(1:nk)
+            call msg(MSG_ERROR, str512)
+            return
+         else if ( nk >= 3 .and. khyd .le. 1 ) then
+              write(str512,*) ' (sfc_nml_check)  Last hydro drainage/lateral flow layer level: KHYD needs to be specified by USER because not using DEFAULT SVS set-up'
+            call msg(MSG_ERROR, str512)
+            return
+         endif
+
+         ! CHECK THAT DEPTH IS INCREASING and SAVE NUMBER OF LAYERS
+         do k=1,nk-1
+            if ( dp_svs(k) >= dp_svs(k+1) ) then 
+               write(str512,*) ' (sfc_nml_check) SVS layer depths badly specified: dp_svs(k)=',dp_svs(k),' (k=',k,') should be shallower than dl_svs(k+1)=',dp_svs(k+1),' (k+1=',k+1,')'
+               call msg(MSG_ERROR, str512)
+               return
+            endif
+         enddo
+         ! Save depth in dl_svs ... to be used by svs
+         nl_svs=nk
+         if ( .not. allocated(dl_svs) ) allocate( dl_svs(nl_svs) )
+         do k=1,nl_svs
+            dl_svs(k)=dp_svs(k)
+         enddo
+         
+         if ( khyd > nl_svs ) then
+            write(str512, '(a,i3,a,i3)') '(sfc_nml_check) Last hydro drainage/lateral flow layer in SVS khyd=',khyd,' cannot exceed number of SVS soil layers =', nl_svs
+            call msg(MSG_ERROR, str512)
+            return
+         endif
+
+         if (.not.any(soiltext == SOILTEXT_OPT)) then
+            call str_concat(str512, SOILTEXT_OPT,', ')
+            call msg(MSG_ERROR,'(sfc_nml_check) soiltext = '//trim(soiltext)//' : Should be one of: '//trim(str512))
+            return
+         endif
+
+      endif
+
 
       m_istat = RMN_OK
       !----------------------------------------------------------------

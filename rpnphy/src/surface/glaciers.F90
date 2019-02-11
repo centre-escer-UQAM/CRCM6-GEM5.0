@@ -52,7 +52,8 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
    !
    ! Note:     - this subroutine expects snow depth in metre 
    !*@/
-   
+   !Revisions
+   ! 001    M. Carrera and V. Fortin (Nov 2007) - Compute total runoff
    include "thermoconsts.inc"
 
    include "dintern.inc"
@@ -68,7 +69,7 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
    real, save :: FI0,CONDFI,TMELICE,TMELSNO
    real, save :: ALBDI,ALBMI,ALBDS,ALBMS,COEFEXT,EMISICE,EMISNOW
    real, save :: ROICE,ROSNOW(2)
-   real, save :: HCAPI,VHFICE,VHFSNO
+   real, save :: HCAPI,HFICE,VHFICE,VHFSNO
    real, save :: HCAPS,KSDS,KSMS
    real, save :: Z0GLA
 
@@ -82,7 +83,7 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
    real,pointer,dimension(:) :: ps, qsice, th, snorate, tdeep, ts, tt, uu, vv
    real,pointer,dimension(:) :: z0h, z0m
    real,pointer,dimension(:) :: zalfaq, zalfat, zdlat, zfcor, zfdsi
-   real,pointer,dimension(:) :: zftemp, zfvap, zqdiag, zsnodp, ztdiag
+   real,pointer,dimension(:) :: zftemp, zfvap, zqdiag, zrunofftot, zsnodp, ztdiag
    real,pointer,dimension(:) :: ztsurf, ztsrad, zudiag, zvdiag
    real,pointer,dimension(:) :: zfrv, zzusl, zztsl
 
@@ -108,8 +109,8 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
    data  ROICE  / &
          913.0  /
    data  ROSNOW  / 330.0 , 450.0 /
-   data  HCAPI    , VHFICE   , VHFSNO   / &
-         2.062E+3 , 2.679E+8 , 1.097E+8 /
+   data  HCAPI    , HFICE   , VHFICE   , VHFSNO   / &
+         2.062E+3 , 3.34E+5 , 2.679E+8 , 1.097E+8 /
    data  HCAPS   , KSDS  , KSMS   / &
          2.04E+3 , 0.325 , 0.665 /
    data  Z0GLA  / 3.0E-4 /
@@ -154,6 +155,7 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
    zftemp   (1:n) => bus( x(ftemp,1,indx_sfc) : )
    zfvap    (1:n) => bus( x(fvap,1,indx_sfc)  : )
    zqdiag   (1:n) => bus( x(qdiag,1,1)        : )
+   zrunofftot(1:n) => bus( x(runofftot,1,indx_sfc) : )
    zsnodp   (1:n) => bus( x(snodp,1,indx_sfc) : )
    ztsrad   (1:n) => bus( x(tsrad,1,1)        : )
    ztsurf   (1:n) => bus( x(tsurf,1,1)        : )
@@ -412,12 +414,15 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
           SCR3(I) = SCR5(I) - SCR11(I)
 
 !                               criteria for melting at the surface
+          ZRUNOFFTOT(I) = 0.0
           if( TS(I).ge.SCR4(I) .and. &
               SCR5(I).le.0.0 .and. SCR3(I).lt.0.0 ) then
 
 !                               melt available snow...
             ZSNODP(I) = max( 0.0, ZSNODP(I) + DELT*SCR3(I)/VHFSNO )
-
+!                               (in units of water equivalent - kg/m2 or mm)
+            ZRUNOFFTOT(I) = - DELT*SCR3(I)/HFICE
+!
           endif
 !                               add snow fall (units changed from
 !                               water equivalent to snow equivalent)

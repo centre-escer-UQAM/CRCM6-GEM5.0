@@ -46,6 +46,9 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
    real,target :: bus(bussiz)
 
    !@Author J. Mailhot (April 1999)
+   !Revisions
+   ! 001     M. Carrera and V. Fortin (Nov 2007) - Compute total runoff
+   !                as precipitation - evaporation (no storage)
    !@Notes
    !          One-dimensional thermodynamic sea ice model:
    !          - based on modified version of nl-layer model of Semtner (1976, JPO 6, 379-389).
@@ -96,7 +99,8 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
    real,pointer,dimension(:) :: ps, qsice, th, ts, tt, uu, vv
    real,pointer,dimension(:) :: z0h, z0m, zalfaq, zalfat
    real,pointer,dimension(:) :: zdlat, zfcor, zfdsi, zftemp, zfvap
-   real,pointer,dimension(:) :: zqdiag, zsnodp, zsnowrate, ztdiag
+   real,pointer,dimension(:) :: zqdiag, zrainrate, zrunofftot
+   real,pointer,dimension(:) :: zsnodp, zsnowrate, ztdiag
    real,pointer,dimension(:) :: ztsrad, zudiag, zvdiag, zfrv, zzusl, zztsl
 
    real,pointer,dimension(:,:) :: t
@@ -165,6 +169,8 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
    zfrv     (1:n) => bus( x(frv,1,indx_sfc)   : )
    zftemp   (1:n) => bus( x(ftemp,1,indx_sfc) : )
    zfvap    (1:n) => bus( x(fvap,1,indx_sfc)  : )
+   zrainrate(1:n) => bus( x(rainrate,1,1)     : )
+   zrunofftot(1:n) => bus( x(runofftot,1,indx_sfc) : )
    zsnodp   (1:n) => bus( x(snodp,1,indx_sfc) : )
    zsnowrate(1:n) => bus( x(snowrate,1,1)     : )
    ztsrad   (1:n) => bus( x(tsrad,1,1)        : )
@@ -866,6 +872,8 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
         ZALFAQ   (I) = - CTU(I) * ( QSICE (I) - HU(I) )
         if (.not.IMPFLX) CTU (I) = 0.
         RHOA     (I) = PS(I)/(RGASD * my_ta(I)*(1.+DELTA*my_qa(I)))
+        ZRUNOFFTOT(I) = (1000.*(ZRAINRATE(I) +ZSNOWRATE(I)) &
+             + RHOA(I)*ZALFAQ(I)) * DELT
         FC_ICE(I)    = -CPD *RHOA(I)*ZALFAT(I)
         FV_ICE(I)    = -(CHLC+CHLF)*RHOA(I)*ZALFAQ(I)
 

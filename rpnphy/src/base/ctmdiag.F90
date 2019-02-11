@@ -109,7 +109,7 @@ include "thermoconsts.inc"
          zctue(i) = 0.0
 !
 !        vitesse de frottement (fq est calcule dans difver5)
-         zue(i) = sqrt(zfq(i)/rho)
+         zue(i) = sqrt(max(zfq(i)/rho,0.))
 !
 !        temperature potentielle a la surface
          thetas  = ztsurf(i)

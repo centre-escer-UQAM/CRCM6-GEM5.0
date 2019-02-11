@@ -54,7 +54,7 @@ rde_exit_if_not_rdetopdir
 #followlinks='-L'
 followlinks=''
 
-srclist_cache_file="${CONST_SRCPATHFILELISTCACHE}"
+srclist_cache_file="$(rdevar srcpathfilelistcache)"
 
 get_srclist_files() {
    #TODO: check if up to date
@@ -87,13 +87,26 @@ if [[ $localonly == 1 ]] ; then
       fi
    done
    exit 0
-
+   
 elif [[ $refonly == 1 ]] ; then
-   mydirlist="${CONST_SRCPATH}"
+
+   mycache="$(get_srclist_files)"
+   for myfile in $files ; do
+      mypathlist="$(echo $mycache | tr ' ' '\n' | grep /${myfile} 2>/dev/null)"
+      if [[ x"$mypathlist" != x"" ]] ; then
+         myecho 0 $mypathlist | tr ' ' '\n'
+      else
+         mystderr 0 "Missing file: $myfile"
+      fi
+   done
+   exit 0
+
 elif [[ $buildonly == 1 ]] ; then
-   mydirlist="${CONST_BUILDSRC}"
+   #mydirlist="$(rdevar build/src) $(rdevar build/pre)" 
+   mydirlist="$(rdevar build/src)"
 else
-   mydirlist=". ${CONST_BUILDSRC} ${CONST_SRCPATH}"
+   #mydirlist=". $(rdevar build/src) $(rdevar build/pre) $(rdevar srcpath)"
+   mydirlist=". $(rdevar build/src) $(rdevar srcpath)"
 fi
 
 for myfile in $files ; do

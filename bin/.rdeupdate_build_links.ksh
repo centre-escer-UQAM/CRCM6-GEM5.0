@@ -37,9 +37,9 @@ while [[ $# -gt 0 ]] ; do
     shift
 done
 
-MAKEFILEDEP="${CONST_MAKEFILE_DEP}"
-BUILDSRC=$(pwd)/${CONST_BUILDSRC}
-BUILDMOD=$(pwd)/${CONST_BUILDMOD}
+MAKEFILEDEP="$(rdevar Makefile_dep)"
+BUILDSRC=$(pwd)/$(rdevar build/src)
+BUILDMOD=$(pwd)/$(rdevar build/mod)
 
 ## ====================================================================
 

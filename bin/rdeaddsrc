@@ -31,8 +31,8 @@ EOF
 
 #TODO: add option to set SRCPATH_INCLUDE independent of SRCPATH
 
-RDE_BASE_ARCH=${CONST_RDE_BASE_ARCH}
-RDE_BASE_ARCH_EQUIV=${CONST_RDE_BASE_ARCH_EQUIV}
+RDE_BASE_ARCH=$(rdevar rde_base_arch)
+RDE_BASE_ARCH_EQUIV=$(rdevar rde_base_arch_equiv)
 myforce=0
 myreset=0
 mykeep=0
@@ -85,11 +85,10 @@ if [[ x$myarch != x ]] ; then
    export ORDENV_PLAT_F=${BASE_ARCH_F}
    RESTRICT_LIST="${BASE_ARCH_F} ${EC_ARCH_F} ${ORDENV_PLAT_F} ${ORDENV_PLAT_F}/${COMP_ARCH}"
 fi
-eval $(rdevar -k srcpath srcpath_r srcpath_maxdepth)
-SRCPATH="${CONTS_SRCPATH}"
-SRCPATH_R="${CONTS_SRCPATH_R}"
+SRCPATH="$(rdevar srcpath)"
+SRCPATH_R="$(rdevar srcpath_r)"
 if [[ x$myreset == x0 ]] ; then
-   mymaxdepth0="${CONTS_SRCPATH_MAXDEPTH}"
+   mymaxdepth0="$(rdevar srcpath_maxdepth)"
    if [[ x$mymaxdepth0 != x ]] ; then
       if [[ x$mymaxdepth0 != x$mymaxdepth && x$mymaxdepth != x0 ]] ; then
          myerror "Cannot change recursivity unless you use --reset"
@@ -171,6 +170,3 @@ cat >> $SRC_PATH_FILE <<EOF
 fi
 EOF
 fi
-
-# Invalidate the rdevar cache
-rm -f ${CONST_SH_CONST_WILD} ${CONST_MAKEFILE_CONST_WILD} || true

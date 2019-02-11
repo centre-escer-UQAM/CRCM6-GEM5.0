@@ -124,6 +124,7 @@ subroutine isba3(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
    real,pointer,dimension(:) :: zrnet_s
    real,pointer,dimension(:) :: zrootdp
    real,pointer,dimension(:) :: zrst
+   real,pointer,dimension(:) :: zrunofftot
    real,pointer,dimension(:) :: zsnoal
    real,pointer,dimension(:) :: zsnoden
    real,pointer,dimension(:) :: zsnodp
@@ -218,6 +219,7 @@ subroutine isba3(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
    zrnet_s  (1:n) => bus( x(rnet_s,1,1)       : )
    zrootdp  (1:n) => bus( x(rootdp,1,1)       : )
    zrst     (1:n) => bus( x(rst,1,1)          : )
+   zrunofftot(1:n) => bus( x(runofftot,1,indx_sfc) : )
    zsnoal   (1:n) => bus( x(snoal,1,1)        : )
    zsnoden  (1:n) => bus( x(snoden,1,1)       : )
    zsnodp   (1:n) => bus( x(snodp,1,indx_sfc) : )
@@ -411,6 +413,8 @@ subroutine isba3(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
       zWFLUX(I) = RHOA(I)*zEFLUX(I)
 
       if (.not.IMPFLX) CTU (I) = 0.
+      ! Fill runoff variable
+      zRUNOFFTOT(i) = zOVERFL(i)
 
    end do
 

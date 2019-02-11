@@ -18,6 +18,7 @@
 subroutine inisurf4(kount, ni, nk, trnch)
    use sfc_options
    use sfcbus_mod
+   use svs_configs
    implicit none
 #include <arch_specific.hf>
    !@Object Transfer and initialize geophysical fields for the
@@ -38,7 +39,6 @@ subroutine inisurf4(kount, ni, nk, trnch)
    !       when the 'entry variables' are transfered to the
    !       permanent variables.
    !*@/
-
    include "thermoconsts.inc"
    include "isbapar.cdk"
    include "sfcinput.cdk"
@@ -50,12 +50,17 @@ subroutine inisurf4(kount, ni, nk, trnch)
    real, save :: tauf   = 0.24
    real, save :: tauday = 24.
 
-   real    :: prcor
+   real    :: prcor, tempsum, tempclay, tempsand
    integer :: i, k
 
    real, pointer, dimension(:) :: zalen, zdhdx, zdhdxdy, zdhdxdyen, zdhdxen, zdhdy, zdhdyen, zepstfn, zglacen, zglacier, zglsea, zglsea0, zglseaen, zicedp, zicedpen, ziceline, zicelinen, zlhtg, zlhtgen, zmg, zmgen, zml, zresa, zsnoal, zsnoalen, zsnoagen, zsnoden, zsnoma, zsnoro, zsnoroen, ztsrad, ztwater, ztwateren, zwveg, zwvegen, zwsnow, zwsnowen, zz0en
    real, pointer, dimension(:,:) :: zalvis, zclay, zclayen, zisoil, zisoilen, zsand, zsanden, zsnodp, zsnodpen, ztglacen, ztglacier, ztmice, ztmicen, ztmoins, ztsoil, ztsoilen, zvegf, zvegfen, zwsoil, zwsoilen, zz0, zz0t
+   ! SVS
+   real, pointer, dimension(:) :: zdrainaf, zdraindens, zdrnden, zemistg, zemistgen, zfvapliqaf, zlaivh, zlaivhen, zlaivl, zlaivlen, zresagr, zresavg, zresasa, zresasv, zslop, zslopen, zsnodenen, zsnodpl, zsnodplen, zsnomaen, zsnval, zsnvalen, zsnvden, zsnvdenen, zsnvdp, zsnvdpen, zsnvma, zsnvmaen, zsnvro, zvegh, zveghen, zvegl, zveglen, zwsnv, zwsnven
+   real, pointer, dimension(:,:) :: zrunofftotaf, ztground, ztgrounden, ztsnow, ztsnowen, ztsnowveg, ztsnowvegen, ztvege, ztvegeen 
 
+
+! Two macros to assign local variable to bus variable... check if name/var defined in gesdict first
 #define MKPTR1D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and. associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni) => busptr(vd%NAME2%i)%ptr(:,trnch)
 #define MKPTR2D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and. associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni,1:vd%NAME2%mul*vd%NAME2%niveaux) => busptr(vd%NAME2%i)%ptr(:,trnch)
 
@@ -71,7 +76,13 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR1D(zdhdxen,dhdxen)
    MKPTR1D(zdhdy,dhdy)
    MKPTR1D(zdhdyen,dhdyen)
+   MKPTR1D(zdrainaf,drainaf)
+   MKPTR1D(zdraindens,draindens)
+   MKPTR1D(zdrnden,drnden)
+   MKPTR1D(zemistg,emistg)
+   MKPTR1D(zemistgen,emistgen)
    MKPTR1D(zepstfn,epstfn)
+   MKPTR1D(zfvapliqaf,fvapliqaf)
    MKPTR1D(zglacen,glacen)
    MKPTR1D(zglacier,glacier)
    MKPTR1D(zglsea,glsea)
@@ -81,26 +92,55 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR1D(zicedpen,icedpen)
    MKPTR1D(ziceline,iceline)
    MKPTR1D(zicelinen,icelinen)
+   MKPTR1D(zlaivh,laivh)
+   MKPTR1D(zlaivhen,laivhen)
+   MKPTR1D(zlaivl,laivl)
+   MKPTR1D(zlaivlen,laivlen)
    MKPTR1D(zlhtg,lhtg)
    MKPTR1D(zlhtgen,lhtgen)
    MKPTR1D(zmg,mg)
    MKPTR1D(zmgen,mgen)
    MKPTR1D(zml,ml)
    MKPTR1D(zresa,resa)
+   MKPTR1D(zresagr,resagr)
+   MKPTR1D(zresavg,resavg)
+   MKPTR1D(zresasa,resasa)
+   MKPTR1D(zresasv,resasv)
+   MKPTR1D(zslop,slop)
+   MKPTR1D(zslopen,slopen)
    MKPTR1D(zsnoal,snoal)
    MKPTR1D(zsnoalen,snoalen)
    MKPTR1D(zsnoagen,snoagen)
    MKPTR1D(zsnoden,snoden)
+   MKPTR1D(zsnodenen,snodenen)
+   MKPTR1D(zsnodpl,snodpl)
+   MKPTR1D(zsnodplen,snodplen)
    MKPTR1D(zsnoma,snoma)
+   !MKPTR1D(zsnomaen,snomaen)
    MKPTR1D(zsnoro,snoro)
    MKPTR1D(zsnoroen,snoroen)
+   MKPTR1D(zsnval,snval)
+   MKPTR1D(zsnvalen,snvalen)
+   MKPTR1D(zsnvden,snvden)
+   MKPTR1D(zsnvdenen,snvdenen)
+   MKPTR1D(zsnvdp,snvdp)
+   MKPTR1D(zsnvdpen,snvdpen)
+   MKPTR1D(zsnvma,snvma)
+   !MKPTR1D(zsnvmaen,snvmaen)
+   MKPTR1D(zsnvro,snvro)
    MKPTR1D(ztsrad,tsrad)
    MKPTR1D(ztwater,twater)
    MKPTR1D(ztwateren,twateren)
+   MKPTR1D(zvegh,vegh)
+   !MKPTR1D(zveghen,veghen)
+   MKPTR1D(zvegl,vegl)
+   !MKPTR1D(zveglen,veglen)
    MKPTR1D(zwveg,wveg)
    MKPTR1D(zwvegen,wvegen)
    MKPTR1D(zwsnow,wsnow)
    MKPTR1D(zwsnowen,wsnowen)
+   MKPTR1D(zwsnv,wsnv)
+   MKPTR1D(zwsnven,wsnven)
    MKPTR1D(zz0en,z0en)
 
    MKPTR2D(zalvis,alvis)
@@ -108,6 +148,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR2D(zclayen,clayen)
    MKPTR2D(zisoil,isoil)
    MKPTR2D(zisoilen,isoilen)
+   MKPTR2D(zrunofftotaf,runofftotaf)
    MKPTR2D(zsand,sand)
    MKPTR2D(zsanden,sanden)
    MKPTR2D(zsnodp,snodp)
@@ -117,8 +158,16 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR2D(ztmice,tmice)
    MKPTR2D(ztmicen,tmicen)
    MKPTR2D(ztmoins,tmoins)
+   MKPTR2D(ztground,tground)
+   MKPTR2D(ztgrounden,tgrounden)
+   MKPTR2D(ztsnow,tsnow)
+   MKPTR2D(ztsnowen,tsnowen)
+   MKPTR2D(ztsnowveg,tsnowveg)
+   MKPTR2D(ztsnowvegen,tsnowvegen)
    MKPTR2D(ztsoil,tsoil)
    MKPTR2D(ztsoilen,tsoilen)
+   MKPTR2D(ztvege,tvege)
+   MKPTR2D(ztvegeen,tvegeen)
    MKPTR2D(zvegf,vegf)
    MKPTR2D(zvegfen,vegfen)
    MKPTR2D(zwsoil,wsoil)
@@ -254,6 +303,22 @@ subroutine inisurf4(kount, ni, nk, trnch)
       if (any('dhdxdyen' == phyinread_list_s(1:phyinread_n))) then
          zdhdxdy(i) = zdhdxdyen(i)
       endif
+!
+      if(kount == 0) then
+!          total surface runoff
+         zrunofftotaf(i,indx_soil   ) = 0.0
+         zrunofftotaf(i,indx_glacier) = 0.0
+         zrunofftotaf(i,indx_water  ) = 0.0
+         zrunofftotaf(i,indx_ice    ) = 0.0
+         zrunofftotaf(i,indx_agrege ) = 0.0
+         !          evaporation
+         zfvapliqaf(i) = 0.0
+      endif
+
+
+
+
+
    end do DO_I
 
    if (any('tmicen' == phyinread_list_s(1:phyinread_n))) then
@@ -434,6 +499,151 @@ subroutine inisurf4(kount, ni, nk, trnch)
       endif
 
    end if IF_ISBA
+!=========================================================================
+!                                      FOR SVS  ... FOR SVS  ... FOR SVS 
+!=========================================================================
+!
+!
+   IF_SVS: IF (schmsol.EQ.'SVS') THEN
+!
+!VDIR NODEP
+         DO i=1,ni
+            if (kount == 0) then
+               Do k=1,nl_svs
+                  zwsoil(i,k) = zwsoilen(i,k) 
+                  zisoil(i,k) = zisoilen(i,k)
+               End do
+
+               zwveg(i)           = zwvegen(i)
+               zdrainaf(i)        = 0.0
+               zdraindens(i)      = zdrnden(i)
+               if ( read_emis ) &
+                    zemistg(i)         = zemistgen(i)
+               zwsnow(i)          = zwsnowen(i)
+               zwsnv(i)           = zwsnven(i)
+               zresagr(i)         = 100.
+               zresavg(i)         = 50.
+               zresasa(i)         = 100.
+               zresasv(i)         = 100.
+               ztsnow(i,1)        = ztsnowen(i,1)
+               ztsnow(i,2)        = ztsnowen(i,2)
+               ztsnowveg(i,1)     = ztsnowvegen(i,1)
+               ztsnowveg(i,2)     = ztsnowvegen(i,2)
+               ztground(i,1)      = ztgrounden(i,1)
+               ztground(i,2)      = ztgrounden(i,2)
+               ztvege(i,1)        = ztvegeen(i,1)
+               ztvege(i,2)        = ztvegeen(i,2)
+!              Read in snow mass and snow depth, calc. densities in coherence
+               zsnodpl(i) = zsnodplen(i)
+               zsnvdp(i)  = zsnvdpen(i)
+               !zsnoma(i)  = zsnomaen(i)
+               !zsnvma(i)  = zsnvmaen(i)
+               zsnoden(i) = zsnodenen(i)
+               zsnvden(i) = zsnvdenen(i)
+               zsnoma(i)  = zsnoden(i) * zsnodplen(i)
+               zsnvma(i)  = zsnvden(i) * zsnvdpen(i)
+
+!!$               zlaivh(i)          = zlaivhen(i)
+!!$               zlaivl(i)          = zlaivlen(i)
+!!$               zvegh(i)           = zveghen(i)
+!!$               zvegl(i)           = zveglen(i)
+               ! DDeacu: Ensure that slope is positive and set its minimum value      
+               ! max. angle for slope is 45 degrees.       
+               if ( zmg(i).gt.critmask ) then
+                  zslop(i)  = min ( max( abs( zslopen(i) ) , 5.e-03 ) , 1.0 ) 
+               else
+                  zslop(i)  = 0.0
+               endif
+               
+            endif
+!
+!
+!                     For the ALBEDO, for SVS, only one possibility
+!
+!                     1) if switch "snoalb_anl" is true, then the "I6"
+!                        record in the starting standard file (SNOALEN)
+!                        contains the snow albedo
+!                     2) OTHERWISE ABORT
+!
+!
+            if (snoalb_anl) then
+!
+               if (kount == 0 ) then
+                  zsnoal(i)  =  zsnoalen(i)
+                  zsnval(i)  =  zsnvalen(i)
+               endif
+!
+            else
+               write(6,*) "SVS requires snow albedo to be read at entry"
+               write(6,*) " SNOALB_ANL key in settings must be TRUE"
+               call qqexit(1)
+            endif
+            
+
+      END DO
+!
+!
+!                          Initialize the parameters that depend
+!                          on vegetation
+!
+      if (any('vegfen'==phyinread_list_s(1:phyinread_n))) then
+
+         call inicover_svs(0, ni, trnch)
+
+      endif
+!
+!
+!
+!
+!                           Sand and clay fractions 
+!
+!VDIR NODEP
+      kount_zero: if ( kount == 0 ) then
+         soil_data: if ( soiltext == "GSDE" .or. soiltext == "SLC" &
+              .or. soiltext == "SOILGRIDS" ) then 
+            DO k=1,nl_stp
+               DO i=1,ni
+                  watmask2: if (zmg(i).lt.critmask) then
+                     ! OVER WATER...
+                     zsand  (i,k)    = 0.0
+                     zclay  (i,k)    = 0.0
+                  else
+                     ! OVER LAND
+                     
+                     if (zsanden(i,k)+zclayen(i,k).lt.critexture) then
+                        !                If no sand and clay component
+                        !                attribute to these points characteristics
+                        !                of typical loamy soils
+                        zsand(i,k) = 35.
+                        zclay(i,k) = 35.
+                     else 
+                        !                 Minimum of 1% of sand and clay 
+                        zsand(i,k) =  max( zsanden(i,k) , 1.0) 
+                        
+                        zclay(i,k) =  max( zclayen(i,k) , 1.0)
+                        
+                        if ( zsand(i,k)+zclay(i,k).gt.100 ) then
+                           ! reduce sand & clay  percentage proportionally 
+                           tempsum= zsand(i,k) + zclay(i,k)
+                           zsand(i,k) = zsand(i,k)/tempsum * 100.
+                           zclay(i,k) = zclay(i,k)/tempsum * 100.
+                        endif
+                     endif
+                  endif watmask2
+                  
+               enddo
+            enddo
+            ! initialize soil characteristics 
+            call inisoili_svs( ni, trnch )
+         endif soil_data
+
+         ! Make sure the entry fields are coherent ...
+         call coherence3(ni, trnch)
+
+
+      endif kount_zero ! kount =0.0
+
+     END IF IF_SVS
 
    !========================================================================
    !                             for TEB only

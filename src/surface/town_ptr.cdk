@@ -17,6 +17,7 @@
       real, pointer, dimension(:) :: zqdiag
       real, pointer, dimension(:) :: zqsurf
       real, pointer, dimension(:) :: zrainrate
+      real, pointer, dimension(:) :: zrunofftot
       real, pointer, dimension(:) :: zsnodp
       real, pointer, dimension(:) :: zsnowrate
       real, pointer, dimension(:) :: ztdiag

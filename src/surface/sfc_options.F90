@@ -107,6 +107,12 @@ module sfc_options
    logical           :: isba_melting_fix = .false.
    namelist /surface_cfgs/ isba_melting_fix
 
+   !# If .true., do not consider "latent heat realease due to liquid water 
+   !# refreezing in the snowpack" in the surface energy budget WHEN the 
+   !# superficial surface temperature is above zero.
+   logical           :: isba_no_warm_sn_freez = .false.
+   namelist /surface_cfgs/ isba_no_warm_sn_freez
+
    !# Minimum fraction of leads in sea ice.&nbsp; Multiply ice fraction by (1.-leadfrac) 
    real              :: leadfrac    = 0.03
    namelist /surface_cfgs/ leadfrac

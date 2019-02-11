@@ -60,8 +60,8 @@ if [[ $localonly == 1 ]] ; then
 elif [[ $refonly == 1 ]] ; then
    SEARCH_PATH_BASE="$(rdevar srcpath)"
 elif [[ $buildonly == 1 ]] ; then
-   tmp="$(rdevar build/pre)"
-   SEARCH_PATH_BASE="$(rdevar build/src)"
+   tmp="${CONST_BUILDPRE}"
+   SEARCH_PATH_BASE="${CONST_BUILDSRC}"
    if [[ x"$SEARCH_PATH_BASE" != x"$tmp" ]] ; then
       SEARCH_PATH_BASE="$SEARCH_PATH_BASE $tmp"
    fi
@@ -78,7 +78,7 @@ if [[ ! -n ${SEARCH_PATH} ]] ; then
    SEARCH_PATH='.'
 fi
 
-suffixes="*$(rdevar rdesuffix | sed 's/ [.]/,*./g'),*.mk"
+suffixes="*$(echo ${CONST_RDESUFFIX} | sed 's/ [.]/,*./g'),*.mk"
 
 for PATH_BASE in $SEARCH_PATH_BASE ; do
    cd ${PATH_BASE}

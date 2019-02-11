@@ -332,6 +332,18 @@ subroutine EBUDGET2(T, TS, T2, W2, WF, WL, &
 
          TST(I) = min(TRPL,TST(I)+TEMPO)             
 
+      else if ( (tempo > 0.) .and. (TST(I) >= TRPL ) ) then
+         
+         ! Trying to WARM UP surface temp. that is initially
+         ! above zero by freezing liquid water
+         ! in  snow ... don't let it happen if  isba_no_warm_sn_freez=.TRUE.
+
+         if ( .not.  isba_no_warm_sn_freez ) then 
+
+            TST(I) = TST(I)+TEMPO
+
+         endif
+
       else
 
          TST(I) = TST(I)+TEMPO

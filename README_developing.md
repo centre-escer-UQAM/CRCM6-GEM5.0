@@ -684,7 +684,7 @@ See the [layout section](#layout) above.
 > components is preferred (reversed way).  
 > See [Contribute Back, Share](#contribute-back-share) for details.
 
-To update an exiting component, use `git subtree pull` to import its
+To update an existing component, use `git subtree pull` to import its
 repository's updates in MIG and then update its reference in MIG's
 DEPENDENCY list:
 
@@ -908,13 +908,20 @@ you can `git push` your modifications directly.
 > The librarian will have to do this after merging in, or applying patch of,
 > others' contributions.
 
+> Note: Pushing modifications upstream is not an "easily" reversible operation.  
+> You may want to double check your commits and proceed with care.
+
 Push the MIG super-repos
 
     migbranch="$(git symbolic-ref --short HEAD)"
     git push origin ${migbranch} && git push --tags origin
 
 If you have *write permissions* in the original components' Git repositories,
-you may tag and push individual components. This is a 3 steps process:
+you may tag and push individual components.
+
+**Pushing all components**
+
+This is a 3 steps process:
 
     ## Check that branches and tags are as expected before doing the actual push below
     _bin/migsplitsubtree.ksh --dryrun
@@ -924,6 +931,23 @@ you may tag and push individual components. This is a 3 steps process:
 
     ## Cleanup repository garbage following remote import (fetch)
     _bin/migsplitsubtree.ksh --clean
+
+
+**Pushing only one component**
+
+To update an existing component, use `git subtree push` to export its
+repository's updates in MIG:
+
+    compname=MYNAME                      ## Set to appropriate name
+    compversion=MYVERSION                ## Set to appropriate version
+    compbranch=${compname}_${compversion}-branch   ## Set to appropriate branch if need be
+    compurl=git@gitlab.science.gc.ca:MIG/${compname}.git
+    git remote add ${compname} ${compurl}
+    git subtree push -P ${compname} ${compname} ${compbranch}
+    git remote rm ${compname}
+
+> Note: contrary to the `_bin/migsplitsubtree.ksh` script above, this will not do any 
+> checking and will not add the component's tag.
 
 
 Git Cheat sheet

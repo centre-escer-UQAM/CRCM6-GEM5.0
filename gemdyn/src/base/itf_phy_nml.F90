@@ -32,7 +32,7 @@
 ! v4_80 - authors          - initial version
 
 
-      integer, parameter :: COMPATIBILITY_LVL = 16
+      integer, parameter :: COMPATIBILITY_LVL = 17
 		integer err,phy_code
 !
 !     ---------------------------------------------------------------

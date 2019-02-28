@@ -51,6 +51,7 @@ module prof_mod
        gmmk_pw_pm_moins_s='PW_PM:M', &                                          !momentum level pressure (Pa, time minus)
        gmmk_pw_pt_moins_s='PW_PT:M', &                                          !thermodynamic level pressure (Pa, time minus)
        gmmk_pw_gz_moins_s='PW_GZ:M', &                                          !geopotential (m^2/s^2 ASL, time minus)
+       gmmk_pw_p0_moins_s='PW_P0:M', &                                          !surface pressure (Pa, time plus)
        gmmk_pw_me_moins_s='PW_ME:M', &                                          !geopotential of the surface (m^2/s^2 ASL, time minus)
        gmmk_adv_u_s='ADV_UU', &                                                 !west wind advection tendency (m/s^2)
        gmmk_adv_v_s='ADV_VV', &                                                 !south wind advection tendency (m/s^2)
@@ -578,6 +579,9 @@ contains
 
     ! Create space for prescribed surface pressure and orographic height
     nullify(fld2d); gmmname = trim(gmmk_pw_me_moins_s)
+    istat = gmm_create(gmmname,fld2d,meta2d)
+    call handle_error_l(GMM_IS_OK(istat),'prof_set_vt','Creating '//trim(gmmname))
+    nullify(fld2d); gmmname = trim(gmmk_pw_p0_moins_s)
     istat = gmm_create(gmmname,fld2d,meta2d)
     call handle_error_l(GMM_IS_OK(istat),'prof_set_vt','Creating '//trim(gmmname))
     nullify(fld2d); gmmname = trim(gmmk_pw_p0_plus_s)
@@ -1181,7 +1185,8 @@ contains
          pw_v_list=(/gmmk_pw_vv_moins_s,gmmk_pw_vv_plus_s/), &
          pw_t_list=(/gmmk_pw_tt_moins_s,gmmk_pw_tt_plus_s/), &
          pw_pm_list=(/gmmk_pw_pm_moins_s,gmmk_pw_pm_plus_s/), &
-         pw_pt_list=(/gmmk_pw_pt_moins_s,gmmk_pw_pt_plus_s/)
+         pw_pt_list=(/gmmk_pw_pt_moins_s,gmmk_pw_pt_plus_s/), &
+         pw_p0_list=(/gmmk_pw_p0_moins_s,gmmk_pw_p0_plus_s/)
     character(len=GMM_MAXNAMELENGTH), dimension(2) :: tr_list
 
     ! Shuffle variables
@@ -1195,6 +1200,8 @@ contains
     call handle_error_l(GMM_IS_OK(istat),'prof_timeflip','Shuffling PM-list')
     istat = gmm_shuffle(pw_pt_list)
     call handle_error_l(GMM_IS_OK(istat),'prof_timeflip','Shuffling PT-list')
+    istat = gmm_shuffle(pw_p0_list)
+    call handle_error_l(GMM_IS_OK(istat),'prof_timeflip','Shuffling P0-list')
 
     ! Shuffle tracers
     do i=1,size(tracers)

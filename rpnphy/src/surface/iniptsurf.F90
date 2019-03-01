@@ -48,7 +48,7 @@ subroutine iniptsurf3(ni,nk)
 #include <rmnlib_basics.hf>
    include "thermoconsts.inc"
 
-   integer, parameter :: nb_agrege = 22
+   integer, parameter :: nb_agrege = 23
    integer, parameter :: nb_glaciers = 1
    integer, parameter :: nb_water = 4
    integer, parameter :: nb_ice = 2
@@ -69,8 +69,8 @@ subroutine iniptsurf3(ni,nk)
         'ALFAQ'    , 'ALFAT'    , 'ALVIS'    , 'BM'       , 'BT'       , &
         'FC'       , 'FRV'      , 'FTEMP'    , 'FV'       , &
         'FVAP'     , 'HST'      , 'ILMO'     , &
-        'QDIAG'    , 'QSURF'    , 'SNODP'    , 'TDIAG'    , 'TSURF'    , &
-        'UDIAG'    , 'VDIAG'    , &
+        'QDIAG'    , 'QSURF'    , 'RUNOFFTOT', 'SNODP'    , 'TDIAG'    , &
+        'TSURF'    , 'UDIAG'    , 'VDIAG'    , &
         
         !  le flux infrarouge emis par la surface, qui est
         !  proportionnel a TSRAD**4, est moyenne lineairement

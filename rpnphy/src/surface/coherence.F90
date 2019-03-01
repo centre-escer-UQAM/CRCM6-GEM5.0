@@ -17,6 +17,7 @@
 subroutine coherence3(ni, trnch)
    use sfc_options
    use sfcbus_mod
+   use svs_configs
    implicit none
 #include <arch_specific.hf>
 
@@ -38,14 +39,19 @@ subroutine coherence3(ni, trnch)
    include "thermoconsts.inc"
    include "isbapar.cdk"
    include "sfcinput.cdk"
+  
 
-   integer i
+   integer i, k
    real fsnow
 
-   real, pointer, dimension(:) :: zalveg,  zcveg,  zgamveg,  zglacier,  zglsea,  zicedp,  zisoil,  zlai,  zmg,  zrgl,  zrootdp,  zsnoal,  zsnoma,  zsnoro,  zstomr,  zvegfrac,  zwsnow,  zwveg
+   real, pointer, dimension(:) :: zalveg,  zcveg,  zgamveg,  zglacier,  zglsea,  zicedp,  zlai,  zmg,  zrgl,  zrootdp,  zsnoal,  zsnoma,  zsnoro,  zstomr,  zvegfrac,  zwsnow,  zwveg
 !!$      real, pointer, dimension(:) :: zsdepth
 
-   real, pointer, dimension(:,:) :: zclay, zsand, zsnodp, ztglacier, ztsoil, zwsoil
+   real, pointer, dimension(:,:) :: zclay, zisoil, zsand, zsnodp, ztglacier, ztsoil, zwsoil
+   ! SVS
+   real, pointer, dimension(:) :: zsnoden, zsnodpl, zsnval, zsnvden, zsnvdp, zsnvma, zsnvro, zvegh, zvegl, zwsnv
+   
+ 
 
 #define MKPTR1D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and. associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni) => busptr(vd%NAME2%i)%ptr(:,trnch)
 #define MKPTR2D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and. associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni,1:vd%NAME2%mul*vd%NAME2%niveaux) => busptr(vd%NAME2%i)%ptr(:,trnch)
@@ -56,27 +62,38 @@ subroutine coherence3(ni, trnch)
    MKPTR1D(zglacier, glacier)
    MKPTR1D(zglsea,   glsea)
    MKPTR1D(zicedp,   icedp)
-   MKPTR1D(zisoil,   isoil)
+   !MKPTR1D(zisoil,   isoil)
    MKPTR1D(zlai,     lai)
    MKPTR1D(zmg,      mg)
    MKPTR1D(zrgl,     rgl)
    MKPTR1D(zrootdp,  rootdp)
 !!$   MKPTR1D(zsdepth,  sdepth)
    MKPTR1D(zsnoal,   snoal)
+   MKPTR1D(zsnoden,  snoden)
+   MKPTR1D(zsnodpl,  snodpl)
    MKPTR1D(zsnoma,   snoma)
    MKPTR1D(zsnoro,   snoro)
+   MKPTR1D(zsnval,   snval)
+   MKPTR1D(zsnvden,  snvden)
+   MKPTR1D(zsnvdp,   snvdp)
+   MKPTR1D(zsnvma,   snvma)
+   MKPTR1D(zsnvro,   snvro)
    MKPTR1D(zstomr,   stomr)
    MKPTR1D(zvegfrac, vegfrac)
+   MKPTR1D(zvegh,    vegh)
+   MKPTR1D(zvegl,    vegl)
    MKPTR1D(zwsnow,   wsnow)
+   MKPTR1D(zwsnv,    wsnv)
    MKPTR1D(zwveg,    wveg)
 
    MKPTR2D(zclay,    clay)
+   MKPTR2D(zisoil,   isoil)
    MKPTR2D(zsand,    sand)
    MKPTR2D(zsnodp,   snodp)
    MKPTR2D(ztglacier,tglacier)
    MKPTR2D(ztsoil,   tsoil)
    MKPTR2D(zwsoil,   wsoil)
-   
+  
    !***************************************************************
    ! Coherence tests on the mask "mg"
    !***************************************************************
@@ -91,8 +108,6 @@ subroutine coherence3(ni, trnch)
 
             zmg      (i)              = 0.0
             zglacier (i)              = 0.0
-            zwsoil   (i,1)            = 1.0
-            zwsoil   (i,2)            = 1.0
             zsnodp   (i,indx_soil)    = 0.0
             zsnodp   (i,indx_glacier) = 0.0
 
@@ -103,10 +118,12 @@ subroutine coherence3(ni, trnch)
 
 !VDIR NODEP
          do i=1,ni
+!           Over water for ESTHETIC PURPOSES
             if (zmg(i).lt.critmask) then
-
+               zwsoil   (i,1)    = 1.0
+               zwsoil   (i,2)    = 1.0
                zwveg    (i)      = 0.0
-               zisoil   (i)      = 0.0
+               zisoil   (i,1)    = 0.0
                zrootdp  (i)      = 0.0
                zstomr   (i)      = 0.0
                zlai     (i)      = 0.0
@@ -144,13 +161,13 @@ subroutine coherence3(ni, trnch)
                   if (zwsoil(i,1).lt.critwater) then
                      zwsoil(i,1)    = 0.30
                   end if
-                  if (zwsoil(i,2)+zisoil(i).lt.critwater) then
+                  if (zwsoil(i,2)+zisoil(i,1).lt.critwater) then
                      zwsoil(i,2) = 0.30
                   end if
 
                else
                   zwsoil(i,1) = max(zwsoil(i,1),1.e-7)
-                  zwsoil(i,2) = max(Zwsoil(i,2),1.e-7)
+                  zwsoil(i,2) = max(zwsoil(i,2),1.e-7)
                endif
 
 
@@ -172,6 +189,39 @@ subroutine coherence3(ni, trnch)
          end do
 
       end if IF_ISBA
+
+      IF_SVS:  if (schmsol.eq.'SVS') then
+         do i=1,ni
+            if (zmg(i).lt.critmask) then
+               ! OVER WATER, FOR ESTHETIC PURPOSE ONLY
+               do k=1,nl_svs
+                  zwsoil(i,k)   = 1.0
+                  zisoil(i,k)   = 0.0
+               enddo
+               zwveg    (i)      = 0.0
+               zrootdp  (i)      = 0.0
+               zvegfrac (i)      = 0.0
+               zvegh    (i)      = 0.0
+               zvegl    (i)      = 0.0
+            endif
+         enddo
+
+         do i=1,ni
+            if (zmg(i).ge.critmask) then
+               ! OVER LAND, *NOT* ESTHETIC PURPOSE ONLY
+               do k=1,nl_svs
+                  !                 Make sure there is soil water 
+                  zwsoil(i,k) = max(zwsoil(i,k),1.e-7)
+               enddo
+!
+               zrootdp  (i) = max( zrootdp  (i) , 0.5  )
+               zcveg    (i) = max( zcveg    (i) , 1.e-5)
+               zvegfrac (i) = max( zvegfrac (i) , 0.0  )
+               zwveg    (i) = max( zwveg    (i) , 0.0  ) 
+            endif
+         enddo
+      endif IF_SVS
+
    endif NEW_MG_MASK
 
 
@@ -244,8 +294,6 @@ subroutine coherence3(ni, trnch)
       do i=1,ni
         if (zglacier(i) > 1.-critmask) then
             zglacier(i)   = 1.0
-            zwsoil  (i,1) = 1.0
-            zwsoil  (i,2) = 1.0
         end if
       end do
 
@@ -254,9 +302,10 @@ subroutine coherence3(ni, trnch)
 !VDIR NODEP
          do i=1,ni
             if (zglacier(i) > 1.-critmask) then
-
+               zwsoil  (i,1) = 1.0
+               zwsoil  (i,2) = 1.0
                zwveg    (i)      = 0.0
-               zisoil   (i)      = 0.0
+               zisoil   (i,1)    = 0.0
                zrootdp  (i)      = 0.0
                zstomr   (i)      = 0.0
                zlai     (i)      = 0.0
@@ -269,6 +318,25 @@ subroutine coherence3(ni, trnch)
 
       end if IF_ISBA2
 
+      IF_SVS2: if (schmsol == 'SVS') then
+
+!VDIR NODEP
+         do i=1,ni
+            if (zglacier(i) > 1.-critmask) then
+
+               do k=1,nl_svs
+                  zwsoil(i,k)   = 1.0
+                  zisoil(i,k)   = 0.0
+               enddo
+
+               zwveg    (i)      = 0.0
+               zrootdp  (i)      = 0.0
+               zvegfrac (i)      = 0.0
+
+            end if
+         end do
+
+      end if IF_SVS2
    endif NEW_GL_MASK
 
 
@@ -302,6 +370,48 @@ subroutine coherence3(ni, trnch)
             end if
          end do
       end if IF_ISBA3
+
+      IF_SVS3: if (schmsol.EQ.'SVS') then
+!VDIR NODEP
+
+!                     Calculate density
+!
+!                     CAREFUL HERE about the units:
+!                     "snoro"/"snvro" is the relative density of snow,
+!                         i.e., rho_ice / rho_water (no units)
+!                     "snoma"/"snvma" is the snow water equivalent in
+!                         mm (i.e., kg / m2)
+!                     "snoden"/"snvden" : snow density in kg/m3 
+
+
+         do i=1,ni
+
+            if (zsnoma(i).lt.critsnowmass.or.zsnodpl(i).eq.0.0) then
+               zsnodpl(i) = 0.0
+               zsnoma(i)  = 0.0
+               zwsnow(i)  = 0.0
+               zsnoro(i)  = rhosdef
+               zsnoden(i) = rhosdef * rauw
+               zsnoal(i)  = ansmax
+            else
+               !zsnoden(i) = zsnoma(i) / zsnodpl(i)
+               zsnoro(i)  = min(  max(100.,zsnoden(i)) / rauw  , 0.9 )
+            endif
+               
+            if (zsnvma(i).lt.critsnowmass.or.zsnvdp(i).eq.0.0) then
+               zsnvdp(i)  = 0.0
+               zsnvma(i)  = 0.0
+               zwsnv(i)   = 0.0
+               zsnvro(i)  = rhosdef
+               zsnvden(i) = rhosdef*rauw
+               zsnval(i)  = ansmax
+            else
+               !zsnvden(i) = zsnvma(i) / zsnvdp(i)
+               zsnvro(i)  =  min(  max(100.,zsnvden(i)) / rauw  , 0.9 )
+            endif
+
+         enddo
+      endif IF_SVS3
 
    endif NEW_SD_MASK
 

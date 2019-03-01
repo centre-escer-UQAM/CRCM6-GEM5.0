@@ -79,6 +79,10 @@ include "thermoconsts.inc"
        where(values<0.) values = 0.0
     case('SNODPEN')
        values = 0.01*values
+    case('SNODPLEN')
+       values = 0.01*values
+    case('SNVDPEN')
+       values = 0.01*values
     case('TGLACEN')
        where(values<150.) values = values+tcdk
     case('TMICEN')

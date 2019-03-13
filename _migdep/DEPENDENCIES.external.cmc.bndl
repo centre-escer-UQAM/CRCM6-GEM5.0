@@ -1,0 +1,11 @@
+/ssm/net/hpcs/201402/04/base
+Linux_x86-64:/ssm/net/hpcs/exp/intel2016/01
+
+/ssm/net/rpn/utils/16.2.2
+/ssm/net/rpn/libs/16.2
+
+/ssm/net/hpcs/exp/aspgjdm/perftools
+
+Linux_x86-64:/ssm/net/cmdn/vgrid/5.6.9/intel-2016.1.156
+
+ENV/modeldata/modeldata_4.2.0

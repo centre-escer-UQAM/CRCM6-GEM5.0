@@ -1,201 +1,288 @@
 
-Building, Installing MIG/GEM from Version Control
-=================================================
+Installing MIG/GEM from Version Control
+=======================================
 
-This document is intended as a notebook and checklist for the MIG librarian. It is only valid on EC/CMC and GC/Science Networks.
+This document is intended as a notebook and checklist for the Model
+Infrastructure Group (MIG) librarian.
+It is only valid on EC/CMC and GC/Science Networks.
 
-For more info on how to run and develop code see:
-  * Main doc: [README.md](README.md).
-  * Developing instructions: [README\_developing.md](README_developing.md). 
-  * Running instructions: [README\_running.md](README_running.md).
-  
+> **This README assumes**:  
+>
+> The MIG repository is already cloned and the desired version is
+> already checked out.  
+> *See [Getting the code](README.md#getting-the-code) section for more details.*  
+>
+> The modifications are already committed and tested.  
+> *See [README\_developing.md](README_developing.md) and
+> [README\_running.md](README_running.md) for more details.*
+>
+> The code is already compiled and built.  
+> *See [README\_building.md](README_building.md) for more details.*
+
+For more info see:
+
+  * Main doc: [README.md](README.md)
+  * Developing instructions: [README\_developing.md](README_developing.md)
+  * Building instructions: [README\_building.md](README_building.md)
+  * Running instructions: [README\_running.md](README_running.md)
+
+
 **Table of Contents**
 
-  * **TODO**
+   * [Updating the MIG Repository Content](#updating-the-mig-repository-content)
+      * [1.1 - Update Code, Scripts and more](#11---update-code-scripts-and-more)
+      * [1.2 - Update Compiler Options](#12---update-compiler-options)
+      * [1.3 - Update Versions and Dependencies](#13---update-versions-and-dependencies)
+      * [1.4 - Tag and Push Modifications](#14---tag-and-push-modifications)
+      * [1.5 - Close Issues](#15---close-issues)
+   * [Testing](#testing)
+   * [Installing MIG/GEM from Version Control](#installing-miggem-from-version-control-1)
+      * [Install](#install)
+        * [Post Install](#post-install)
+      * [Update the documentation and send announcement](#update-the-documentation-and-send-announcement)
+      * [Uninstall](#uninstall)
+      * [Cleaning up](#cleaning-up)
+   * [See Also](#see-also)
 
 
-Basic profile and directory setup
----------------------------------
+Updating the MIG Repository Content
+===================================
 
-**TODO**: 
+1.1 - Update Code, Scripts and more
+-----------------------------------
 
-  * list expected dir structure (~/SsmDepot, ~/SsmBundle, ...)
-  * list expected env var and paths...
+  * **Merge in code from other devs** (and from other branches if any).  
+    You may use
+    * "`git merge`", "`git rebase`" for other's repos.  
+      (see "*Merging: Pulling Others' Code*" section in
+      [README\_developing.md](README_developing.md#merging-pulling-others-code)
+    * "`git apply`", "`git am`" for patches  
+      Special care needs to be taken for patches provided on top of a
+      component's repository (not MIG).  
+      (see "*Merging: Applying Patches*" section in
+      [README\_developing.md](README_developing.md#merging-applying-patches)
 
+  * **Check for code conformance**  
+    **TODO** - need to set a list of things to check and maybe a "linter" script to report/fix issues (!$omp indentation, #include <arch_specific.hf>, Fortran 2004 std, ...).
 
-Closing Issues
---------------
-
-**TODO**: review/close bugzilla issues
-
-
-Getting the code
-----------------
-
-If not already done, you may clone the MIG repository and checkout the version you want to 
-run/work on with the following command (example for version 5.0.0):
-
-        MYVERSION=5.0.0                                   ## Obviously, you'll need to change this to the desired version
-        MYURL=git@gitlab.science.gc.ca:MIG/mig            ## You'll need a GitLab.science account for this URL
-        ## MYURL=https://gitlab.science.gc.ca/MIG/mig.git ## You cannot "git push" if you use the http:// URL
-        git clone ${MYURL} mig_${MYVERSION}
-        cd mig_${MYVERSION}
-        git checkout -b mig_${MYVERSION}-${USER}-branch mig_${MYVERSION}
+  * **Test**  
+    Before accepting new code from others or including your own modifications
+    you may want to make sure it passes all tests.  
+    See [testing section](#testing) below.
 
 
-Update Dependencies
--------------------
+1.2 - Update Compiler Options
+-----------------------------
 
-**TODO**:
-
-  * Where/How to set change external dependencies (compiler, librmn, vgrid, rpn_comm, ...)
-  * Where/How to set compiler options, new compiler rules...
-
-
-Committing the Code
--------------------
-
-**TODO Pre-commit**:
-
-  * merge in code from other devs (and from other branches if any)
-  * update version numbers for each modified components
-  * update bndl dependencies for each components
-  * update _share/gemversions.txt
-  * update DEPENDENCIES files if need be (should be automated with migsplitsubtree.ksh script)
-  * Add ref nml and updater data
-  * test (testing section below)
-
-**TODO**:
-
-  * tag mig version
-  * commit code and tags to mono repos (git push && git push --tags)
-  * tag individual components and push the tags (use _bin/migsplitsubtree.ksh --tag)
-  * split into components and push (use _bin/migsplitsubtree.ksh --tag --push)
+The compiler is specified as an external dependency in the
+"`_migdep/DEPENDENCIES.external.*.bndl`" files.  
+Compiler options, rules and targets are specified in each component's Makefiles (`*/include/Makefile.local*mk` files).  
+For details, see:
+  * [Dependencies Update](README_developing.md#dependencies-update)
+  * [Compiler Options Update](README_developing.md#compiler-options-update)
 
 
-Initial Setup
--------------
+1.3 - Update Versions and Dependencies
+--------------------------------------
 
-Setting up the Shell Environment and Working Directories.
+#### Versions ####
 
-The MIG/GEM compiling, building and running systems depend on a few Shell (Bash is the only supported Shell to date) environment variables, PATHs, directories, links and files. 
-The following commands perform that setup.
+Every component has a "`VERSION`" file and there is an additional one
+for MIG on the top level dir.
+You need to update these version numbers for each components with modifications.
 
-#### Shell Env. SetUp ####
-
-*This step needs to be performed every time a new Shell is opened.*
-
-*Note 1*: The setup files are available for the EC/CMC and GC/Sciences networks. 
-Compiler and other external dependencies are available for these networks only.  
-See [README\_developing.md](README_developing.md) on how to modify this.
-
-*Note 2*: The compiled objects and binaries being big files they are put under the
-build directory which is a link to a *scratch*/*big_data* space.  
-The location of the *scratch*/*big_data* space is defined with the
-`${storage_model}` environment variable.
-
-#TODO: need to auto-swap cmc/science bndl link
-# for item in gem gemdyn rpnphy modelutils modelscripts rpnpy ; do (cd $item ; for item2 in $(ls *-science) ; do set -x ; ln -sf $item2 ${item2%-science} ; set +x ; done) ; done
-
-        export storage_model=${storage_model:-/PATH/TO/SCRATCH/DIR/}
-        ISOFFICIAL=--official  # For explicit use by librarian only
-        . ./.setenv.dot ${ISOFFICIAL}
-
-#### Files, Directories and Links SetUp ####
-
-*This step needs to be performed only once for this working directory 
-or after performing "`make distclean`".*
-
-        ## Option 1: Compile/Build environment only
-        ouv_exp_mig -v
-        rdemklink -v   ## or ## linkit -v
-        
-        ## Option 2: Compile/Build environment and interactive/batch running environment
-        . gemdev.dot myexp -v --gitlocal 
+    emacs VERSION */VERSION
 
 
-Compiling and Building
-----------------------
+#### Dependencies ####
 
-*Note 1*: If you're planning on running in batch mode, submitting to another machine,
-make sure you do the *initial setup*, including compilation,
-on the machine where the job will be submitted.
+Updating these files is automated with the following script
+(once the VERSION numbers have been updated)
 
-*Note 2*: The compiler is specified in `modelutils`'s dependencies.
-Compiler options, rules and targets are specified in each components's
-Makefiles (`*/include/Makefile.local*mk` files).  
-See [README\_developing.md](README_developing.md) for more details.
+    _bin/migdepupdater.ksh -v --gitdep --migver --check
 
-Initially it is best to make sure to start with a clean slate.  
-*This should be done once initially and every time the *dependency* list is modified.*
 
-        make buildclean
+*Note*: external dependencies *need to be maintained manually*. Most common
+        external dependencies are specified in the
+        "`_migdep/DEPENDENCIES.external.*.bndl`" files. Make sure they are
+        consistent with other components, especially for duplicate items.
 
-Use the following Makefile targets to compile the build libs and abs.  
-*This needs to be done initially and every time the code is modified.*
+    emacs */DEPENDENCIES.external.*.bndl
 
-        make dep
-        make vfiles
-        make libs -j ${MAKE_NPE:-6}
-        make abs  #-j ${MAKE_NPE:-6}
+For details, see:
+
+  * [Dependencies Update](README_developing.md#dependencies-update)
+
+
+1.4 - Tag and Push Modifications
+--------------------------------
+
+Pre-push check list
+
+  * make sure you completed the above steps
+    * [1.1 - Update Code, Scripts and more](#11---update-code-scripts-and-more)
+    * [1.2 - Update Compiler Options](#12---update-compiler-options)
+    * [1.3 - Update Versions and Dependencies](#13---update-versions-and-dependencies)
+
+  * make sure everything if fully committed
+
+        git status
+
+  * make sure the code compile, build and passes tests *before* pushing it.  
+    See [testing section](#testing) below.
+
+Tag this MIG version
+
+    migversion="$(cat VERSION)"
+    git tag mig_${migversion##*/}
+
+
+Push the MIG super-repos as described in the
+[push upstream section](README_developing.md#push-upstream)
+
+    ## Push to MIG's super-repos
+    migbranch="$(git symbolic-ref --short HEAD)"
+    git push origin ${migbranch} && git push --tags origin
+
+    ## Check that branches and tags are as expected before doing the actual push below
+    _bin/migsplitsubtree.ksh --dryrun
+
+    ## Tag components and push
+    _bin/migsplitsubtree.ksh --tag --push
+
+    ## Cleanup repository garbage following remote import (fetch)
+    _bin/migsplitsubtree.ksh --clean
+
+
+1.5 - Close Issues
+--------------------
+
+Review, comment and close issues on MIG's CMC bugzilla products:
+
+  * [GEM Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=gem)
+  * [GEMdyn Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=gemdyn)
+  * [RPNphy Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=RPN-Phy)
+  * [RPNpy Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=RPN.py)
+  * [RDE Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=rde)
 
 
 Testing
--------
+=======
 
-**TODO**:
+This section assumes you already
+[updated the MIG repository content](#updating-the-mig-repository-content) and
+[compiled, built](README_building.md) the changes you want to install.
+
+Testing must be performed in the same directory and same SHELL you used to compile and build MIG's component.
+
+Testing should have been minimally done by developers before the code was
+sent and merged in.  
+See [README\_running.md](README_running.md) for more details.
+
+Librarian should perform additional tests:
+
+  * pre-installation canonical tests: **TODO**: (set of canonical cases, MPI/OMP conformance, ...
+  * post-installation tests: **TODO**: (RI run interactive and batch, compile/build test, ...)
+
+
+Installing MIG/GEM from Version Control
+=======================================
+
+This section assumes you already
+[updated the MIG repository content](#updating-the-mig-repository-content),
+[compiled, built](README_building.md) and [tested](#testing) the version
+you want to install.
+
+Testing and installation must be performed in the same directory and same SHELL you used to compile and build MIG's component.
+
+> Make sure compilation and building is done on *all* arch/platform you want
+> the installation to be done.
+
+The following dir. are expected to exists for installation purpose only
+(optional if you only wish to compile, build and run w/o installation).
+Note that large files will be written to these dir.
+
+    ~/SsmDepot/
+    ~/SsmBundle/
+
+> *Note*: Installation is performed by the following users:
+> * `armnenv` on the EC/CMC network
+> * `sgem000` on the GC/Science network
 
 
 Install
 -------
 
 Installation can only be performed by the librarian who has proper permissions.
-This would be done on the EC/CMC and GC/Science networks.
+This would be done on the EC/CMC and GC/Science networks.  
 You may specify the list of `COMPONENTS` to install, default installs all components.
-> **NOTE**: Installation of a component will be skipped if an installation is already done. To replace an existing installation first perform an `uninstall` of the changed components as described below. Make sure you do not uninstall something used by other users.
+
+> **Note**: Installation of a component will be skipped if an installation
+> is already done.  
+> To replace an existing installation first perform an `uninstall` of
+> the changed components as described below. Make sure you do not uninstall
+> something used by other users.
 
 **To Do on All Arch**
 
-        # COMPONENTS=""
-        make ssmarch  # COMPONENTS="${COMPONENTS}"
+    # COMPONENTS=""
+    # export SSM_TEST_INSTALL=1  ## Note: Set this to install under /tests/
+    make ssmarch SSM_TEST_INSTALL=${SSM_TEST_INSTALL:-0} \
+         # COMPONENTS="${COMPONENTS}"
 
 **To Do only on the Front End Machine**
 
-        ## Note: `make ssmarch` on all arch must be done before
-        # COMPONENTS=""
-        make ssmall  # COMPONENTS="${COMPONENTS}"
-        make components_install CONFIRM_INSTALL=yes  # COMPONENTS="${COMPONENTS}"  # SSM_BASE=/fs/ssm/eccc/mrd/rpn/MIG
+    ## Note: `make ssmarch` on all arch must be done before
+    # COMPONENTS=""
+    # export SSM_TEST_INSTALL=1  ## Note: Set this to install under /tests/
+    make ssmall SSM_TEST_INSTALL=${SSM_TEST_INSTALL:-0} \
+         # COMPONENTS="${COMPONENTS}"
 
-
-**Post-install fixes (Front End Machine)**
-
-        VERSION="$(echo $(cat ${gem:-./gem}/include/Makefile.local*.mk | grep _VERSION0 | grep -v dir | cut -d= -f2))"
-        VERSION_X=$(dirname ${VERSION})
-        VERSION_V=${VERSION#*/}
-        VERSION_S=
-        echo :${VERSION_X}:${VERSION_V}:${VERSION_S}:
-
-        cd ~/SsmBundles/GEM/tests
-        cp ~/SsmBundles/GEM/${VERSION_X}/gem/${VERSION_V}${VERSION_S}.bndl ${VERSION_V}.bndl
-        chmod u+w ${VERSION_V}.bndl
-        if [[ "x${RDENETWORK}" == "xscience" ]] ; then SSMPREFIX=eccc/mrd/rpn/MIG/ ; fi
-        echo ${SSMPREFIX}GEM/others/renametotest >> ${VERSION_V}.bndl
-
-
-#TODO: for rpnpy need to update links in ~/SsmBundle/ENV/py/?.?/rpnpy/
-
-        ## Final operation once all tests are ok
-        cd ~/SsmBundles/GEM/${VERSION_X}
-        ln -s gem/${VERSION_V}.bndl ${VERSION_V}.bndl
+    if [[ ${RDENETWORK:-cmc} == "science" ]] ; then
+        SSM_BASE=/fs/ssm/eccc/mrd/rpn/MIG
+    fi
+    make components_install CONFIRM_INSTALL=yes \
+         SSM_SKIP_INSTALLED=--skip-installed \
+         SSM_TEST_INSTALL=${SSM_TEST_INSTALL:-0} \
+         SSM_BASE=${SSM_BASE:-~/SsmBundles} \
+         # COMPONENTS="${COMPONENTS}"
 
 
 #### Post Install ####
 
+**To Do only on the Front End Machine**
 
-**TODO**
+    ## Final operation once all tests are ok
+    VERSION="$(cat gem/VERSION)"
+    if [[ ${SSM_TEST_INSTALL:-0} == 1 ]] ; then
+       (cd ~/SsmBundles/GEM/test/ && \
+        ln -s gem/${VERSION##*/}.bndl . )
+    else
+       (cd ~/SsmBundles/GEM/${VERSION%/*} && \
+        ln -s gem/${VERSION##*/}.bndl . )
+     fi
 
-  * update doc
-  * send emails
+**To Do on All Arch**
+
+Make sure the installed version compile, build and passes tests.  
+See [testing section](#testing) below.
+
+
+Update the documentation and send announcement
+----------------------------------------------
+
+Update documentation and change logs on the [CMC wiki](https://wiki.cmc.ec.gc.ca/wiki):
+
+  * [GEM wiki page](https://wiki.cmc.ec.gc.ca/wiki/Gem)
+      * [GEM change log page](https://wiki.cmc.ec.gc.ca/wiki/GEM/Change_Log)
+  * [RPNphy wiki page](https://wiki.cmc.ec.gc.ca/wiki/Rpnphy)
+      * [RPNphy change log page](https://wiki.cmc.ec.gc.ca/wiki/RPNPhy/Change_Log)
+  * [SCM wiki page](https://wiki.cmc.ec.gc.ca/wiki/SCM)
+  * [Modelutils wiki page](https://wiki.cmc.ec.gc.ca/wiki/Modelutils)
+  * [RPNpy wiki page](https://wiki.cmc.ec.gc.ca/wiki/Rpnpy)
+  * [RDE wiki page](https://wiki.cmc.ec.gc.ca/wiki/RDE)
+
+**TODO**: send out an email (gem, phy and python-rpn mailing lists)
 
 
 Uninstall
@@ -204,12 +291,18 @@ Uninstall
 Uninstallation can only be performed by the librarian who has proper permissions.
 This would be done on the EC/CMC and GC/Science networks.
 You may specify the list of `COMPONENTS` to uninstall, default uninstalls all components.
-> **WARNING**: Uninstall cannot be reverted, make sure you do not uninstall something used by other users.
+
+> **WARNING**: Uninstall cannot be reverted, make sure you do not
+> uninstall something used by other users.
 
 **To Do only on the Front End Machine**
 
-        # COMPONENTS=""
-        make components_uninstall UNINSTALL_CONFIRM=yes  # COMPONENTS="${COMPONENTS}"
+    # COMPONENTS=""
+    # export SSM_TEST_INSTALL=1  ## Note: Set this to install under /tests/
+    make components_uninstall UNINSTALL_CONFIRM=yes \
+        SSM_TEST_INSTALL=${SSM_TEST_INSTALL:-0} \
+        # SSM_BASE=/fs/ssm/eccc/mrd/rpn/MIG \
+        # COMPONENTS="${COMPONENTS}"
 
 
 Cleaning up
@@ -217,18 +310,39 @@ Cleaning up
 
 To remove all files created by the setup, compile and build process, use the `distclean` target.
 
-        make distclean
-
-You may further clean up the GEM dir by removing all imported components with the following command.
-> **WARNING**: To avoid loosing your modifications. make sure you created patches (saved elsewhere) or `git push` the modified components' code before removing all imported components.
-
-**TODO**: See bin/clean-subtree.ksh
+    make distclean
+    rm -f */ssmusedep*bndl gem/ATM_MODEL_*
 
 
 See Also
---------
+========
 
   * Main doc: [README.md](README.md).
-  * Developing instructions: [README\_developing.md](README_developing.md). 
-  * Running instructions: [README\_running.md](README_running.md).
+  * Building instructions: [README\_building.md](README_building.md)
+  * Running instructions: [README\_running.md](README_running.md)
+  * Developing instructions: [README\_developing.md](README_developing.md)
+  * Installing instructions: [README\_installing.md](README_installing.md)
+  * Naming Conventions: [README\_version\_convention.md](README_version_convention.md)
+  * [CMC wiki](https://wiki.cmc.ec.gc.ca/wiki)
+  * [CMC Bugzilla](http://bugzilla.cmc.ec.gc.ca)
 
+
+Abbreviations
+-------------
+
+*[CMC]: Centre Meteorologique Canadien  
+*[RPN]: Recherche en Previsions Numeriques (Section of MRD/STB/ECCC)  
+*[MRD]: Meteorological Research Division (division of STB/ECCC)  
+*[STB]: Science and Technology Branch (branch of ECCC)  
+*[ECCC]: Environment and Climate Change Canada  
+*[EC]: Environment and Climate Change Canada (now ECCC)  
+*[GC]: Government of Canada  
+*[SSC]: Shared Services Canada  
+
+*[SPS]: Surface Prediction System, driver of RPN physics surface processes  
+*[SCM]: Single Column Model, driver of RPN physics  
+*[GEM]: Global Environmental Multi-scale atmospheric model from RPN, ECCC  
+*[MIG]: Model Infrastructure Group at RPN, ECCC  
+
+*[SSM]: Simple Software Manager (a super simplified package manager for software at CMC/RPN, ECCC)  
+*[RDE]: Research Development Environment, a super simple code dev. env. at RPN  

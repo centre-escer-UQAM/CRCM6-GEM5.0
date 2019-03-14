@@ -14,22 +14,20 @@ model_inputs ()
 {
 set -x
 date
-file=$1
-rep_ou=$2
+INPUT=$1
+DEST=$2
 lnk_dest=$3
-bname=$(basename ${file})
+bname=$(basename ${INPUT})
 if [ "${lnk_dest}" != "${bname}" ] ; then lnk_dest=${lnk_dest}/${bname} ; fi
-typeset -Z4 cnt
-list_A=$(r.fstliste.new -izfst $file -typvar "A" |cut -d ":" -f 11 | sort -u )
-list_P=$(r.fstliste.new -izfst $file -typvar "P" |cut -d ":" -f 11 | sort -u )
-list_I=$(r.fstliste.new -izfst $file -typvar "I" |cut -d ":" -f 11 | sort -u )
+list_A=$(r.fstliste.new -izfst $INPUT -typvar "A" |cut -d ":" -f 11 | sort -u )
+list_P=$(r.fstliste.new -izfst $INPUT -typvar "P" |cut -d ":" -f 11 | sort -u )
+list_I=$(r.fstliste.new -izfst $INPUT -typvar "I" |cut -d ":" -f 11 | sort -u )
+
 for i in $(echo "${list_A} ${list_P} ${list_I}" | tr ' ' '\n' | sort -u | tr '\n' ' ') ; do
   valid=$(echo $i | cut -c1-8).$(echo $i | cut -c9-14)
-  dir=${rep_ou}/VALID_${valid}
+  dir=${DEST}/VALID_${valid}
   mkdir -p ${dir}
-  cnt=$(ls -1 ${dir}/GEM_input_file* 2> /dev/null | wc -l)
-  cnt=$((cnt+1))
-  ln -sf ../../${lnk_dest} ${dir}/GEM_input_file_$cnt
+  ln -sf ../../${lnk_dest} ${dir}
 done
 }
 
@@ -41,10 +39,12 @@ if [ -d $rep_in ] ; then
 
   cd $rep_in
   count=0
+
   for file in $(ls -1 ${wild}) ; do
     if [ ! -d $file ] ; then
       count=$(( count + 1 ))
-      model_inputs $file ${rep_ou} MODEL_inrep &
+      list=${TASK_WORK}/lis_$(basename $file)_$$.lis
+      model_inputs $file ${rep_ou} MODEL_inrep 1> $list 2>&1 &
     fi
     if [ $count -eq ${nthreads} ] ; then
       wait
@@ -60,12 +60,13 @@ fi
 for i in ${rep_ou}/VALID_*  ; do
   if [ -d $i ] ; then
     cd $i
-    cnt=$(ls -1 GEM_input_file* | wc -l)
+    cnt=$(ls -1 * 2> /dev/null | wc -l)
     set +e
-    cat > content <<EOF
+    cat > ${TMPDIR}/content$$ <<EOF
 $(echo $cnt)
-$(ls -1 GEM_input_file*)
+$(ls -1 * 2> /dev/null)
 EOF
+    mv ${TMPDIR}/content$$ content
     set -e
   fi
 done

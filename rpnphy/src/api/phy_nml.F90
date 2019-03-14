@@ -252,6 +252,12 @@ contains
          return
       endif
 
+
+      if (simisccp) then
+         call msg(MSG_ERROR,'(phy_nml_check) simisccp=.true. -- no longuer supported')
+         return
+      endif
+
       m_istat = RMN_OK
       !----------------------------------------------------------------
       return

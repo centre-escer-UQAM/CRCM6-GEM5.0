@@ -22,8 +22,8 @@
 !    Jason Milbrandt (jason.milbrandt@canada.ca)                                           !
 !__________________________________________________________________________________________!
 !                                                                                          !
-! Version:       2.11.0                                                                    !
-! Last updated:  2018-06-27                                                                !
+! Version:       2.11.1                                                                    !
+! Last updated:  2019-02-27                                                                !
 !__________________________________________________________________________________________!
 
  MODULE MODULE_MP_P3
@@ -94,6 +94,8 @@
 ! scheme, including reading in two lookup table files and creating a third.                !
 ! 'P3_INIT' be called at the first model time step, prior to first call to 'P3_MAIN'.      !
 !------------------------------------------------------------------------------------------!
+ 
+ use iso_c_binding
 
   implicit none
 
@@ -104,7 +106,7 @@
 
 ! Local variables and parameters:
  logical, save :: is_init = .false.
- character(len=16), parameter :: version_p3               = '2.11.0'!version number of P3
+ character(len=16), parameter :: version_p3               = '2.11.1'!version number of P3
  character(len=16), parameter :: version_intended_table_1 = '3'     !lookupTable_1 version intended for this P3 version
  character(len=16), parameter :: version_intended_table_2 = '3'     !lookupTable_2 version intended for this P3 version
  character(len=1024)          :: version_header_table_1             !version number read from header, table 1
@@ -112,10 +114,11 @@
  character(len=1024)          :: lookup_file_1                      !lookup table, main
  character(len=1024)          :: lookup_file_2                      !lookup table for ice-ice interactions
  character(len=1024)          :: dumstr
- integer                      :: i,j,k,ii,jj,kk,jjj,jjj2,jjjj,jjjj2,end_status
+ integer                      :: i,j,k,ii,jj,kk,jjj,jjj2,jjjj,jjjj2,end_status,procnum,istat
  real                         :: lamr,mu_r,lamold,dum,initlamr,dm,dum1,dum2,dum3,dum4,dum5,  &
                                  dum6,dd,amg,vt,dia,vn,vm
 
+ include "rpn_comm.inc"
 
  !------------------------------------------------------------------------------------------!
 
@@ -269,12 +272,21 @@
 !------------------------------------------------------------------------------------------!
 ! read in ice microphysics table
 
+ procnum = 0
+ call rpn_comm_rank(RPN_COMM_GRID,procnum,istat)
+ itab = 0.
+ itabcoll = 0.D0
+ itabcolli1 = 0.D0
+ itabcolli2 = 0.D0
+
+ IF_PROC0: if (procnum == 0) then
+
  print*
  print*, ' P3 microphysics: v',version_p3
  print*, '   P3_INIT (reading/creating look-up tables [v',trim(version_intended_table_1), &
          ', v',trim(version_intended_table_2),']) ...'
 
- open(unit=10,file=lookup_file_1, status='old')
+ open(unit=10,file=lookup_file_1, status='old', action='read')
 
  !-- check that table version is correct:
  !   note:  to override and use a different lookup table, simply comment out the 'return' below
@@ -289,8 +301,10 @@
     print*, '************************************************'
     print*
     global_status = STATUS_ERROR
-    return
  endif
+
+ IF_OK: if (global_status /= STATUS_ERROR) then
+
  read(10,*)
 
 
@@ -314,8 +328,22 @@
        enddo
     enddo
  enddo
+ endif IF_OK
 
  close(10)
+
+ endif IF_PROC0
+
+ call rpn_comm_bcast(global_status,1,RPN_COMM_INTEGER,0,RPN_COMM_GRID,istat)
+
+ if (global_status == STATUS_ERROR) then
+    print*,'Stopping in P3 init'
+    call flush(6)
+    stop
+ endif
+
+ call rpn_comm_bcast(itab,size(itab),RPN_COMM_REAL,0,RPN_COMM_GRID,istat)
+ call rpn_comm_bcast(itabcoll,size(itabcoll),RPN_COMM_DOUBLE_PRECISION,0,RPN_COMM_GRID,istat)
 
 ! read in ice-ice collision lookup table
 
@@ -323,7 +351,9 @@
 
 !                   *** used for multicategory only ***
 
- if (nCat>1) then
+ IF_NCAT: if (nCat>1) then
+
+   IF_PROC0B: if (procnum == 0) then
 
     open(unit=10,file=lookup_file_2,status='old')
 
@@ -340,8 +370,8 @@
        print*, '************************************************'
        print*
        global_status = STATUS_ERROR
-       return
     endif
+    IF_OKB: if (global_status /= STATUS_ERROR) then
     read(10,*)
 
     do i = 1,iisize
@@ -359,15 +389,29 @@
           enddo
        enddo
     enddo
+    endif IF_OKB
 
     close(unit=10)
 
- else ! for single cat
+   endif IF_PROC0B
+
+   call rpn_comm_bcast(global_status,1,RPN_COMM_INTEGER,0,RPN_COMM_GRID,istat)
+
+   if (global_status == STATUS_ERROR) then
+      print*,'Stopping in P3 init'
+      call flush(6)
+      stop
+   endif
+
+   call rpn_comm_bcast(itabcolli1,size(itabcolli1),RPN_COMM_DOUBLE_PRECISION,0,RPN_COMM_GRID,istat)
+   call rpn_comm_bcast(itabcolli2,size(itabcolli2),RPN_COMM_DOUBLE_PRECISION,0,RPN_COMM_GRID,istat)
+
+ else ! IF_NCAT for single cat
 
     itabcolli1 = 0.
     itabcolli2 = 0.
 
- endif
+ endif IF_NCAT
 
 !------------------------------------------------------------------------------------------!
 
@@ -485,8 +529,10 @@
 
 !.......................................................................
 
- print*, '   P3_INIT DONE.'
- print*
+ if (procnum == 0) then
+    print*, '   P3_INIT DONE.'
+    print*
+ endif
 
  end_status = STATUS_OK
  if (present(stat)) stat = end_status

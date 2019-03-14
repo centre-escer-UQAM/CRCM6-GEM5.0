@@ -47,6 +47,9 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    integer ptsurf(ptsurfsiz), lcl_indx(2,n)
 
    !@Author J. Mailhot, S. Belair and B. Bilodeau (Dec 1998)
+   !Revisions
+   ! 001      M. Carrera and V. Fortin (Nov 2007) - Compute total runoff
+   !                as precipitation - evaporation (no storage)
    !@Notes
    !          Z0 = BETA1*USTAR**2/GRAV (in metres) with minimum value
    !          Z0MIN and a maximum value Z0MAX
@@ -89,7 +92,8 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    real,pointer,dimension(:) ::  ps, qs, th, ts, tt, uu, vv
    real,pointer,dimension(:) ::  z0h, z0m, zdsst
    real,pointer,dimension(:) ::  zalfaq, zalfat, zdlat, zfcor
-   real,pointer,dimension(:) ::  zftemp, zfvap, zqdiag, ztdiag
+   real,pointer,dimension(:) ::  zftemp, zfvap, zqdiag, zrainrate
+   real,pointer,dimension(:) ::  zrunofftot, zsnowrate, ztdiag
    real,pointer,dimension(:) ::  ztsurf, ztsrad, zudiag, zvdiag
    real,pointer,dimension(:) ::  zfrv, zzusl, zztsl
    real,pointer,dimension(:) ::  zflusolis,zfdsi,zskin_depth,zskin_inc
@@ -135,6 +139,9 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    zflusolis(1:n) => bus( x(flusolis,1,1)     : )
    zftemp   (1:n) => bus( x(ftemp,1,indx_sfc) : )
    zfvap    (1:n) => bus( x(fvap,1,indx_sfc)  : )
+   zrainrate(1:n) => bus( x(rainrate,1,1)     : )
+   zrunofftot(1:n) => bus( x(runofftot,1,indx_sfc) : )
+   zsnowrate(1:n) => bus( x(snowrate,1,1)     : )
    zskin_depth(1:n) => bus( x(skin_depth,1,1) : )
    zskin_inc(1:n) => bus( x(skin_inc,1,1)     : )
    ztsurf   (1:n) => bus( x(tsurf,1,1)        : )
@@ -262,6 +269,10 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
       if (.not.IMPFLX) CTU (I) = 0.
       RHOA(i) = PS(I)/(RGASD * my_ta(I)*(1.+DELTA*my_qa(I)))
       !         RHOA(i) = PS(I)/(RGASD * ZTDIAG(I)*(1.+DELTA*ZQDIAG(I)))
+      ! Compute runoff as total precipitation in kg/m2/s (or mm/s) minus evaporation.
+      ! ZALFAQ being negative for an upward flux, we need to add rho*zalfaq    
+      ZRUNOFFTOT (I) = (1000.*(ZRAINRATE(I) + ZSNOWRATE(I)) &
+           + RHOA(I)*ZALFAQ(I)) * DELT
       FC_WAT(I)    = -CPD *RHOA(i)*ZALFAT(I)
       FV_WAT(I)    = -CHLC*RHOA(i)*ZALFAQ(I)
 
@@ -269,7 +280,7 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
          ZALFAT   (I) = - CTU(I) *  SST(I)
          ZALFAQ   (I) = - CTU(I) *  QS(I)
       endif
-
+ 
    end do
 
    if (cplocn) then

@@ -1,7 +1,7 @@
 
-gem=git@gitlab.science.gc.ca:MIG/gem.git/gem_4.9.6
-gemdyn=git@gitlab.science.gc.ca:MIG/gemdyn.git/gemdyn_4.9.6
-rpnphy=git@gitlab.science.gc.ca:MIG/rpnphy.git/rpnphy_5.9.6
+gem=git@gitlab.science.gc.ca:MIG/gem.git/gem_4.9.7
+gemdyn=git@gitlab.science.gc.ca:MIG/gemdyn.git/gemdyn_4.9.7
+rpnphy=git@gitlab.science.gc.ca:MIG/rpnphy.git/rpnphy_5.9.7
 modelutils=git@gitlab.science.gc.ca:MIG/modelutils.git/modelutils_1.4.8b
 modelscripts=git@gitlab.science.gc.ca:MIG/modelscripts.git/modelscripts_4.9.6
 rde=git@gitlab.science.gc.ca:MIG/rde.git/rde_1.1.4

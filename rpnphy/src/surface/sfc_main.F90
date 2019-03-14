@@ -48,7 +48,7 @@ subroutine sfc_main(seloc, trnch, kount, dt, ni, m, nk, task)
 
    integer :: trnch,kount,ni,m, nk, task
 
-   real :: dt, seloc(m,nk)
+   real :: dt, rhoair, seloc(m,nk)
 
    !@Author B. Bilodeau (Dec 1998)
    !@Revisions
@@ -102,10 +102,11 @@ subroutine sfc_main(seloc, trnch, kount, dt, ni, m, nk, task)
    real,   dimension(surfesptot*ni) :: bus_soil, bus_water, bus_ice, &
         bus_glacier, bus_urb
    !
-   real, pointer, dimension(:)      :: zdtdiag, zmg, zglacier, zglsea, &
-        ztdiag, ztnolim, zurban, zztsl, &
+   real, pointer, dimension(:)      :: zdtdiag, zmg, zfvapliq, zfvapliqaf, &
+        zglacier, zglsea, zpmoins, ztdiag, ztnolim, zurban, zztsl, &
         zqdiag, zudiag, zvdiag,zicedp,ztwater
-   real, pointer, dimension(:,:)    :: poids_out, zilmo, ztmoins, ztplus, &
+   real, pointer, dimension(:,:)    :: poids_out, zfvap, zilmo, zrunofftot, &
+        zrunofftotaf, ztmoins, ztplus, &
         zhuplus,zuplus,zvplus,zsnodp
    !     ---------------------------------------------------------------
    
@@ -116,10 +117,13 @@ subroutine sfc_main(seloc, trnch, kount, dt, ni, m, nk, task)
 
    MKPTR1D(zdtdiag, dtdiag)
    MKPTR1D(zmg, mg)
+   MKPTR1D(zfvapliq, fvapliq)
+   MKPTR1D(zfvapliqaf, fvapliqaf)   
    MKPTR1D(zglacier, glacier)
    MKPTR1D(zglsea, glsea)
    MKPTR1D(zicedp, icedp)
    MKPTR1D(ztwater, twater)
+   MKPTR1D(zpmoins, pmoins)
    MKPTR1D(ztdiag, tdiag)
    MKPTR1D(zqdiag, qdiag)
    MKPTR1D(zudiag, udiag)
@@ -129,7 +133,10 @@ subroutine sfc_main(seloc, trnch, kount, dt, ni, m, nk, task)
    MKPTR1D(zztsl, ztsl)
 
    MKPTR2D(poids_out, sfcwgt)
+   MKPTR2D(zfvap, fvap)
    MKPTR2D(zilmo, ilmo)
+   MKPTR2D(zrunofftot, runofftot)
+   MKPTR2D(zrunofftotaf, runofftotaf)
    MKPTR2D(zsnodp, snodp)
    MKPTR2D(ztmoins, tmoins)
    MKPTR2D(ztplus, tplus)
@@ -256,6 +263,13 @@ subroutine sfc_main(seloc, trnch, kount, dt, ni, m, nk, task)
       if (schmsol.eq.'ISBA') then
 
          call isba3 (bus_soil, siz_soil, &
+              ptr_soil, nvarsurf, &
+              dt, kount, trnch, &
+              ni_soil, ni_soil, nk-1)
+
+      elseif (schmsol.eq.'SVS') then
+
+         call svs (bus_soil, siz_soil, &
               ptr_soil, nvarsurf, &
               dt, kount, trnch, &
               ni_soil, ni_soil, nk-1)
@@ -435,6 +449,13 @@ subroutine sfc_main(seloc, trnch, kount, dt, ni, m, nk, task)
         rangs, poids, ni, trnch, &
         do_glaciers, do_ice, do_urb)
 
+   !       ACCUMULATE RUNNOFF FOR EACH SURFACE TYPE
+   do k=1,nsurf+1
+      do i=1,ni
+         zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)
+      enddo
+   enddo
+
    !*****************************
    ! UPDATE DIAG LEVEL AT START *
    !*****************************
@@ -468,6 +489,19 @@ subroutine sfc_main(seloc, trnch, kount, dt, ni, m, nk, task)
          zilmo(i,k)=max(-10.,min(10.,zilmo(i,k)))
       end do
    enddo
+
+      !     Calcul du flux d'evaporation en kg/m2 a partir
+      !     du flux d'humidite en m/s*kg/kg: m/s * kg water / kg air:
+      !     il faut multiplier par la densite de l'air 
+      !     and by the length of the timestep
+      !     It only makes sense theoretically to calculate fvapliq from the aggregated field
+      !     since HU is averaged over all surface types        
+   do i = 1,ni
+      rhoair = zpmoins(i) / ( RGASD * ztdiag(i) * (1. + DELTA * zqdiag(i)) )
+      zfvapliq(i) = zfvap(i,indx_agrege) * dt * rhoair
+      zfvapliqaf(i) = zfvapliqaf(i) + zfvapliq(i)
+   enddo
+
 
    !******************************************
    !     METTRE UNE LIMITE SUR L'AMPLITUDE   *

@@ -25,6 +25,14 @@ module sfc_options
    integer, parameter :: NCLASSURB = 12 !# NUMBER OF URBAN CLASSES
    integer, parameter :: NL = 3 !# nombre de niveaux dans la glace marine
 
+
+   !# ----  FOR SVS LAND SCHEME ------
+   integer, parameter :: MAX_NL_SVS = 50 !# maximum number of soil layers specified by user
+   integer, parameter :: NL_SVS_DEFAULT = 7 ! default number of soil layers
+   ! default depth of default soil layers in [METERS]
+   real, dimension(NL_SVS_DEFAULT):: DP_SVS_DEFAULT =  (/ 0.05, 0.1, 0.2, 0.4, 1.0, 2.0, 3.0 /)
+   !#----------------------------------
+
    real, parameter :: CRITEXTURE = 0.1
    real, parameter :: CRITLAC    = 0.01
    real, parameter :: CRITMASK   = 0.001
@@ -66,7 +74,8 @@ module sfc_options
    character(len=16) :: diusst      = 'NIL'
    namelist /surface_cfgs/ diusst
    character(len=*), parameter :: DIUSST_OPT(2) = (/ &
-        'NIL    ', 'FAIRALL' &
+        'NIL    ', &
+        'FAIRALL'  &
         /)
 
    !# Diurnal SST scheme active coolskin if .true.
@@ -76,6 +85,10 @@ module sfc_options
    !# Diurnal SST scheme active warmlayer if .true.
    logical           :: diusst_warmlayer = .true.
    namelist /surface_cfgs/ diusst_warmlayer
+
+   !# Depth of soil layers in [METERS] in SVS land surface scheme (schmsol=SVS)
+   real :: dp_svs(MAX_NL_SVS) = -1.0
+   namelist /surface_cfgs/ dp_svs
 
    !# Uses dry adiabat if .true.
    logical           :: drylaps     = .true.
@@ -112,6 +125,13 @@ module sfc_options
    logical           :: isba_no_warm_sn_freez = .false.
    namelist /surface_cfgs/ isba_no_warm_sn_freez
 
+   !# Last/Deepest soil layer considered during the accumulation of 
+   !# lateral flow and drainage. Drainage is taken as the vertical flux
+   !# leaving layer KHYD, and lateral flow as the sum of lateral flows from 
+   !# layers 1 to KHYD
+   integer           :: khyd    = -1
+   namelist /surface_cfgs/ khyd
+
    !# Minimum fraction of leads in sea ice.&nbsp; Multiply ice fraction by (1.-leadfrac) 
    real              :: leadfrac    = 0.03
    namelist /surface_cfgs/ leadfrac
@@ -125,7 +145,11 @@ module sfc_options
    logical           :: owflux      = .false.
    namelist /surface_cfgs/ owflux
 
-   !# Takes into account effect of ocean salinity on saturation specific 
+   !# read-in land surface emissivity if .true.
+   logical           :: read_emis     = .false.
+   namelist /surface_cfgs/ read_emis
+
+   !# Takes into account effect of ocean salinity on saturation specific
    !# humidity at ocean surface (boundary condition for LH flux calculation)
    logical           :: salty_qsat  = .false.
    namelist /surface_cfgs/ salty_qsat
@@ -135,8 +159,10 @@ module sfc_options
    !# * 'ISBA' :
    character(len=16) :: schmsol     = 'ISBA'
    namelist /surface_cfgs/ schmsol
-   character(len=*), parameter :: SCHMSOL_OPT(2) = (/ &
-        'NIL ', 'ISBA' &
+   character(len=*), parameter :: SCHMSOL_OPT(3) = (/ &
+        'NIL ', &
+        'ISBA', &
+        'SVS '  &
         /)
 
    !# Urban surface processes
@@ -145,10 +171,22 @@ module sfc_options
    character(len=16) :: schmurb     = 'NIL'
    namelist /surface_cfgs/ schmurb
    character(len=*), parameter :: SCHMURB_OPT(2) = (/ &
-        'NIL', 'TEB' &
+        'NIL', &
+        'TEB'  &
         /)
 
-   !# Use snow albedo "I6" directly if .true.; 
+   !#  Soil texture database/calculations for SVS land surface scheme
+   !# * 'CLASSIC' : 3 layers of sand & clay info
+   !# * 'GSDE' : 8 layers of sand & clay info
+   character(len=16) :: soiltext    = 'GSDE'
+   namelist /surface_cfgs/ soiltext
+   character(len=*), parameter :: SOILTEXT_OPT(3) = (/ &
+        'GSDE     ',  &
+        'SLC      ',  &
+        'SOILGRIDS' &
+        /)
+
+   !# Use snow albedo "I6" directly if .true.;
    !# Use snow age "XA" to calculate snow albedo if .false.
    logical           :: snoalb_anl  = .true.
    namelist /surface_cfgs/ snoalb_anl
@@ -157,6 +195,18 @@ module sfc_options
    logical           :: tdiaglim    = .false.
    namelist /surface_cfgs/ tdiaglim
 
+
+   !# OPTION FOR CALCULATION of AVERAGE LAND SURFACE TEMPERATURE AND HUMIDITY IN SVS
+   !# .FALSE. :  Area-average only calculation for sfc T and Hum.
+   !# .TRUE.  :  Option that uses effective surface temperature  and specific humidity instead
+   !             of composite (area-averaged only) counterparts in surface flux calculations (D. Deacu)
+   logical           :: use_eff_surf_tq    = .false.
+   namelist /surface_cfgs/ use_eff_surf_tq
+
+   !# OPTION TO USE PHOTOSYNTHESIS CODE FOR STOMATAL RESISTANCE in SVS
+   logical           :: use_photo = .true.
+   namelist /surface_cfgs/ use_photo
+ 
    !# Factor multiplying stomatal resistance in ISBA
    real              :: veg_rs_mult = 1.
    namelist /surface_cfgs/ veg_rs_mult
@@ -180,7 +230,8 @@ module sfc_options
    character(len=16) :: z0mtype     = 'CHARNOCK'
    namelist /surface_cfgs/ z0mtype
    character(len=*), parameter :: Z0MTYPE_OPT(2) = (/ &
-        'CHARNOCK', 'BELJAARS' &
+        'CHARNOCK', &
+        'BELJAARS' &
         /)
 
    !# Latitude (2 elements, in degrees) used to specify Z0T over water

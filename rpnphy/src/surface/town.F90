@@ -371,6 +371,8 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
                     (1.-xbld(i))  * (xwsnow_road(i)/xrsnow_road(i)) 
 !        zfc    (i) = psfth      (i)
         zfv    (i) = psftq      (i) * xlvtt
+!  runoff -- aggregated with all other surface tiles. Convert to mm
+        zrunofftot(i) = xrunoff(i) * dt 
       end do
 
 !-----------------------------------------------------------------------------

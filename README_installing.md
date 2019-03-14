@@ -238,10 +238,13 @@ You may specify the list of `COMPONENTS` to install, default installs all compon
     make ssmall SSM_TEST_INSTALL=${SSM_TEST_INSTALL:-0} \
          # COMPONENTS="${COMPONENTS}"
 
+    if [[ ${RDENETWORK:-cmc} == "science" ]] ; then
+        SSM_BASE=/fs/ssm/eccc/mrd/rpn/MIG
+    fi
     make components_install CONFIRM_INSTALL=yes \
          SSM_SKIP_INSTALLED=--skip-installed \
          SSM_TEST_INSTALL=${SSM_TEST_INSTALL:-0} \
-         # SSM_BASE=/fs/ssm/eccc/mrd/rpn/MIG \
+         SSM_BASE=${SSM_BASE:-~/SsmBundles} \
          # COMPONENTS="${COMPONENTS}"
 
 

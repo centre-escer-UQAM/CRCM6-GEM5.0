@@ -100,7 +100,11 @@ SUBROUTINE CONDLOAD_SAFE(QLIQ,QICE,WTW,DZ,BOTERM,ENTERM,RATE,QNEWLQ, &
   call getcontrolfpqq(control)
   control_nodivzero = ior(control,FPCW$ZERODIVIDE)
   call setcontrolfpqq(control_nodivzero)
+  ! Run all possible div-by-zero calculations.
   CONV=RATE*DZ/WAVG
+  RATIO3=QNEWLQ/(QNEW+1.E-10)
+  QTOT=QTOT+0.6*QNEW
+  RATIO4=(0.6*QNEWLQ+QLIQ)/(QTOT+1.E-10)
   call getstatusfpqq(status)
   call clearstatusfpqq()
   call setcontrolfpqq(control)

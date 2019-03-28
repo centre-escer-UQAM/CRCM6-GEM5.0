@@ -317,7 +317,7 @@ contains
       real(kind=8), dimension(ix) :: itnd
 
       external tpmix
-      external condload
+      external condload_safe
       external dtfrznew
       external envirtht
       external prof5
@@ -1273,7 +1273,7 @@ contains
 
 !                             Condensation in the updraft.
 
-         call CONDLOAD(RLIQ(NK1),RICE(NK1),WTW,DZZ,BOTERM,ENTERM, &
+         call CONDLOAD_SAFE(RLIQ(NK1),RICE(NK1),WTW,DZZ,BOTERM,ENTERM, &
                        RATE,QNEWLQ,QNEWIC,QLQOUT(NK1),QICOUT(NK1), &
                        GRAV)
 

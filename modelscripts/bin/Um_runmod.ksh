@@ -207,6 +207,7 @@ if [ -f ${TASK_INPUT}/cfg_0000/restart.tar ] ; then
   printf "\nRunning in FORCED RESTART mode\n\n"
 fi
 
+nb_abort=0
 DOM=${DOMAIN_start}
 while [ ${DOM} -le ${DOMAIN_end} ] ; do
 
@@ -252,9 +253,14 @@ while [ ${DOM} -le ${DOMAIN_end} ] ; do
       echo ${Runmod} > ${TASK_OUTPUT}/last_npass
       ${TASK_BIN}/launch_sortie.ksh ${file2watch}_MASTER 1>> ${MONLIS} 2>&1
    fi
+   if [ "$_status" = "ABORT" ] ; then ((nb_abort=nb_abort+1)) ; fi
 
    DOM=$((DOM+DOMAIN_wide))
 done
+
+if [ $nb_abort -gt 0 ] ; then 
+  _status="ABORT"
+fi
 set +ex
 
 printf "\n DONE LAUNCHING all domains $(date)\n\n"

@@ -16,9 +16,11 @@ eval `cclargs_lite $0 \
   -_endstep ""             ""          "[last time step performed   ]" \
   ++ $arguments`
 
+_status="ABORT"
+
 . r.call.dot ${TASK_BIN}/Um_cmclog.ksh -mod 1
 
-set ${SETMEX:-+ex}
+set +e ; set -x
 
 export OMP_NUM_THREADS=$nomp
 if [ -n "$_CMC_LOGFILE" ] ; then export CMC_LOGFILE=$_CMC_LOGFILE ; fi
@@ -62,12 +64,12 @@ else
 
 fi
 
-set +ex
+set +x
 printf " ##### UM_TIMING: Um_model.ksh ENDING AT: `date`\n"
 
 . r.call.dot ${TASK_BIN}/Um_cmclog.ksh -mod 2 -CMC_LOGFILE $_CMC_LOGFILE
 
-set ${SETMEX:-+ex}
+set -x
 export CMC_LOGFILE=$_CMC_LOGFILE
 
 status_file=./status_MOD.dot

@@ -979,3 +979,6 @@ fileVersion: 5.0.rc3 > 5.0.rc4
 
 New: surface_cfgs / isba_no_warm_sn_freez = F
 
+#------
+fileVersion: 5.0.rc4 > 5.0.rc5
+

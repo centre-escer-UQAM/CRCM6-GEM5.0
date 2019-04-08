@@ -43,9 +43,9 @@ MODELUTILS_LIBS_DEP = $(LIBVGRID) $(LIBRMN) $(LIBCOMM) $(LIBHPCSPERF) $(LIBMASS)
 LIBMUTMG_0   = modelutils_tmg_stubs
 LIBMUSTUBS_0 = modelutils_stubs
 MODELUTILS_DUMMYMPISTUBS_0 = modelutils_dummympistubs
-# MODELUTILS_TESTS_LIB_0     = modelutils_tests
+MODELUTILS_TESTS_LIB_0     = modelutils_tests
 #TODO: make ifort lib conditional
-# MODELUTILS_IFORT_LIB_0     = modelutils_ov_ifort
+MODELUTILS_IFORT_LIB_0     = modelutils_ov_ifort
 MODELUTILS_TDPACK_LIB_0    = modelutils_tdpack
 
 MODELUTILS_LIB_MERGED_NAME_0 = modelutils

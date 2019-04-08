@@ -316,12 +316,21 @@ You may specify the list of `COMPONENTS` to install, default installs all compon
     ## Final operation once all tests are ok
     VERSION="$(cat gem/VERSION)"
     if [[ ${SSM_TEST_INSTALL:-0} == 1 ]] ; then
-       cd ~/SsmBundles/GEM/test/
-       ln -s gem/${VERSION##*/}.bndl .
+       (cd ~/SsmBundles/GEM/test/ && \
+        ln -s gem/${VERSION##*/}.bndl . )
     else
-       cd ~/SsmBundles/GEM/${VERSION%/*}
-       ln -s gem/${VERSION##*/}.bndl .
+       (cd ~/SsmBundles/GEM/${VERSION%/*} && \
+        ln -s gem/${VERSION##*/}.bndl . )
      fi
+
+    VERSION="$(cat sps/VERSION)"
+    if [[ ${SSM_TEST_INSTALL:-0} == 1 ]] ; then
+       (cd ~/SsmBundles/ENV/SPS/test/ && \
+        ln -s sps/${VERSION##*/}.bndl . )
+    else
+       (cd ~/SsmBundles/ENV/SPS/${VERSION%/*} && \
+        ln -s sps/${VERSION##*/}.bndl . )
+    fi
 
 **To Do on All Arch**
 

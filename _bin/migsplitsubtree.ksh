@@ -36,6 +36,8 @@ Options:
         --clean    : remove split branches and remote branches, tags
                      [--push, --tags, --patch are then ignored]
         --dryrun   : Show what would be done (not doing it)
+        --comp     : list of components (sub-dirs) to push
+
 EOF
 }
 
@@ -47,6 +49,7 @@ _push=0
 _clean=0
 _mydry=0
 _quiet=0
+_comp=""
 while [[ $# -gt 0 ]] ; do
    case $1 in
       (-h|--help) usage_long; exit 0;;
@@ -57,8 +60,10 @@ while [[ $# -gt 0 ]] ; do
       (--push) _push=1 ;;
       (--clean) _clean=1 ;;
       (--dryrun) _mydry=1 ;;
+      (--comp) ;;
       (*)
          case ${previous} in
+            (--comp) _comp="${_comp} ${1}" ;;
             (--patch) _patch="${1}" ;;
             (*)
                echo "Option Not recognized: ${1}" 1>&2
@@ -262,6 +267,11 @@ ERROR: cannot find ${name}
 EOF
       exit 1
    fi
+   if [[ "x${_comp}" != "x" ]] ; then
+      if [[ "x$(echo :${_comp}: | tr ' ' ':' | grep :${name}:)" == "x" ]] ; then
+         continue
+      fi
+   fi
 
    # remoteurl="ssh://armnsch@localhost/users/dor/armn/sch/Data/ords/big_tmp/gem-monorepos/barerepos/${name}.git"
 
@@ -280,7 +290,12 @@ EOF
 
    # echo "==== ${name}: url=${remoteurl}; branch=${mybranch1}; tag=${localtag1} (was ${remotetag0})"
    echo "==== ${name}: url=${remoteurl}; branch=${mybranch1}; tag=${localtag1}"
-   if [[ ${_mydry} == 1 ]] ; then
+   if [[ ${_mydry} == 1 && ${_verbose} -ge 1 ]] ; then
+      cat <<EOF
+   git remote add ${name} ${remoteurl} --no-tags
+   git subtree push -P ${name} ${name} ${mybranch1}
+   git remote rm ${name}
+EOF
       continue
    fi
 
@@ -319,6 +334,13 @@ if [[ ${_clean} == 1 && ${_mydry} == 0 ]] ; then
    echo "==== Cleanup imported remote branches and tags"
    for item in $(getcomplist); do
       name=${item%%=*} ; rt=${item#*=} ; remoteurl=${rt%/*} ; remotetag0=${rt##*/}
+
+      if [[ "x${_comp}" != "x" ]] ; then
+         if [[ "x$(echo :${_comp}: | tr ' ' ':' | grep :${name}:)" == "x" ]] ; then
+            continue
+         fi
+      fi
+
       version0="$(get_version ${name})"
       versionx="${version0%/*}"
       if [[ "x${version0}" == "x${versionx}" ]] ; then
@@ -350,7 +372,11 @@ fi
 if [[ ${_push} == 1 && ${_tag} == 1 && ${_mydry} == 0 ]] ; then
    echo "==== Update DEPENDENCIES list"
    rm -f DEPENDENCIES
-   mv -f DEPENDENCIES2 DEPENDENCIES
+   if [[ "x${_comp}" == "x" ]] ; then
+      mv -f DEPENDENCIES2 DEPENDENCIES
+   else
+      _bin/migdepupdater.ksh -v --gitdep
+   fi
    git add DEPENDENCIES
    git commit -m "update DEPENDENCIES"
 fi

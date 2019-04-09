@@ -30,20 +30,26 @@ BINDIR   := $(BUILDBIN)
 BUILDSRC := $(ROOT)/$(CONST_BUILDSRC)
 
 #------------------------------------------------------------------------
-# WARNING: Avoid using VPATH to find source files when working only 
+# WARNING: Avoid using VPATH to find source files when working only
 #          with modified source files.
-#          VPATH cause wrong file include when a include file is modified 
-#          but not the source file including it. The fortran preprocessor 
-#          then includes the include file located in the same dir as the 
+#          VPATH cause wrong file include when a include file is modified
+#          but not the source file including it. The fortran preprocessor
+#          then includes the include file located in the same dir as the
 #          source file, not the modified one in the build dir.
 #          Copying the source file to the build dir does not solve all problems
 #          since recursive include files produce the same problem.
 #          For that reason avoid using VPATH when working only with modified
 #          source files. Instead allow the default make rules to checkout
 #          all files related to dependencies and inverse dependencies.
-## SRCPATH_INCLUDE := $(CONST_SRCPATH_INCLUDE)
-## VPATH           := $(CONST_VPATH) #$(ROOT)/$(CONST_BUILDSRC)
-VPATH    := $(ROOT)/$(CONST_BUILDSRC)
+ifeq (1,$(RDE_USE_FULL_VPATH))
+   VPATH           := $(CONST_VPATH)
+   SRCPATH_INCLUDE := $(CONST_SRCPATH_INCLUDE) $(CONST_SRCPATH)
+   SRCPATH_INCLUDE_OVERRIDES := 
+else
+   VPATH    := $(ROOT)/$(CONST_BUILDSRC)
+   SRCPATH_INCLUDE := 
+   SRCPATH_INCLUDE_OVERRIDES := $(ROOT)/include/$(CONST_MAKEFILE_USER_COMPARCH) $(ROOT)/include/$(CONST_MAKEFILE_USER_BASEARCH) $(ROOT) $(ROOT)/include
+endif
 SRCPATH  := $(CONST_SRCPATH)
 #------------------------------------------------------------------------
 
@@ -65,14 +71,14 @@ endif
 # endif
 
 CPP = /lib/cpp
-# ASFLAGS =  
+# ASFLAGS =
 # DOC =
 AR = r.ar -arch $(ARCH)
 
 ## ==== Legacy
 EC_MKL = $(RDE_MKL)
 
-# FORCE_RMN_VERSION_RC = 
+# FORCE_RMN_VERSION_RC =
 # #RMN_VERSION = rmn_015.2$(FORCE_RMN_VERSION_RC)
 # RMN_VERSION = rmn$(FORCE_RMN_VERSION_RC)
 
@@ -84,10 +90,10 @@ LIBSYS  = $(LIBSYS_PRE) $(LIBSYSOTHERS) $(LIBSYSEXTRA) $(LIBSYS_POST)
 ## ==== Compiler rules override
 # You may take a copy of the compiler rules file and modify it
 #    cp $(s.get_compiler_rules) Compiler_rules_${COMP_ARCH}
-#    and set it in Makefile.user.mk: 
+#    and set it in Makefile.user.mk:
 #       COMP_RULES_FILE = $(ROOT)/Compiler_rules_$(COMP_ARCH)
 
-#COMP_RULES_FILE = 
+#COMP_RULES_FILE =
 
 ## ==== Compiler/linker options
 OPTIL  := 2
@@ -150,8 +156,8 @@ INCLUDES1      = $(INCLUDES_PRE) $(INCLUDES) $(INCLUDES_POST)
 #RDE_INCLUDE1   = $(RDE_INCLUDE_PRE) $(RDE_INCLUDE) $(RDE_INCLUDE_POST)
 MODEL_INCLUDE1 = $(MODEL_INCLUDE_PRE) $(MODEL_INCLUDE) $(MODEL1_INCLUDE) $(MODEL2_INCLUDE) $(MODEL3_INCLUDE) $(MODEL4_INCLUDE) $(MODEL5_INCLUDE) $(SRCPATH_INCLUDE) $(MODEL_INCLUDE_POST)
 
-#RDEALL_INCLUDE_NAMES = $(PWD) $(RDE_INCLUDE_PRE) $(RDE_INCLUDE_MOD) $(INCLUDES1) $(MODEL_INCLUDE1) $(RDE_INCLUDE1) 
-RDEALL_INCLUDE_NAMES = $(PWD) $(RDE_INCLUDE_PRE) $(RDE_INCLUDE_MOD) $(INCLUDES1) $(MODEL_INCLUDE1) $(RDE_INCLUDE)  $(RDE_INCLUDE_POST)
+#RDEALL_INCLUDE_NAMES = $(PWD) $(RDE_INCLUDE_PRE) $(RDE_INCLUDE_MOD) $(INCLUDES1) $(MODEL_INCLUDE1) $(RDE_INCLUDE1)
+RDEALL_INCLUDE_NAMES = $(PWD) $(SRCPATH_INCLUDE_OVERRIDES) $(RDE_INCLUDE_PRE) $(RDE_INCLUDE_MOD) $(INCLUDES1) $(MODEL_INCLUDE1) $(RDE_INCLUDE)  $(RDE_INCLUDE_POST)
 RDEALL_INCLUDES      = $(foreach item,$(RDEALL_INCLUDE_NAMES),-I$(item))
 
 ## ==== Libpath
@@ -186,7 +192,7 @@ RDE_LIBAPPL1       = $(RDE_LIBAPPL) $(RDE_LIBAPPL_LEGACY)
 #LIBSYSUTIL         = $(LIBMASS) $(LAPACK) $(BLAS) $(RTOOLS) $(BINDCPU)  $(LIBHPCSPERF) $(LLAPI) $(IBM_LD)
 #LIBSYSEXTRA        = $(LIBHPC) $(LIBPMAPI)
 RDE_LIBSYS_LEGACY  = $(LIBSYSUTIL) $(LIBSYSEXTRA)
-RDE_LIBSYS         = $(RDE_LIBSYS_LEGACY) $(LIBSYSUTIL) 
+RDE_LIBSYS         = $(RDE_LIBSYS_LEGACY) $(LIBSYSUTIL)
 
 RDEALL_LIBAPPL_PRE  = $(LIBS_PRE) $(MODEL_LIBPRE) $(RDE_LIBPRE)
 RDEALL_LIBAPPL_POST = $(LIBS_POST) $(MODEL_LIBPOST) $(RDE_LIBPOST)
@@ -199,7 +205,7 @@ RDEALL_LIBSYS_POST  = $(LIBSYS_POST) $(MODEL_LIBSYSPOST) $(RDE_LIBSYSPOST)
 RDEALL_LIBSYS       = $(RDEALL_LIBSYS_PRE) $(LIBSYS) $(MODEL_LIBSYS) $(MODEL5_LIBSYS) $(MODEL4_LIBSYS) $(MODEL3_LIBSYS) $(MODEL2_LIBSYS) $(MODEL1_LIBSYS) $(RDE_LIBSYS) $(RDEALL_LIBSYS_POST)
 
 # RDEALL_LIBS_NAMES = $(RDEALL_LIBAPPL) $(LIBRMN) $(RDEALL_LIBSYS)
-RDEALL_LIBS_NAMES = $(RDEALL_LIBAPPL) $(RDEALL_LIBSYS)
+RDEALL_LIBS_NAMES = $(RDEALL_LIBAPPL) $(RDEALL_LIBSYS) $(RDE_LIB_OVERRIDES)
 RDEALL_LIBS       = $(foreach item,$(RDEALL_LIBS_NAMES),-l$(item))
 
 ## ==== Constants for $(MAKEFILEDEP)
@@ -235,7 +241,7 @@ ifneq (,$(filter Linux_x86-64,$(RDE_BASE_ARCH))$(filter linux26-%,$(RDE_BASE_ARC
 RDE_DEFINES_ARCH = -DLINUX_X86_64
 LAPACK      = lapack
 BLAS        = blas
-LIBMASSWRAP =  
+LIBMASSWRAP =
 LIBMASS     = $(LIBMASSWRAP) massv_p4
 
 #RDE_OPTF_MODULE = -module $(BUILDMOD)
@@ -245,19 +251,21 @@ endif
 ifneq (,$(filter gfortran%,$(COMP_ARCH)))
 RDE_OPTF_MODULE = -J $(BUILDMOD)
 endif
-ifneq (,$(filter intel%,$(COMP_ARCH)))
+ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
 RDE_OPTF_MODULE = -module $(BUILDMOD)
-RDE_MKL     = -mkl
 endif
 
 ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
-LAPACK      = 
-BLAS        = 
+LAPACK      =
+BLAS        =
 RDE_FP_MODEL= -fp-model source
 RDE_INTEL_DIAG_DISABLE = -diag-disable 7713 -diag-disable 10212 -diag-disable 5140
 RDE_FFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
 RDE_CFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
 RDE_LFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
+endif
+ifneq (,$(filter intel%,$(COMP_ARCH)))
+RDE_MKL     = -mkl
 endif
 ifneq (,$(filter PrgEnv-intel%,$(COMP_ARCH)))
 RDE_MKL_NOMPI   = -mkl
@@ -273,7 +281,12 @@ endif
 nothingtobedone:
 	@echo "Nothing to be done"
 
-LOCALMAKEFILES0 := $(foreach mydir,$(SRCPATH),$(mydir)/Makefile.local.mk)
+ifeq (1,$(RDE_LOCAL_LIBS_ONLY))
+   RDE_ABS_DEP      = $(RDE_LIB_OVERRIDES_NEW_FILE)
+   RDE_LIB_OVERRIDES= $(RDE_LIB_OVERRIDES_NEW)
+endif
+
+LOCALMAKEFILES0 := $(foreach mydir,$(CONST_SRCPATH_INCLUDE) $(SRCPATH_INCLUDE_OVERRIDES),$(wildcard $(mydir)/Makefile.local*.mk))
 RDEBUILDMAKEFILES = $(wildcard \
    $(ROOT)/Makefile.rules.mk \
    $(ROOT)/$(MAKEFILEDEP) \
@@ -281,18 +294,19 @@ RDEBUILDMAKEFILES = $(wildcard \
    $(MAKEFILEUSERLIST))
 ifneq (,$(RDEBUILDMAKEFILES))
    ifneq (,$(DEBUGMAKE))
-      $(info include $(RDEBUILDMAKEFILES))
+      $(foreach item, $(RDEBUILDMAKEFILES), $(info include $(item)))
+      # $(info include $(RDEBUILDMAKEFILES))
    endif
    include $(RDEBUILDMAKEFILES)
 endif
 
 ifneq (,$(findstring s,$(MAKEFLAGS)))
-   VERBOSE := 
+   VERBOSE :=
 endif
 ifneq (,$(VERBOSE))
 ifeq (0,$(VERBOSE))
    VERBOSEV  :=
-   VERBOSEVL := 
+   VERBOSEVL :=
 else
    VERBOSEV  := -v
    VERBOSEVL := -verbose
@@ -313,7 +327,7 @@ ifneq (,$(BUILDNAME))
 #    #TODO:
 endif
 
-RDE_COMP_RULES_FILE_USER = 
+RDE_COMP_RULES_FILE_USER =
 ifneq (,$(COMP_RULES_FILE))
    ifneq (,$(wildcard $(ROOT)/$(COMP_RULES_FILE)))
       RDE_COMP_RULES_FILE_USER = --comprules=$(ROOT)/$(COMP_RULES_FILE)
@@ -324,19 +338,30 @@ ifneq (,$(COMP_RULES_FILE))
    $(info RDE_COMP_RULES_FILE_USER =$(RDE_COMP_RULES_FILE_USER))
 endif
 
+ifeq (1,$(RDE_LOCAL_LIBS_ONLY))
+   RBUILD4objMPI    = $(RBUILD4MPI)
+   RBUILD4objNOMPI  = $(RBUILD4NOMPI)
+   RBUILD4objMPI_C  = $(RBUILD4MPI_C)
+   RBUILD4objNOMPI_C= $(RBUILD4NOMPI_C)
+   RDE_BUILDDIR_SFX = -$(USER)
+   ifeq (,$(RDE_BUILDNAME))
+      export RDE_BUILDNAME=$(USER)$(shell date '+%Y%m%d.%H%M%S')
+   endif
+endif
+
 ## ==== Targets
 ifneq (,$(DEBUGMAKE))
    $(info Definitions done, Starting Targets section)
 endif
 
-#.DEFAULT: 
-#	@rdeco -q $@ || true \;
+#.DEFAULT:
+#	@rdeco -q -i $@ || true \;
 
-.DEFAULT: 
+.DEFAULT:
 	@if [[ x$$(echo $@ | cut -c1-9) == x_invdep_. ]] ; then \
 	   echo > /dev/null ;\
 	elif [[ x"$(filter $(suffix $@),$(CONST_RDESUFFIX) .mk)" != x"" ]] ; then \
-	   rdeco -q $@  && echo "Checking out: $@" || (echo "ERROR: File Not found: $@" && exit 1);\
+	   rdeco -q -i $@  && echo "Checking out: $@" || (echo "ERROR: File Not found (Makefile.build.mk:rdeco): $@" && exit 1);\
 	else \
 	   echo "ERROR: No such target: $@" 1>&2 ; \
 	   exit 1 ; \
@@ -346,6 +371,12 @@ endif
 
 #Produire les objets de tous les fichiers de l'experience qu'ils soient checkout ou non
 objects: $(OBJECTS)
+
+libs: $(OBJECTS) $(ALL_LIBS) $(RDE_LIBS_USER_EXTRA)
+	ls -al $(ALL_LIBS) $(RDE_LIBS_USER_EXTRA)
+
+bins: $(RDE_BINS_USER_EXTRA)
+	ls -al $(RDE_BINS_USER_EXTRA)
 
 # #TODO: get .o .mod from lib again after make clean?
 # #TODO: should we keep .mod after make clean?

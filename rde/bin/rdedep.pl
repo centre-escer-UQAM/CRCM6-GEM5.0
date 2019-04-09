@@ -42,6 +42,8 @@ my %topdirnames = ();
 my $myname  = "rdedep.pl";
 my $MAXRECURSE = 128;
 my @recurse_list = ();
+my $lib_overrides_all_name = "_OVERRIDES_ALL_";
+my $lib_overrides_new_name = "_OVERRIDES_NEW_";
 
 #TODO: replace @arrays by %hash or $hash_ref ; %hash = map { $_ => 1 } @array;
 #TODO: replace %hash by $hash_ref
@@ -124,6 +126,12 @@ if (!$help and (keys %listfile)<1) {
    $help=1;
    print STDERR "\nERROR: you must provide a list of targets\n"
 }
+
+if (!$flat_layout) {
+   $help=1;
+   print STDERR "\nERROR: non flat layout is not supported yet.\n"
+}
+
 if ($help) {
    print STDERR "
 Build source file dependencies list, GMakefile format
@@ -206,6 +214,7 @@ $myname \\
       cdk90 => "COMPILABLE",
       c     => "COMPILABLE",
       h     => "", #INCLUDE,
+      hc    => "", #INCLUDE,
       hf    => "", #INCLUDE,
       fh    => "", #INCLUDE,
       inc   => "", #INCLUDE,
@@ -228,9 +237,11 @@ $myname \\
       my $this = {};
       bless( $this, $class );
 
+      $this->{FULLPATH_SRC0}    = " ";
       $this->{FULLPATH_SRC}     = " ";
       $this->{FILENAME}         = " ";
       $this->{EXTENSION}        = " ";
+      $this->{FULLPATH_SRC0}    = $ref_arguments->{path0};
       $this->{FULLPATH_SRC}     = $ref_arguments->{path};
       $this->{FILENAME}         = $ref_arguments->{filename};
       $this->{EXTENSION}        = $ref_arguments->{extension};
@@ -290,21 +301,13 @@ $myname \\
       my $search_dep = "$_[1]";
       my $deplevel = "$_[2]";
       if ($deplevel == 0) {
-         if ($flat_layout) {
-            print STDERR "++ FIND Dep [$deplevel] ", $_[0]->{NAMEyEXT}, " : $_[1] :(", keys %{$_[0]->{DEPENDENCIES}}, ")\n" if ($msg >= 5);
-         } else {
-            print STDERR "++ FIND Dep [$deplevel] ", $_[0]->{PATHyNAMEyEXT}, " : $_[1] :(", keys %{$_[0]->{DEPENDENCIES}}, ")\n" if ($msg >= 5);
-         }
+         print STDERR "++ FIND Dep [$deplevel] ", $_[0]->{NAMEyEXT}, " : $_[1] :(", keys %{$_[0]->{DEPENDENCIES}}, ")\n" if ($msg >= 5);
       #    #@recurse_list = ();
       }
       return undef if (int(keys %{$_[0]->{DEPENDENCIES}}) == 0);
 
       if ($deplevel > $MAXRECURSE) {
-         if ($flat_layout) {
-            print STDERR "++ FIND Dep, MAX Recurse [$deplevel] ", $_[0]->{NAMEyEXT}, " (",@recurse_list, ")\n" if ($msg >= 4);
-         } else {
-            print STDERR "++ FIND Dep, MAX Recurse [$deplevel] ", $_[0]->{PATHyNAMEyEXT}, " (",@recurse_list, ")\n" if ($msg >= 4);
-         }
+         print STDERR "++ FIND Dep, MAX Recurse [$deplevel] ", $_[0]->{NAMEyEXT}, " (",@recurse_list, ")\n" if ($msg >= 4);
          return 2;
       }
       $deplevel++;
@@ -312,11 +315,7 @@ $myname \\
          my $dep_ptr = ${$_[0]->{DEPENDENCIES}}{$dep_filename};
          if ($dep_filename eq $search_dep) {
             # print STDERR "++ FOUND dep [$deplevel] in $dep_filename for $search_dep\n";
-            if ($flat_layout) {
-               print STDERR "++ FOUND dep [$deplevel] in ", $dep_ptr->{NAMEyEXT}, " for $search_dep\n";
-            } else {
-               print STDERR "++ FOUND dep [$deplevel] in ", $dep_ptr->{PATHyNAMEyEXT}, " for $search_dep\n";
-           }
+            print STDERR "++ FOUND dep [$deplevel] in ", $dep_ptr->{NAMEyEXT}, " for $search_dep\n";
             return 1;
          }
          $isdep = $dep_ptr->SRCFile::find_dependencies($search_dep, $deplevel);
@@ -326,74 +325,13 @@ $myname \\
          #    }
          # }
          if ($isdep) {
-            if ($flat_layout) {
-               print STDERR "++ FOUND dep [$deplevel] below $dep_ptr->{NAMEyEXT} for $search_dep\n" if ($deplevel < 2 and $isdep == 1);
-            } else {
-               print STDERR "++ FOUND dep [$deplevel] below $dep_filename for $search_dep\n" if ($deplevel < 2 and $isdep == 1);
-            }
+            print STDERR "++ FOUND dep [$deplevel] below $dep_ptr->{NAMEyEXT} for $search_dep\n" if ($deplevel < 2 and $isdep == 1);
             return $isdep;
          }
       }
       $deplevel--;
       return undef;
    }
-
-   # # @find_dependencies: find if the object has the filename in his depedencie list
-   # # IN : $1 = filename to search
-   # # OUT: true (1) if the module as been found, false (undef) otherwise
-   # sub find_dependencies0 {
-   #    my $search_dep = "$_[1]";
-   #    my $deplevel = "$_[2]";
-   #    if ($deplevel == 0) {
-   #       print STDERR "++ find_dependencies0: $deplevel :",$_[0]->{NAMEyEXT}," : $_[1] :(", keys %{$_[0]->{DEPENDENCIES}},")\n";
-   #       @recurse_list = ();
-   #    }
-   #    #print STDERR "++ find_dependencies1: $deplevel :",$_[0]->{NAMEyEXT}," : $_[1] :(", keys %{$_[0]->{DEPENDENCIES}},")\n";
-   #    #print STDERR "++ find_dependencies2: $search_dep in dep of ", $_[0]->{NAMEyEXT}," : ndep=", int(keys %{$_[0]->{DEPENDENCIES}}), "\n";
-   #    return undef if (int(keys %{$_[0]->{DEPENDENCIES}}) == 0);
-
-   #    ## if (mysmart("$search_dep", \@recurse_list)) {
-   #    if ($_[0]->{PATHyNAMEyEXT} ~~ @recurse_list) {
-   #       if ($deplevel > 0) {
-   #          print STDERR "++ FOUND dependencies1: ", $_[0]->{PATHyNAMEyEXT}, ": l=$deplevel : rl=",@recurse_list, "\n";
-   #          return 1;
-   #       }
-   #       print STDERR $_[0]->{NAMEyEXT}, " ; ", $deplevel, " ; T ; ",@recurse_list, "\n";
-   #    } else {
-   #       push @recurse_list, $_[0]->{PATHyNAMEyEXT};
-   #       print STDERR $_[0]->{NAMEyEXT}, " ; ", $deplevel, " ; F ; ",@recurse_list, "\n";
-   #    }
-   #    $deplevel++;
-   #    # return 1 if ($deplevel > $MAXRECURSE);
-   #    if ($deplevel > $MAXRECURSE) {
-   #       print STDERR "++ FIND dependencies2, max recurse: ", $_[0]->{PATHyNAMEyEXT}, ": l=$deplevel : rl=",@recurse_list, "\n";
-   #       return 1;
-   #    }
-   #    for my $dep_filename (keys %{$_[0]->{DEPENDENCIES}}) {
-   #       #print STDERR "++ find_dependencies3: $search_dep ?=? $dep_filename\n";
-   #       my $dep_ptr = ${$_[0]->{DEPENDENCIES}}{$dep_filename};
-   #       if ($flat_layout) {
-   #          # return 1 if ($search_dep eq $dep_filename);
-   #          if ($search_dep eq $dep_filename) {
-   #             print STDERR "++ FOUND dependencies3: ", $search_dep, ": l=$deplevel : ==", $dep_filename, "\n";
-   #             return 1;
-   #          }
-   #       } else {
-   #          # return 1 if ($search_dep eq $dep_filename and $_[0]->{FULLPATH_SRC} eq $dep_ptr->{FULLPATH_SRC});
-   #          if ($search_dep eq $dep_filename and $_[0]->{FULLPATH_SRC} eq $dep_ptr->{FULLPATH_SRC}) {
-   #             print STDERR "++ FOUND dependencies4: ", $search_dep, ": l=$deplevel : ==", $dep_filename, "; ", $_[0]->{FULLPATH_SRC}, " == ", $dep_ptr->{FULLPATH_SRC}, "\n";
-   #             return 1;
-   #          }
-   #       }
-   #       # return 1 if ($dep_ptr->SRCFile::find_dependencies($search_dep, $deplevel));
-   #       if ($dep_ptr->SRCFile::find_dependencies($search_dep, $deplevel)) {
-   #          # print STDERR "++ FOUND dependencies5: ", $search_dep, ": l=$deplevel \n";
-   #          return 1;
-   #       }
-   #    }
-   #    $deplevel--;
-   #    return undef;
-   # }
 
   }} #end package SRCFile
 
@@ -429,7 +367,7 @@ sub preproc_suppfile {
 #------------------------------------------------------------------------
 sub preproc_srcfiles_overrides {
    return if !$override_dir;
-   for (glob "$override_dir/*") {		
+   for (glob "$override_dir/*") {
       my $file0 = "$_" ;
       my $file = "$_" ;
       $file =~ s/,v$// ;
@@ -519,12 +457,21 @@ sub pre_process_file {
    #print STDERR "pre_process_file: $filn.$exte ($path) ($duplicated_filename1)\n";
 
    if ($duplicated_filename1 and ($_dup_ok or $_is_override)) {
-      #print STDERR "DELETE dup: $duplicated_filename1 (for $path$filn.$exte)\n";
+      # if ($_is_override) {
+      #    print STDERR "DELETE dup: $duplicated_filename1 (for $path$filn.$exte)\n";
+      # } else {
+      #    print STDERR "REPLACE w/ override: $duplicated_filename1 (for $path$filn.$exte)\n";
+      # }
       delete $LISTOBJECT{$duplicated_filename1};
    }
 
    #print STDERR "NEW1: $filn.$exte ($path)\n";
-   $LISTOBJECT{"$path$filn.$exte"} = new SRCFile({path => $path, filename => $filn, extension => $exte});
+   if ($duplicated_filename1 and $_is_override) {
+      #print STDERR "NEW1: $path$filn.$exte (was:".dirname($duplicated_filename1).")\n";
+      $LISTOBJECT{"$path$filn.$exte"} = new SRCFile({path0 => dirname($duplicated_filename1)."/", path => $path, filename => $filn, extension => $exte});
+   } else {
+      $LISTOBJECT{"$path$filn.$exte"} = new SRCFile({path0 => $path, path => $path, filename => $filn, extension => $exte});
+   }
 
    if (!$_is_override) {
       if ($duplicated_filename1 and $_dup_ok) {
@@ -713,11 +660,7 @@ sub process_file {
 
          # Ajouter le module dans la liste des modules associer au fichier.
          push @{$file->{MODULE_LIST}}, $modname if (!mysmart($modname,\@{$file->{MODULE_LIST}}));
-         if ($flat_layout) {
-            $module_list{$modname} = $file->{NAMEyEXT};
-         } else {
-            $module_list{$modname} = $filename;
-         }
+         $module_list{$modname} = $file->{NAMEyEXT};
 
          # Recherche tous les fichiers analyser precedemment qui avait besoin de ce module la
          while(my $key = search_unsolved_module($modname)) {
@@ -904,11 +847,7 @@ sub print_files_list{
       for (sort keys %LISTOBJECT) {
          my $file = $LISTOBJECT{$_};
          if (lc $file->{EXTENSION} eq lc $ext) {
-            if ($flat_layout) {
-               print_item($file->{NAMEyEXT});
-            } else {
-               print_item($file->{PATHyNAMEyEXT});
-            }
+            print_item($file->{NAMEyEXT});
          }
       }
       print STDOUT "\n";
@@ -953,33 +892,21 @@ sub print_object_list {
    for (sort keys %LISTOBJECT) {
       my $file = $LISTOBJECT{$_};
       if ($file->{COMPILABLE}) {
-         if ($flat_layout) {
-            print_item("$file->{FILENAME}.o");
-         } else {
-            print_item("$file->{PATHyNAME}.o");
-         }
-         my(@dirs) = split("/",$file->{FULLPATH_SRC});
+         print_item("$file->{FILENAME}.o");
+         my(@dirs) = split("/",$file->{FULLPATH_SRC0});
          @{$listdir{$dirs[0]}} = () if (!exists($listdir{$dirs[0]}));
-         if ($flat_layout) {
-            push @{$listdir{$dirs[0]}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$dirs[0]}}));
-         } else {
-            push @{$listdir{$dirs[0]}},"$file->{PATHyNAME}.o" if (!mysmart("$file->{PATHyNAME}.o",\@{$listdir{$dirs[0]}}));
-         }
+         push @{$listdir{$dirs[0]}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$dirs[0]}}));
       }
       if ($top_dirs) {
          for (split(":",$top_dirs)) {
             my $topdir = $_;
             if ($_) {
                my $topname = get_topname($topdir);
-               if (index($file->{FULLPATH_SRC}, $topdir) != -1) {
+               if (index($file->{FULLPATH_SRC0}, $topdir) != -1) {
                   if ($file->{COMPILABLE}) {
                      @{$listdir{$topname}} = () if (!exists($listdir{$topname}));
-                     if ($flat_layout) {
-                        push @{$listdir{$topname}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$topname}}));
-                     } else {
-                        push @{$listdir{$topname}},"$file->{PATHyNAME}.o" if (!mysmart("$file->{PATHyNAME}.o",\@{$listdir{$topname}}));
-                     }
-                     my $subdirname = substr($file->{FULLPATH_SRC},length($topdir),-1);
+                     push @{$listdir{$topname}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$topname}}));
+                     my $subdirname = substr($file->{FULLPATH_SRC0},length($topdir),-1);
                      if (not $subdirname) {
                         $subdirname = '_';
                      } else {
@@ -992,18 +919,34 @@ sub print_object_list {
                      push @{$listsubdir{$topname}},$subdirname if (!mysmart($subdirname,\@{$listsubdir{$topname}}));
 
                      $listtopdir{$topname} = $topdir if (!exists($listtopdir{$topname}));
-                     $listtopdir{$subdirname} = $file->{FULLPATH_SRC} if (!exists($listtopdir{$subdirname}));
+                     $listtopdir{$subdirname} = $file->{FULLPATH_SRC0} if (!exists($listtopdir{$subdirname}));
 
-                     if ($flat_layout) {
-                        push @{$listdir{$subdirname}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$subdirname}}));
-                     } else {
-                        push @{$listdir{$subdirname}},"$file->{PATHyNAME}.o" if (!mysmart("$file->{PATHyNAME}.o",\@{$listdir{$subdirname}}));
-                     }
+                     push @{$listdir{$subdirname}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$subdirname}}));
                   }
                }
             }
          }
       }
+
+      $topname = $lib_overrides_new_name;
+      @{$listdir{$topname}} = () if (!exists($listdir{$topname}));
+      if (($file->{FULLPATH_SRC0} eq $override_dir) or ($file->{FULLPATH_SRC0} eq $override_dir."/")) {
+         if ($file->{COMPILABLE}) {
+            push @{$listdir{$topname}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$topname}}));
+            print STDERR "Add $topname:".$file->{FILENAME}.".o\n";
+         }
+      }
+      $topname = $lib_overrides_all_name;
+      @{$listdir{$topname}} = () if (!exists($listdir{$topname}));
+      if (($file->{FULLPATH_SRC} eq $override_dir) or ($file->{FULLPATH_SRC} eq $override_dir."/")) {
+         if ($file->{COMPILABLE}) {
+            push @{$listdir{$topname}},"$file->{FILENAME}.o" if (!mysmart("$file->{FILENAME}.o",\@{$listdir{$topname}}));
+            print STDERR "Add $topname:".$file->{FILENAME}.".o\n";
+         # } else {
+         #    #TODO: if ($file->{COMPILABLE}) {... else add all dep
+         #    print STDERR "TODO: Add $topname:".$file->{NAMEyEXT}." dependencies\n";
+         }
+     }
    }
    print STDOUT "\n";
 
@@ -1042,17 +985,26 @@ sub print_object_list {
       for my $item (sort @{$listdir{$_}}) {
          print_item("$item");
       }
+      $libext = $defaultlibext;
+      $libext = '.a.fl' if ($libname eq $lib_overrides_new_name or $libname eq $lib_overrides_all_name);
       print STDOUT "\n";
-      print STDOUT "\$(LIBDIR)/lib".$libname.$defaultlibext.": \$(OBJECTS_".$libname.") \$(LIBDEP_".$libname.") \$(LIBDEP_ALL)\n";
+      print STDOUT "\$(LIBDIR)/lib".$libname.$libext.": \$(OBJECTS_".$libname.") \$(LIBDEP_".$libname.") \$(LIBDEP_ALL)\n";
       print STDOUT "\t".'rm -f $@; ar r $@_$$$$ $(OBJECTS_'.$libname.'); mv $@_$$$$ $@'."\n";
-      print STDOUT "lib".$libname.$defaultlibext.": \$(LIBDIR)/lib".$libname.$defaultlibext."\n";
+      print STDOUT "lib".$libname.$libext.": \$(LIBDIR)/lib".$libname.$libext."\n";
    }
+   print STDOUT "\n";
+   print STDOUT "RDE_LIB_OVERRIDES_NEW=".$lib_overrides_new_name."\n";
+   print STDOUT "RDE_LIB_OVERRIDES_ALL=".$lib_overrides_all_name."\n";
+   print STDOUT "RDE_LIB_OVERRIDES_NEW_FILE=\$(LIBDIR)/lib\$(RDE_LIB_OVERRIDES_NEW).a.fl\n";
+   print STDOUT "RDE_LIB_OVERRIDES_ALL_FILE=\$(LIBDIR)/lib\$(RDE_LIB_OVERRIDES_ALL).a.fl\n";
    print STDOUT "\n";
    print_header("ALL_LIBS=","");
    for (sort keys %listdir) {
       my $libname = $_;
+      $libext = $defaultlibext;
+      $libext = '.a.fl' if ($libname eq $lib_overrides_new_name or $libname eq $lib_overrides_all_name);
       $libname = $defaultlibname if $libname eq '..' or $libname eq '.' or $libname eq '';
-      print_item("\$(LIBDIR)/lib".$libname.$defaultlibext);
+      print_item("\$(LIBDIR)/lib".$libname.$libext);
    }
    print STDOUT "\n\n";
 }
@@ -1091,7 +1043,7 @@ sub print_module_list {
                my $topdir = $_;
                if ($_) {
                   my $topname = get_topname($topdir);
-                  if (index($file->{FULLPATH_SRC}, $topdir) != -1) {
+                  if (index($file->{FULLPATH_SRC0}, $topdir) != -1) {
                      @{$listdir{$topname}} = () if (!exists($listdir{$topname}));
                      for (@list_of_modules) {
                         push @{$listdir{$topname}},"$_" if (!mysmart("$_",\@{$listdir{$topname}}));
@@ -1143,27 +1095,15 @@ sub print_dep_rules {
          my $ext2 = $file->{EXTENSION};
          $ext2 = 'f'   if ($file->{EXTENSION} eq 'ftn');
          $ext2 = 'f90' if ($file->{EXTENSION} eq 'ftn90' or $file->{EXTENSION} eq 'cdk90');
-         if ($flat_layout) {
-            print_header("$file->{FILENAME}.o",":","$file->{FILENAME}.$ext2");
-         } else {
-            print_header("$file->{PATHyNAME}.o",":","$file->{PATHyNAME}.$ext2");
-         }
+         print_header("$file->{FILENAME}.o",":","$file->{FILENAME}.$ext2");
          rec_print_dependencies(\%LISTOBJECT, $filename);
-         #print STDOUT "\n";
-         print_header("$file->{FILENAME}.o",":","$file->{PATHyNAME}.o") if ($short_target_names and $file->{FULLPATH_SRC} and !$flat_layout);
          print STDOUT "\n";
 
          #@current_dependencies_list = ();
          %current_dependencies_list = ();
          if (!($ext2 eq $file->{EXTENSION})) {
-            if ($flat_layout) {
-               print_header("$file->{FILENAME}.$ext2",":",$file->{NAMEyEXT});
-            } else {
-               print_header("$file->{PATHyNAME}.$ext2",":","$filename");
-            }
+            print_header("$file->{FILENAME}.$ext2",":",$file->{NAMEyEXT});
             rec_print_dependencies(\%LISTOBJECT, $filename);
-            #print STDOUT "\n";
-            print_header("$file->{FILENAME}.$ext2",":","$file->{PATHyNAME}.$ext2") if ($short_target_names and $file->{FULLPATH_SRC} and !$flat_layout);
             print STDOUT "\n";
          }
       }
@@ -1184,10 +1124,8 @@ sub rec_print_dependencies {
       my $tmp_filename = $dep_filename;
       $tmp_filename = "$dep_ptr->{PATHyNAME}.o" if ($dep_ptr->{COMPILABLE});
       my $tmp_filename0 = $tmp_filename;
-      if ($flat_layout) {
-         $tmp_filename0 = "$dep_ptr->{NAMEyEXT}";
-         $tmp_filename0 = "$dep_ptr->{FILENAME}.o" if ($dep_ptr->{COMPILABLE});
-      }
+      $tmp_filename0 = "$dep_ptr->{NAMEyEXT}";
+      $tmp_filename0 = "$dep_ptr->{FILENAME}.o" if ($dep_ptr->{COMPILABLE});
       #next if (($_[1] eq $dep_filename) or ($tmp_filename ~~ @current_dependencies_list));
       #next if (($_[1] eq $dep_filename) or mysmart($tmp_filename,\@current_dependencies_list));
       next if (($_[1] eq $dep_filename) or exists($current_dependencies_list{$tmp_filename}));
@@ -1201,79 +1139,20 @@ sub rec_print_dependencies {
    }
 }
 
-#------------------------------------------------------------------------
-# @print_dep_rules_inv : reverse lookup
-#------------------------------------------------------------------------
-# sub print_dep_rules_inv {
-# 	 #return 0;
-#     print STDERR "Printing inverse dependencies\n" if ($msg >= 3);
-#     for my $filename (keys %LISTOBJECT) {
-#         my $file = $LISTOBJECT{$filename};
-# 		  if ($flat_layout) {
-# 		  		@dirdeplist{$file->{NAMEyEXT}} = ();
-# 		  		@invdeplist{$file->{NAMEyEXT}} = ();
-# 		  		# for my $depname (keys $file->{DEPENDENCIES}) {
-# 		  		# 	 my $dep = $LISTOBJECT{$depname};
-# 		  		# 	 push @{$dirdeplist{$file->{NAMEyEXT}}}, $dep->{NAMEyEXT};
-# 		  		# }
-# 				@current_dependencies_list = ();
-# 				rec_fill_dirdeplist($filename, $filename);				
-# 		  } else {
-# 		  		print STDERR "\nERROR: Inv Dep for non flat layout is not yet implements\n";
-# 		  		return 0;
-# 		  }
-# 	 }
-#     for my $filename (keys %dirdeplist) {
-# 		  for my $depname (@{$dirdeplist{$filename}}) {
-# 				push @{$invdeplist{$depname}}, $filename;# if ($filename !~ @{$invdeplist{$depname}});
-# 		  }
-# 	 }
-#     for my $depname (sort keys %invdeplist) {
-# 		  if ($#{$invdeplist{$depname}} >= 0) {
-# 				print_header("INVDEP_LIST_$depname","=","");
-# 				for (@{$invdeplist{$depname}}) {
-# 					 print_item($_);
-# 				}
-# 				print STDOUT "\n";
-# 		  }
-# 	 }
-# }
-
-# sub rec_fill_dirdeplist {
-#     my $filename  = $_[0];
-# 	 my $filename0 = $_[1];
-# 	 my $file = $LISTOBJECT{$filename};
-# 	 my $file0 = $LISTOBJECT{$filename0};
-# 	 for my $depname (keys %file->{DEPENDENCIES}) {
-# 		  my $dep = $LISTOBJECT{$depname};
-# 		  next if (($depname eq $filename0) or ($depname ~~ @current_dependencies_list));
-
-# 		  push @{$dirdeplist{$file0->{NAMEyEXT}}}, $dep->{NAMEyEXT};
-# 		  push @current_dependencies_list, $filename;
-#         # Recursively call the function to fill all depedencies
-#         rec_fill_dirdeplist($depname, $filename0);
-# 	 }
-# }
-
 sub print_dep_rules_inv2 {
    #return 0;
    print STDERR "Printing inverse dependencies\n" if ($msg >= 3);
    for my $filename (sort keys %LISTOBJECT) {
       my $file = $LISTOBJECT{$filename};
-      if ($flat_layout) {
-         @dirdeplist{$file->{NAMEyEXT}} = ();
-         @invdeplist{$file->{NAMEyEXT}} = ();
-         # for my $depname (keys $file->{DEPENDENCIES}) {
-         # 	 my $dep = $LISTOBJECT{$depname};
-         # 	 push @{$dirdeplist{$file->{NAMEyEXT}}}, $dep->{NAMEyEXT};
-         # }
-         #@current_dependencies_list = ();
-         %current_dependencies_list = ();
-         rec_fill_dirdeplist2($filename, $filename);				
-      } else {
-         print STDERR "\nWARNING: Inv Dep for non flat layout is not yet implements\n";
-         return 0;
-      }
+      @dirdeplist{$file->{NAMEyEXT}} = ();
+      @invdeplist{$file->{NAMEyEXT}} = ();
+      # for my $depname (keys $file->{DEPENDENCIES}) {
+      # 	 my $dep = $LISTOBJECT{$depname};
+      # 	 push @{$dirdeplist{$file->{NAMEyEXT}}}, $dep->{NAMEyEXT};
+      # }
+      #@current_dependencies_list = ();
+      %current_dependencies_list = ();
+      rec_fill_dirdeplist2($filename, $filename);				
    }
    for my $filename (sort keys %dirdeplist) {
       for my $depname (sort @{$dirdeplist{$filename}}) {
@@ -1458,11 +1337,7 @@ sub export_obj_list {
    for (sort keys %LISTOBJECT) {
       my $file = $LISTOBJECT{$_};
       if ($file->{COMPILABLE}) {
-         if ($flat_layout) {
-            print $EXPOUT "$file->{FILENAME}.o\n";
-         } else {
-            print $EXPOUT "$file->{PATHyNAME}.o\n";
-         }
+         print $EXPOUT "$file->{FILENAME}.o\n";
       }
       for (@{$file->{MODULE_LIST}}) {
          push @list_of_modules, $_ if $_ ne "" and (!mysmart($_,\@list_of_modules));
@@ -1514,7 +1389,7 @@ check_circular_dep();
 
 print 'ifneq (,$(DEBUGMAKE))',"\n";
 print '$(info ## ====================================================================)',"\n";
-print '$(info ## File:',$output_file,")\n";
+print '$(info ## File: ',basename($output_file),")\n";
 print '$(info ## )',"\n";
 print 'endif',"\n";
 
@@ -1529,7 +1404,7 @@ print_missing();
 print_unknown();
 
 print 'ifneq (,$(DEBUGMAKE))',"\n";
-print '$(info ## ==== ',$output_file,' [END] =========================================)',"\n";
+print '$(info ## ==== ',basename($output_file),' [END] =========================================)',"\n";
 print 'endif',"\n";
 
 export_obj_list() if ($export_list);

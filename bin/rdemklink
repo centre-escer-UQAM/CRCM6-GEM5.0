@@ -105,10 +105,12 @@ for item in $RDE_BASE_MAKEFILES ; do
       fi
    fi
 done
-if [[ ! -e Makefile.user.mk ]] ; then
-   myecho 1 "+ cp $RDE_INCLUDE/Makefile.user.mk ."
-   cp $RDE_INCLUDE/Makefile.user.mk .
-fi
+for item in Makefile.user.mk Makefile.user.root.mk ; do
+   if [[ ! -e ${item} ]] ; then
+      myecho 1 "+ cp ${RDE_INCLUDE}/${item} ."
+      cp ${RDE_INCLUDE}/${item} .
+   fi
+done
 
 RDE_CONFIG_FILE=${CONST_RDE_CONFIG_FILE}
 RDE_ARCH=${CONST_RDE_ARCH}
@@ -120,7 +122,7 @@ for item in $RDE_LINKED_ARCH_LIST ; do
    fi
 done
 if [[ $_found == 0 ]] ; then
-   myecho 1 "+ Create $RDE_CONFIG_FILE"
+   myecho 1 "+ Adding $RDE_ARCH to $RDE_CONFIG_FILE"
    cat >> $RDE_CONFIG_FILE <<EOF
 RDE_LINKED_ARCH_LIST="\$RDE_LINKED_ARCH_LIST $RDE_ARCH"
 EOF
@@ -134,7 +136,11 @@ for item in ${CONST_SRCPATH_TOPDIRS} ; do
    item2="$(true_path ${item} 2>/dev/null)"
    item2=${item2:-${item}}
    [[ $myforce == 1 ]] && rm -f ${CONST_RDE_LINKDIR}/${item##*/} || true
-   ln -s ${item2} ${CONST_RDE_LINKDIR}/${item##*/} 2>/dev/null || true
+   if [[ ! -e ${CONST_RDE_LINKDIR}/${item##*/} ]] ; then
+      ln -s ${item2} ${CONST_RDE_LINKDIR}/${item##*/} 2>/dev/null || true
+   elif [[ "x$(true_path ${CONST_RDE_LINKDIR}/${item##*/})" != "x$(true_path ${item2})" ]] ; then
+      myecho 1 "WARNING: link not updated ${CONST_RDE_LINKDIR}/${item##*/}"
+   fi
 done
 
 #TODO: create/update .setenv.dot to reload rde/model?

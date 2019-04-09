@@ -8,15 +8,22 @@
 #    xterm -hold -e "$(dirname "$0")/$(basename "$0")" -h; exit
 #fi
 
+RDE_EXP_ROOT=${RDE_EXP_ROOT:-.}
 dodump=0
 if [[ "x$1" == "x--shdump" ]] ; then
    shift
-   myhash="$(echo ${PWD:-$(pwd)} | cksum | cut -d" " -f1)"
-   RDE_CONST_BASE=${TMPDIR:-/tmp}/.rde.const.${myhash}
+   if [[ ${RDE_EXP_ROOT:-.} == . ]] ; then
+      myhash="$(echo ${PWD:-$(pwd)} | cksum | cut -d" " -f1)"
+   else
+      myhash="$(echo ${RDE_EXP_ROOT:-${PWD:-$(pwd)}} | cksum | cut -d" " -f1)"
+   fi
+   RDE_CONST_BASE0=${TMPDIR:-/tmp/${myhash}}/.rde.const
+   RDE_CONST_BASE=${RDE_CONST_BASE0}.${myhash}
    export _RDE_BASE_ARCH=${ORDENV_PLAT:-${BASE_ARCH:-${EC_ARCH%%/*}}}
    # RDE_CONST_SH=${RDE_CONST_BASE}.${RDE_BASE_ARCH_SFX}.${rde_version}.dot
    RDE_CONST_SH_DEFAULT=${RDE_CONST_BASE}.${_RDE_BASE_ARCH}.${rde_version}.dot
    if [[ -f ${RDE_CONST_SH_DEFAULT} ]] ; then
+      # echo "rdevar --shdump: Using cache at: ${RDE_CONST_SH_DEFAULT}" 1>&2
       cat ${RDE_CONST_SH_DEFAULT}
       exit 0
    else
@@ -27,12 +34,12 @@ fi
 
 #==== Some faster access vars
 export RDE_KNOWN_BASE_ARCH0="
- Linux_x86-64 
+ Linux_x86-64
  "
 export RDE_KNOWN_BASE_ARCH="${RDE_KNOWN_BASE_ARCH:-$RDE_KNOWN_BASE_ARCH0}"
 export RDE_KNOWN_BASE_ARCH_OLD="
- Linux_x86-64:Linux_x86-64 
- " 
+ Linux_x86-64:Linux_x86-64
+ "
 export RDE_BASE_ARCH_EQUIV_LIST0="
  Linux_x86-64:linux26-x86-64
  Linux_x86-64:rhel-6.0-amd64-64
@@ -40,9 +47,9 @@ export RDE_BASE_ARCH_EQUIV_LIST0="
  Linux_x86-64:ubuntu-12.04-amd64-64
  Linux_x86-64:ubuntu-14.04-amd64-64
  Linux_x86-64:sles-11-amd64-64
- Linux_x86-64:sles-11-haswell-64 
- Linux_x86-64:sles-11-haswell-64-xc40 
- Linux_x86-64:sles-11-broadwell-64 
+ Linux_x86-64:sles-11-haswell-64
+ Linux_x86-64:sles-11-haswell-64-xc40
+ Linux_x86-64:sles-11-broadwell-64
  Linux_x86-64:sles-11-broadwell-64-xc40
  "
 export RDE_BASE_ARCH_EQUIV_LIST="${RDE_BASE_ARCH_EQUIV_LIST:-$RDE_BASE_ARCH_EQUIV_LIST0}"
@@ -54,7 +61,6 @@ DEP_ARCH=${RDE_BASE_ARCH}/${RDE_COMP_ARCH}
 
 INCSUFFIXES=".cdk .h .hf .fh .hc .itf90 .inc .include"
 SRCSUFFIXES=".c .cpp .f .ftn .ptn .f90 .f95 .f03 .ftn90 .ptn90 .cdk90 .tmpl90 .F .FOR .F90 .F95 .F03"
-RDE_EXP_ROOT=${RDE_EXP_ROOT:-.}
 SRC_PATH_FILE=${RDE_EXP_ROOT}/.rde.srcpath.dot
 
 mysrcpathvar() {
@@ -170,8 +176,13 @@ RDE_CONFIG_FILE=${RDE_EXP_ROOT}/.rde.config.dot
 RDE_SETENV_FILE=.rde.setenv.dot
 RDE_INC=$rde/include/$RDE_COMPILER_VERSION
 
-myhash="$(echo ${PWD:-$(pwd)} | cksum | cut -d" " -f1)"
-RDE_CONST_BASE=${TMPDIR:-/tmp}/.rde.const.${myhash}
+if [[ ${RDE_EXP_ROOT:-.} == . ]] ; then
+   myhash="$(echo ${PWD:-$(pwd)} | cksum | cut -d" " -f1)"
+else
+   myhash="$(echo ${RDE_EXP_ROOT:-${PWD:-$(pwd)}} | cksum | cut -d" " -f1)"
+fi
+RDE_CONST_BASE0=${TMPDIR:-/tmp/${myhash}}/.rde.const
+RDE_CONST_BASE=${RDE_CONST_BASE0}.${myhash}
 
 RDE_CONST_SH=${RDE_CONST_BASE}.${RDE_BASE_ARCH_SFX}.${rde_version}.dot
 RDE_CONST_MK=${RDE_CONST_BASE}.${RDE_BASE_ARCH_SFX}.${rde_version}.mk
@@ -180,8 +191,8 @@ if [[ "x${namelist}" == "xMakefile_const" && $# == 1 ]] ; then
    exit 0
 fi
 
-RDE_CONST_SH_WILD=${RDE_CONST_BASE}.*.dot
-RDE_CONST_MK_WILD=${RDE_CONST_BASE}.*.mk
+RDE_CONST_SH_WILD=${RDE_CONST_BASE0}.*.dot
+RDE_CONST_MK_WILD=${RDE_CONST_BASE0}.*.mk
 
 #RDE_DEP_MK=${RDE_EXP_ROOT}/Makefile.dep.${RDE_BASE_ARCH}.mk
 RDE_DEP_MK=${RDE_EXP_ROOT}/Makefile.dep.${RDE_BASE_ARCH_EQUIV}.mk
@@ -192,7 +203,7 @@ if [[ "x${namelist}" == "xMakefile_dep" && $# == 1 ]] ; then
    exit 0
 fi
 
-#RDE_EXTRADIRS=${RDE_EXTRADIRS:-"bin lib share"} #TODO
+RDE_EXTRADIRS=${RDE_EXTRADIRS:-"bin lib include share"}
 
 myrde_arch_list() {
    echo "$(cd $RDE_INC ; find */* -type d)"
@@ -211,7 +222,8 @@ myvpathvar() {
    if [[ -r $SRC_PATH_FILE ]] ; then
       . $SRC_PATH_FILE
    fi
-   echo $(eval "echo $(echo \${$1})" | tr ' ' ':')
+   # echo $(eval "echo $(echo \${${1:-SRCPATH}})" | tr ' ' ':')
+   echo $SRCPATH_INCLUDE $SRCPATH | tr ' ' ':'
 }
 
 mybasearchold() {
@@ -259,14 +271,15 @@ myvars="
  build/bin=       build\${hostarch}/bin/\${RDE_COMP_ARCH};
  build/run=       build\${hostarch}/run;
  build/ssm=       build\${hostarch}/ssm;
+ build/repos=     build\${hostarch}/repos;
  local/src=       .;
  local/bin=       bin;
  ref/src=         ref/src;
  ref/bin=         ref/bin;
  srcpathfilelistcache= .rde.srclist.files.cache.${RDE_BASE_ARCH};
  srcpathfile=       \${SRC_PATH_FILE};
- vpath=             \$(myvpathvar SRCPATH);
- srcpath_include=   \$(mysrcpathvar SRCPATH_INCLUDE SRCPATH);
+ vpath=             \$(myvpathvar);
+ srcpath_include=   \$(mysrcpathvar SRCPATH_INCLUDE);
  srcpath=           \$(mysrcpathvar SRCPATH);
  srcpath_maxdepth=  \$(mysrcpathvar SRCPATH_MAXDEPTH);
  srcpath_r=         \$(mysrcpathvar SRCPATH_R);
@@ -294,11 +307,15 @@ myvars="
 "
 
 if [[ $doclean == 1 ]] ; then
+   # echo "rdevar --cc: Removing cache at: ${RDE_CONST_MK_WILD} ${RDE_CONST_SH_WILD}" 1>&2
    rm -f ${RDE_CONST_MK_WILD} ${RDE_CONST_SH_WILD}
 fi
 
 if [[ $domkfile == 1 ]] ; then
+   # echo "rdevar --mkfile: Removing cache at: ${RDE_CONST_MK_WILD} " 1>&2
+   rm -f ${RDE_CONST_MK_WILD}
    filename=${RDE_CONST_MK}
+   # echo "rdevar --mkfile: Creating cache at: ${filename}" 1>&2
    echo > $filename
    #echo $eval $(echo $myvars | sed 's/;[ ]/;/g' | sed 's/=[ ]/ = /g') | tr ';' '\n'
    knownnames="$(echo $myvars | tr ';' '\n' | sed 's/=.*$//g' )"
@@ -313,7 +330,10 @@ if [[ $domkfile == 1 ]] ; then
 fi
 
 if [[ $doshfile == 1 ]] ; then
+   # echo "rdevar --shfile: Removing cache at: ${RDE_CONST_SH_WILD}" 1>&2
+   rm -f ${RDE_CONST_SH_WILD}
    filename=${RDE_CONST_SH_DEFAULT:-${RDE_CONST_SH}}
+   # echo "rdevar --shfile: Creating cache at: ${filename}" 1>&2
    echo > $filename
    #echo $eval $(echo $myvars | sed 's/;[ ]/;/g' | sed 's/=[ ]/ = /g') | tr ';' '\n'
    knownnames="$(echo $myvars | tr ';' '\n' | sed 's/=.*$//g' )"
@@ -330,6 +350,7 @@ if [[ $doshfile == 1 ]] ; then
       set +f
    done
    if [[ $dodump == 1 ]] ; then
+      # echo "rdevar --shdump: Using cache at: ${filename}" 1>&2
       cat $filename
       exit 0
    fi
@@ -351,9 +372,9 @@ if [[ $dolist == 1 ]] ; then
 fi
 
 for item in $namelist ; do
-   myvar="$(echo $myvars | tr ';' '\n' | grep "^ ${item}=")"
+   myvar="$(echo $myvars | tr ';' '\n' | grep -i "^ ${item}=")"
    if [[ ! -n $myvar ]] ; then
-      myvar="$(echo $myvars | tr ';' '\n' | grep "^${item}=")"
+      myvar="$(echo $myvars | tr ';' '\n' | grep -i "^${item}=")"
    fi
    if [[ -n $myvar ]] ; then
       if [[ $dokey == 0 ]] ; then

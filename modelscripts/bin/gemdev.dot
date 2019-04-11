@@ -147,6 +147,9 @@ update_dev_exp(){
     setnml -f ${gemcfg_path}/gem_settings.nml gem_cfgs Out3_etik_s=\"$(basename ${this_exp})\"
     exp_cfg=${this_exp}/configs
     mkdir -p ${exp_cfg}
+    for entry in ${gemcfg_path}/* ; do
+       rm -f ${exp_cfg}/${entry##*/} 2>/dev/null || true
+    done
     ln -s ${gemcfg_path}/* ${exp_cfg}
     for entry in settings outcfg ; do
        perl -pi -e "s|^(GEM_${entry}=).*?([^/]+)$|\1${TRUE_HOST}:\\\${SEQ_EXP_HOME}\/configs/\2|" ${config}

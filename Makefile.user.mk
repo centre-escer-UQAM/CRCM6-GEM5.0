@@ -89,6 +89,8 @@ COMPONENTS_SSM := $(COMPONENTS_SSM_ALL) $(COMPONENTS_SSM_ARCH)
 .PHONY: components_ssm
 components_ssm: components_ssm_all components_ssm_arch
 components_ssm_all: $(COMPONENTS_SSM_ALL)
+	rm -f $(ROOT)/gem/URLTAG ;\
+	cp $(ROOT)/URLTAG $(ROOT)/gem/URLTAG
 	for i in $(COMPONENTS) ; do \
 		if [[ -f $(ROOT)/$$i/Makefile ]] ; then \
 			cd $(ROOT)/$$i && \

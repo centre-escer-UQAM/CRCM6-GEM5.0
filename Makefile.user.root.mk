@@ -17,7 +17,7 @@ extrafilesclean:
 	## rm -rf GEM_cfg*  # should these be removed as well?... only if not in git
 	rm -rf .rde* BINMOD
 	rm -f  .linkit.log .ssmuse_gem suite PREP RUNMOD
-	rm -f  */ssmusedep*bndl gem/ATM_MODEL_*
+	rm -f  */ssmusedep*bndl gem/ATM_MODEL_* gem/URLTAG
 
 distclean: $(RDE_TARGET_DISTCLEAN) extrafilesclean
 

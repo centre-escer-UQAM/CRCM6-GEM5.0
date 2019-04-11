@@ -26,27 +26,36 @@ MIG/GEM source code using Version Control.
 Quick Start
 -----------
 
+**To Do on All Arch**
+
     export storage_model=${storage_model:-/PATH/TO/SCRATCH/DIR/}
     # ISOFFICIAL=--official    ## For explicit use by librarian only
     . ./.setenv.dot -v ${ISOFFICIAL}
 
+**To Do only on the Front End Machine**
+
     ## Option 1: w/o running env.
     ouv_exp_mig -v
-    rdemklink -v
 
     ## Option 2: with running env.
-    # . gemdev.dot myexp -v --gitlocal
+    # . gemdev.dot myexp -v --gitlocal  # -front FRONTEND -mach BACKEND
 
+**To Do on All Arch**
+
+    rdemklink -v
     make buildclean
     make dep
     make vfiles
 
     export MAKE_NPE=6
-    make libs -j ${MAKE_NPE:-6}
+    make libs -j ${MAKE_NPE:-6} && \
     make abs  #-j ${MAKE_NPE:-6}
 
-    make distclean
-    rm -f */ssmusedep*bndl gem/ATM_MODEL_*
+    # make buildclean   # To clean up the build dir when needed
+    
+**To Do only on the Front End Machine**
+
+    # make distclean    # To clean all the setup/compile/build files up when needed
 
 
 Basic profile and directory setup
@@ -80,7 +89,7 @@ The following commands perform that setup.
 
 #### Shell Env. SetUp ####
 
-*This step needs to be performed every time a new Shell is opened.*
+*This step needs to be performed every time a new Shell is opened (On all Arch).*
 
 > *Note 1*: The setup files are available for the EC/CMC and GC/Sciences networks.
 > Compiler and other external dependencies are available for these networks only.  
@@ -99,14 +108,13 @@ The following commands perform that setup.
 #### Files, Directories and Links SetUp ####
 
 *This step needs to be performed only once for this working directory
-or after performing "`make distclean`".*
+or after performing "`make distclean`" (Front End only).*
 
     ## Option 1: Compile/Build environment only
     ouv_exp_mig -v
-    rdemklink -v
 
     ## Option 2: Compile/Build and interactive/batch running environment
-    # . gemdev.dot myexp -v --gitlocal
+    # . gemdev.dot myexp -v --gitlocal  # -front FRONTEND -mach BACKEND
 
 
 Compiling and Building
@@ -114,7 +122,7 @@ Compiling and Building
 
 > *Note 1*: If you're planning on running in batch mode, submitting to
 > another machine, make sure you do the *initial setup*, including compilation,
-> on the machine where the job will be submitted.
+> on the machine where the job will be submitted (On all Arch).
 
 > *Note 2*: The compiler is specified as an external dependency in
 > the "`_migdep/DEPENDENCIES.external.*.bndl`" files.  
@@ -122,11 +130,14 @@ Compiling and Building
 > Makefiles (`*/include/Makefile.local*mk` files).  
 > See [README\_developing.md](README_developing.md) for more details.
 
+Make sure links to build dir/files are up to date.
+
+    rdemklink -v
+
 Initially it is best to make sure to start with a clean slate.  
 *This should be done once initially and every time the "dependency list" is modified.*
 
     make buildclean
-
 
 Use the following Makefile targets to compile the build libs and abs.  
 *This needs to be done initially and every time the code is modified.*
@@ -146,7 +157,6 @@ Cleaning up
 To remove all files created by the setup, compile and build process, use the `distclean` target.
 
     make distclean
-    rm -f */ssmusedep*bndl gem/ATM_MODEL_*
 
 
 See Also

@@ -250,31 +250,10 @@ You may specify the list of `COMPONENTS` to install, default installs all compon
 
 #### Post Install ####
 
-**To Do only on the Front End Machine**
-
-    ## Final operation once all tests are ok
-    VERSION="$(cat gem/VERSION)"
-    if [[ ${SSM_TEST_INSTALL:-0} == 1 ]] ; then
-       (cd ~/SsmBundles/GEM/test/ && \
-        ln -s gem/${VERSION##*/}.bndl . )
-    else
-       (cd ~/SsmBundles/GEM/${VERSION%/*} && \
-        ln -s gem/${VERSION##*/}.bndl . )
-     fi
-
-    VERSION="$(cat sps/VERSION)"
-    if [[ ${SSM_TEST_INSTALL:-0} == 1 ]] ; then
-       (cd ~/SsmBundles/ENV/SPS/test/ && \
-        ln -s sps/${VERSION##*/}.bndl . )
-    else
-       (cd ~/SsmBundles/ENV/SPS/${VERSION%/*} && \
-        ln -s sps/${VERSION##*/}.bndl . )
-     fi
-
 **To Do on All Arch**
 
 Make sure the installed version compile, build and passes tests.  
-See [testing section](#testing) below.
+See [testing section](#testing) above.
 
 
 Update the documentation and send announcement
@@ -308,9 +287,12 @@ You may specify the list of `COMPONENTS` to uninstall, default uninstalls all co
 
     # COMPONENTS=""
     # export SSM_TEST_INSTALL=1  ## Note: Set this to install under /tests/
+    if [[ ${RDENETWORK:-cmc} == "science" ]] ; then
+        SSM_BASE=/fs/ssm/eccc/mrd/rpn/MIG
+    fi
     make components_uninstall UNINSTALL_CONFIRM=yes \
         SSM_TEST_INSTALL=${SSM_TEST_INSTALL:-0} \
-        # SSM_BASE=/fs/ssm/eccc/mrd/rpn/MIG \
+        SSM_BASE=${SSM_BASE:-~/SsmBundles} \
         # COMPONENTS="${COMPONENTS}"
 
 
@@ -347,7 +329,6 @@ Abbreviations
 *[EC]: Environment and Climate Change Canada (now ECCC)  
 *[GC]: Government of Canada  
 *[SSC]: Shared Services Canada  
-
 *[SPS]: Surface Prediction System, driver of RPN physics surface processes  
 *[SCM]: Single Column Model, driver of RPN physics  
 *[GEM]: Global Environmental Multi-scale atmospheric model from RPN, ECCC  

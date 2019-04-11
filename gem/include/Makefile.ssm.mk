@@ -35,7 +35,8 @@ SSM_DEPOT_DIR := $(HOME)/SsmDepot
 SSM_BASE      := $(HOME)/SsmBundles
 SSM_BASE2     := $(HOME)/SsmBundles
 GEM_SSM_BASE_DOM  = $(SSM_BASE)/GEM/d/$(GEM_VERSION_X)gem
-GEM_SSM_BASE_BNDL = $(SSM_BASE)/GEM/$(GEM_VERSION_X)gem
+GEM_SSM_BASE_BNDL0 = $(SSM_BASE)/GEM/$(GEM_VERSION_X)
+GEM_SSM_BASE_BNDL  = $(GEM_SSM_BASE_BNDL0)gem
 GEM_INSTALL   = gem_install
 GEM_UNINSTALL = gem_uninstall
 
@@ -200,6 +201,9 @@ gem_install: gem_ssmusedep_bndl
 			--post=$(gem)/ssmusedep_post.bndl \
 			--base=$(SSM_BASE2) \
 			gem{_,+*_,-d+*_}$(GEM_VERSION)_*.ssm
+	chmod u+w $(GEM_SSM_BASE_BNDL0) $(GEM_SSM_BASE_BNDL0)/$(GEM_VERSION).bndl || true
+	cd $(GEM_SSM_BASE_BNDL0) && \
+	ln -sf gem/$(GEM_VERSION).bndl .
 
 gem_uninstall:
 	if [[ x$(UNINSTALL_CONFIRM) != xyes ]] ; then \
@@ -212,6 +216,8 @@ gem_uninstall:
 			--bndl=$(GEM_SSM_BASE_BNDL)/$(GEM_VERSION).bndl \
 			--base=$(SSM_BASE2) \
 			--uninstall
+	chmod u+w $(GEM_SSM_BASE_BNDL0) $(GEM_SSM_BASE_BNDL0)/$(GEM_VERSION).bndl || true
+	rm -f $(GEM_SSM_BASE_BNDL0)/$(GEM_VERSION).bndl || true
 
 ifneq (,$(DEBUGMAKE))
 $(info ## ==== $$gem/include/Makefile.ssm.mk [END] ====================)

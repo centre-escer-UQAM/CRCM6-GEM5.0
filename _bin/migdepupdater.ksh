@@ -200,6 +200,16 @@ if [[ ${_gitdep} == 1 ]] ; then
       sed -f ${tempsed2} ${DEPFILENAMEGIT} > ${tmpfile}
       mv ${tmpfile} ${DEPFILENAMEGIT}
    fi
+   if [[ ! -f URLTAG ]] ; then
+      myecho 1 "# GitDep - No such file: URLTAG"
+   else
+      myecho 1 "# Updating: URLTAG "
+      version="$(getversion .)"
+      verv=${version##*/}
+      comp=mig
+      cat URLTAG | sed "s:\(${comp}=.*/${comp}\)_[^_/][^_/]*:\1_${verv}:" > ${tmpfile}
+      mv ${tmpfile} URLTAG
+   fi
 fi
 
 if [[ ${_migver} == 1 ]] ; then

@@ -184,13 +184,13 @@ if [[ x$postbndl != x ]] ; then
    cat $postbndl >> $bndl
 fi
 
-if [[ "$(cat $bndl)" == "$domain" ]] ; then
-   rm -f $bndl
-   if [[ x$ssmbase != x ]] ; then
-      ln -s $ssmbase/$domain ${bndl%.*}
+if [[ "$(cat ${bndl})" == "${domain}" ]] ; then
+   rm -f ${bndl}
+   if [[ x${ssmbase} != x && x${ssmbase} != x${ssmbase#/} ]] ; then
+      ln -s ${ssmbase%/}/${domain#/} ${bndl%.*}
    else
-      ln -s $domain ${bndl%.*}
+      ln -s ${domain} ${bndl%.*}
    fi
 else
-   chmod a-w $bndl
+   chmod a-w ${bndl}
 fi

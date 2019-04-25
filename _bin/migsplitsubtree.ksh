@@ -290,12 +290,14 @@ EOF
 
    # echo "==== ${name}: url=${remoteurl}; branch=${mybranch1}; tag=${localtag1} (was ${remotetag0})"
    echo "==== ${name}: url=${remoteurl}; branch=${mybranch1}; tag=${localtag1}"
-   if [[ ${_mydry} == 1 && ${_verbose} -ge 1 ]] ; then
-      cat <<EOF
+   if [[ ${_mydry} == 1 ]] ; then
+      if [[ ${_verbose} -ge 1 ]] ; then
+         cat <<EOF
    git remote add ${name} ${remoteurl} --no-tags
    git subtree push -P ${name} ${name} ${mybranch1}
    git remote rm ${name}
 EOF
+      fi
       continue
    fi
 

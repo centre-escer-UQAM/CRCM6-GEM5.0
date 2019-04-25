@@ -113,10 +113,16 @@ endif
 #TODO: needed for eccc-ppp12 load... find less hacky way
 # ifeq (ubuntu-14.04-amd64-64,$(ORDENV_PLAT))
 ifneq (,$(wildcard /fs/ssm/*))
-##    NETCDFLIBS = netcdff netcdf hdf5_hl hdf5 dl m z curl  #RON
-##    NETCDFLIBS = netcdff netcdf hdf5hl_fortran hdf5_hl hdf5_fortran hdf5 z curl  #COSP
-   NETCDFLIBS = netcdff netcdf hdf5hl_fortran hdf5_hl hdf5_fortran hdf5 dl m z curl  #SuperSet
-   SCMEXTRALIBS = mpi
+ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
+   SCMEXTRALIBS =
+   ifneq (,$(filter PrgEnv-intel%,$(COMP_ARCH)))
+      ## NETCDFLIBS = netcdff netcdf hdf5_hl hdf5 dl m z curl  #RON
+      ## NETCDFLIBS = netcdff netcdf hdf5hl_fortran hdf5_hl hdf5_fortran hdf5 z curl  #COSP
+      NETCDFLIBS = netcdff netcdf hdf5hl_fortran hdf5_hl hdf5_fortran hdf5 dl m z
+   else
+      NETCDFLIBS = netcdff netcdf hdf5hl_fortran hdf5_hl hdf5_fortran hdf5 dl m z curl  #SuperSet
+   endif
+endif
 endif
 
 

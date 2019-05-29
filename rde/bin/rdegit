@@ -385,10 +385,15 @@ EOF
          exit 1
       fi
 
-      git clone --no-checkout ${REMOTEURL} ${BUILDGIT##*/}
+      git clone --depth 1 --branch ${REMOTETAG} ${REMOTEURL} ${BUILDGIT##*/}
       cd ${BUILDGIT##*/}
-      git checkout -b master >/dev/null 2>&1 || git checkout master
-      git merge -X theirs ${REMOTETAG}
+      git checkout -b master
+
+      # git clone --no-checkout ${REMOTEURL} ${BUILDGIT##*/}
+      # cd ${BUILDGIT##*/}
+      # git checkout -b master >/dev/null 2>&1 || git checkout master
+      # git merge -m 'Merge ${REMOTETAG}' -X theirs ${REMOTETAG}
+
       git remote set-branches origin ${REMOTETAG}-branch
       # git remote set-head origin ${REMOTETAG}
       ## Add other workdir dirs/files

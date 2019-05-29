@@ -23,6 +23,7 @@
                          Minx,Maxx,Miny,Maxy, F_Nk)
       use tdpack
       use glb_ld
+      use gem_options, only: Out3_gzfix_extrap
       implicit none
 #include <arch_specific.hf>
 
@@ -43,6 +44,7 @@
       real    prl, prsmall
       real    prlptop, prvttop, prfitop
       real    prlpbot, prvtbot, prfibot
+      real    target_pres
       real    logpres(Nkout)
       real*8  invprd
 !
@@ -54,7 +56,7 @@
 !$omp parallel private(i,k,kk,pnk,pnkm,pnindex,prlprso, &
 !$omp    prd,pre,prr,prfm0,prfm1,prfm2,prfm3,prfl2,prl, &
 !$omp    pnund,pn1,prlptop,prvttop,prfitop, &
-!$omp    prlpbot,prvtbot,prfibot,invprd) &
+!$omp    prlpbot,prvtbot,prfibot,invprd,target_pres) &
 !$omp          shared (logpres)
 
 !$omp do
@@ -182,8 +184,10 @@
                      if ( abs(prvtbot-prvttop) <= prsmall ) then
                         prlpbot = prlptop + (prfitop-prfibot)/(rgasd_8*prvttop)
                         if ( prlpbot >= prlprso ) then
+                           target_pres = prlpbot
+                           if (Out3_gzfix_extrap) target_pres = prlprso
                            F_vtout(i,j,kk) = prvttop
-                           F_gzout(i,j,kk) = prfitop + rgasd_8*prvttop*(prlptop-prlpbot)
+                           F_gzout(i,j,kk) = prfitop + rgasd_8*prvttop*(prlptop-target_pres)
                            go to 300
                         endif
                      else

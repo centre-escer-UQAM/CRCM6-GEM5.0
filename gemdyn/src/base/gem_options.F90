@@ -370,6 +370,11 @@ module gem_options
    namelist /gem_cfgs  / Out3_close_interval_S
    namelist /gem_cfgs_p/ Out3_close_interval_S
 
+   !# Apply corrected hypsometric equation for GZ extrapolation below terrain
+   logical :: Out3_gzfix_extrap = .false.
+   namelist /gem_cfgs / Out3_gzfix_extrap
+   namelist /gem_cfgs_p/ Out3_gzfix_extrap
+
    !# 'etiket' used for output fields
    character(len=12) :: Out3_etik_S = 'GEMDM'
    namelist /gem_cfgs  / Out3_etik_S

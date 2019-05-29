@@ -48,8 +48,8 @@ Quick Start
     make vfiles
 
     export MAKE_NPE=6
-    make libs -j ${MAKE_NPE:-6} && \
-    make abs  #-j ${MAKE_NPE:-6}
+    make libs -s -j ${MAKE_NPE:-6} && \
+    make abs  -s #-j ${MAKE_NPE:-6}
 
     # make buildclean   # To clean up the build dir when needed
     

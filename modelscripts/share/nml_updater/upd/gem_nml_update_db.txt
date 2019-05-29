@@ -982,3 +982,6 @@ New: surface_cfgs / isba_no_warm_sn_freez = F
 #------
 fileVersion: 5.0.rc4 > 5.0.rc5
 
+#------
+fileVersion: 5.0.rc5 > 5.0.0
+#New:  gem_cfgs/out3_gzfix_extrap

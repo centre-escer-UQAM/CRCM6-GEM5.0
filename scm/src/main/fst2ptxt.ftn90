@@ -25,7 +25,7 @@ subroutine fst2ptxt()
 
   ! Local parameters
   integer, parameter :: LONG_CHAR=1024
-  integer, parameter :: MAX_TRACERS=1000
+  integer, parameter :: MAX_TRACERS=20
   integer, parameter :: MAX_LEVELS=10000
   integer, parameter :: NI_ZOOM=3,NJ_ZOOM=3
   real, parameter :: KTTOMS=0.514444
@@ -232,7 +232,7 @@ subroutine fst2ptxt()
            fld(k)%grtyp = grtyp
            base_datev = datev
         else
-           call handle_error_l((/ig1,ig2,ig3,ig4/)==fld(k)%ig,'fst2ptxt','More than one grid found for '//trim(fld(k)%in))
+           call handle_error_l(all((/ig1,ig2,ig3,ig4/)==fld(k)%ig),'fst2ptxt','More than one grid found for '//trim(fld(k)%in))
         endif
         if (datev == base_datev) fld(k)%nk = fld(k)%nk+1
         if (trim(nomvar) == trim(TESTFLD)) then
@@ -336,7 +336,7 @@ subroutine fst2ptxt()
      test_grid = 1.
      err = ezsint(test_point,test_grid)
      call handle_error(err,'fst2ptxt','EZSINT interpolation for '//trim(fld(i)%in)//' test grid')
-     call handle_error_l(test_point>0.,'fst2ptxt','Requested lat/lon is outside input grid for '//trim(fld(i)%in)// &
+     call handle_error_l(all(test_point>0.),'fst2ptxt','Requested lat/lon is outside input grid for '//trim(fld(i)%in)// &
           ' in '//trim(infile))
      deallocate(test_grid,stat=err)
      call handle_error(err,'fst2ptxt','Freeing test_grid')
@@ -588,20 +588,26 @@ subroutine fst2ptxt()
            allocate(trt_p(NI_ZOOM,NJ_ZOOM,size(ip1t),ntr),stat=err)
            call handle_error(err,'fst2ptxt','Allocating thermo-level tracer fields')
         endif
-        call vertint2(uum_p,profpm,size(profpm,dim=3),uuz,pmz,size(ip1m), &
+        do k=1,size(profpt,dim=3)
+           profpt_p(:,:,k) = profpt(1,1,k)
+        enddo
+        do k=1,size(profpm,dim=3)
+           profpm_p(:,:,k) = profpm(1,1,k)
+        enddo
+        call vertint2(uum_p,profpm_p,size(profpm,dim=3),uuz,pmz,size(ip1m), &
              1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,varname='UU',inttype='cubic')
-        call vertint2(vvm_p,profpm,size(profpm,dim=3),vvz,pmz,size(ip1m), &
+        call vertint2(vvm_p,profpm_p,size(profpm,dim=3),vvz,pmz,size(ip1m), &
              1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,varname='VV',inttype='cubic')
-        call vertint2(gzm_p,profpm,size(profpm,dim=3),gzz,pmz,size(ip1m), &
+        call vertint2(gzm_p,profpm_p,size(profpm,dim=3),gzz,pmz,size(ip1m), &
              1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,varname='GZ',inttype='cubic')
-        call vertint2(uut_p,profpt,size(profpt,dim=3),uuz,pmz,size(ip1m), &
+        call vertint2(uut_p,profpt_p,size(profpt,dim=3),uuz,pmz,size(ip1m), &
              1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,varname='UU',inttype='cubic')
-        call vertint2(vvt_p,profpt,size(profpt,dim=3),vvz,pmz,size(ip1m), &
+        call vertint2(vvt_p,profpt_p,size(profpt,dim=3),vvz,pmz,size(ip1m), &
              1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,varname='VV',inttype='cubic')
-        call vertint2(ttt_p,profpt,size(profpt,dim=3),ttz,ptz,size(ip1t), &
+        call vertint2(ttt_p,profpt_p,size(profpt,dim=3),ttz,ptz,size(ip1t), &
              1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,varname='TT',inttype='cubic')
         do k=1,ntr
-           call vertint2(trt_p,profpt,size(profpt,dim=3),trz,ptz,size(ip1t), &
+           call vertint2(trt_p,profpt_p,size(profpt,dim=3),trz,ptz,size(ip1t), &
                 1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,inttype='cubic')
         enddo
 

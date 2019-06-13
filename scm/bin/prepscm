@@ -3,7 +3,7 @@
 # Prepare input for the single column model (SCM)
 import optparse
 import subprocess
-import sys,os
+import sys,os,os.path
 import glob
 import signal
 
@@ -71,7 +71,9 @@ if __name__ == "__main__":
     if len(flist) is 0: sys.exit(0)
     init_file = (options.initfile) and options.initfile or flist[0]
     command_args = [str(float(options.lat)),str(float(options.lon)),options.interp.upper(),str(options.tracers)]
-    fst2ptxt_child = 'fst2ptxt'
+    fst2ptxt_child = 'bin/ubuntu-14.04-amd64-64/fst2ptxt'
+    if not os.path.exists(fst2ptxt_child):
+        fst2ptxt_child = 'fst2ptxt'
     status = ptxtgen([fst2ptxt_child,init_file,'init']+command_args,logf,verbose=options.verbose)
     for file in flist:
         status = ptxtgen([fst2ptxt_child,file,'forcings']+command_args,logf,verbose=options.verbose)

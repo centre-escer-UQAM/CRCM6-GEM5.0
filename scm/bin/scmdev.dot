@@ -69,6 +69,8 @@ export SCM_DEV_UPDATES=${update}
 # Finalise experiment directory setup
 cd ${dev_home}
 export SCM_DEV_EXP=${dev_home}
+export PATH=${SCM_DEV_EXP}/bin/${ORDENV_PLAT}:${SCM_DEV_EXP}/bin:${PATH}
+export PYTHONPATH=${SCM_DEV_EXP}/lib:${SCM_DEV_EXP}/bin:${PYTHONPATH}
 forced=
 if [[ ${f} -gt 0 ]] ; then
     forced=-f

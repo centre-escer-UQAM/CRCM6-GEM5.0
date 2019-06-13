@@ -188,6 +188,8 @@ fi
 if [[ -n "${SCM_DEV_UPDATES}" ]] ; then . r.load.dot ${SCM_DEV_UPDATES} ; fi
 export SCM_DEV_UPDATES="${SCM_DEV_UPDATES}"
 export SCM_DEV_EXP=${SCM_DEV_EXP}
+export PATH=\${SCM_DEV_EXP}/bin/\${ORDENV_PLAT}:\${SCM_DEV_EXP}/bin:\${PATH}
+export PYTHONPATH=\${SCM_DEV_EXP}/lib:\${SCM_DEV_EXP}/bin:\${PYTHONPATH}
 EOF
 if [[ x${myforce} == x1 ]] ; then
    rm -f .ssmuse_scm

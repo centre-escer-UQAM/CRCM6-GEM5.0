@@ -112,7 +112,8 @@ ifeq (aix-7.1-ppc7-64,$(ORDENV_PLAT))
 endif
 #TODO: needed for eccc-ppp12 load... find less hacky way
 # ifeq (ubuntu-14.04-amd64-64,$(ORDENV_PLAT))
-ifneq (,$(wildcard /fs/ssm/*))
+# ifneq (,$(wildcard /fs/ssm/*)) #/fs/ssm now exists on ECCMC side as well
+ifeq (,$(wildcard /ssm/net/*))
 ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
    SCMEXTRALIBS =
    ifneq (,$(filter PrgEnv-intel%,$(COMP_ARCH)))

@@ -558,6 +558,7 @@ subroutine fst2ptxt()
            err = ezuvint(uuz(:,:,k),vvz(:,:,k),fld(iuu)%v3d(:,:,k),fld(ivv)%v3d(:,:,k))
            call handle_error(err,'fst2ptxt','EZUVINT for vector zoom interpolation')
         enddo
+        pmz = log(pmz)
         do k=1,size(ip1t)
            err = ezdefset(gid_zoom,fld(ip0)%gid)
            call handle_error(err,'fst2ptxt','EZDEFSET for map->zoom interpolation for pressure (T)')
@@ -574,6 +575,7 @@ subroutine fst2ptxt()
               call handle_error(err,'fst2ptxt','EZSINT for '//trim(fld(itr+i-1)%in)//' zoom interpolation')
            enddo
         enddo
+        ptz = log(ptz)
 
         ! Create pressure-level data for all fields at the levels defined in the 
         ! chosen profile.  This will allow subsequent calculations and interpolations
@@ -589,10 +591,10 @@ subroutine fst2ptxt()
            call handle_error(err,'fst2ptxt','Allocating thermo-level tracer fields')
         endif
         do k=1,size(profpt,dim=3)
-           profpt_p(:,:,k) = profpt(1,1,k)
+           profpt_p(:,:,k) = log(profpt(1,1,k))
         enddo
         do k=1,size(profpm,dim=3)
-           profpm_p(:,:,k) = profpm(1,1,k)
+           profpm_p(:,:,k) = log(profpm(1,1,k))
         enddo
         call vertint2(uum_p,profpm_p,size(profpm,dim=3),uuz,pmz,size(ip1m), &
              1,NI_ZOOM,1,NJ_ZOOM,1,NI_ZOOM,1,NJ_ZOOM,varname='UU',inttype='cubic')

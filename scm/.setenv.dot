@@ -81,6 +81,12 @@ if [[ ${__external} == 0 ]] ; then
       . r.load.dot $(cat ${__bndlname})
    fi
 fi
+for __bndlname in DEPENDENCIES.post.bndl DEPENDENCIES.post.${RDENETWORK}.bndl ; do
+   if [[ -f ${__bndlname} ]] ; then
+      echo "+ . \${${__scriptpath##*/}}/${__bndlname}"
+      . r.load.dot $(cat ${__bndlname})
+   fi
+done
 
 # COMP_ARCH_DEFAULT=${COMP_ARCH_DEFAULT:-${COMP_ARCH:-intel13sp1u2}}
 # [[ x$BASE_ARCH == xAIX-powerpc7 || x$ORDENV_PLAT == xaix-7.1-ppc7-64 ]] && COMP_ARCH_DEFAULT=${COMP_ARCH_DEFAULT:-${COMP_ARCH:-xlf13}}

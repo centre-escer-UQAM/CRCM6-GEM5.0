@@ -2,6 +2,7 @@
 #
 # s.f90
 
+
 # set EC_LD_LIBRARY_PATH and EC_INCLUDE_PATH using LD_LIBRARY_PATH
 #export EC_LD_LIBRARY_PATH=`s.generate_ec_path --lib`
 #export EC_INCLUDE_PATH=`s.generate_ec_path --include`
@@ -10,6 +11,7 @@ COMPILING_FORTRAN=YES
 . rde.get_compiler_rules.dot
 
 _mydefines="$(s.prefix "${Dprefix}" ${DEFINES} )"
+_mydefines="$(echo ${_mydefines} | sed 's/-D__INTEL_COMPILER=[0-9]*//g' | sed 's/-D__INTEL_COMPILER//g')"
 _myincludes="$(s.prefix "${Iprefix}" ${INCLUDES} ${EC_INCLUDE_PATH})"
 _mylibpath="$(s.prefix "${Lprefix}" ${LIBRARIES_PATH} ${EC_LD_LIBRARY_PATH})"
 _mylibs="$(s.prefix "${lprefix}" ${LIBRARIES} ${SYSLIBS} )"
@@ -26,7 +28,7 @@ ${F90C:-ERROR_F90C_undefined} ${SourceFile} \\
    $(echo $_myincludes | sed 's/ / \\\n   /g') \\
    $(echo $_mylibpath  | sed 's/ / \\\n   /g') \\
    $_mylibs \\
-	"$@"
+   "$@"
 
 EOF
 fi
@@ -43,8 +45,8 @@ SourceFile1=${SourceFile}
 ${F90C:-ERROR_F90C_undefined} ${SourceFile1} \
    ${FC_options} \
    ${FFLAGS} \
-	$_mydefines \
-	$_myincludes \
-	$_mylibpath \
-	$_mylibs \
-	"$@"
+   $_mydefines \
+   $_myincludes \
+   $_mylibpath \
+   $_mylibs \
+   "$@"

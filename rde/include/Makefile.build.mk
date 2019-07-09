@@ -193,6 +193,7 @@ RDE_LIBAPPL1       = $(RDE_LIBAPPL) $(RDE_LIBAPPL_LEGACY)
 #LIBSYSEXTRA        = $(LIBHPC) $(LIBPMAPI)
 RDE_LIBSYS_LEGACY  = $(LIBSYSUTIL) $(LIBSYSEXTRA)
 RDE_LIBSYS         = $(RDE_LIBSYS_LEGACY) $(LIBSYSUTIL)
+RDE_LIBSYSPOST     = $(RDE_LIBIRC)
 
 RDEALL_LIBAPPL_PRE  = $(LIBS_PRE) $(MODEL_LIBPRE) $(RDE_LIBPRE)
 RDEALL_LIBAPPL_POST = $(LIBS_POST) $(MODEL_LIBPOST) $(RDE_LIBPOST)
@@ -238,42 +239,44 @@ ln -s lib$(1)_$$($(2)_VERSION).a $$@
 ## ==== Arch specific and Local/user definitions, targets and overrides
 #TODO: move these back into separated files RDEINC/ARCH/COMP/Makefile.comp.mk
 ifneq (,$(filter Linux_x86-64,$(RDE_BASE_ARCH))$(filter linux26-%,$(RDE_BASE_ARCH))$(filter rhel-%,$(RDE_BASE_ARCH))$(filter ubuntu-%,$(RDE_BASE_ARCH))$(filter sles-%,$(RDE_BASE_ARCH)))
-RDE_DEFINES_ARCH = -DLINUX_X86_64
-LAPACK      = lapack
-BLAS        = blas
-LIBMASSWRAP =
-LIBMASS     = $(LIBMASSWRAP) massv_p4
+   RDE_DEFINES_ARCH = -DLINUX_X86_64
+   LAPACK      = lapack
+   BLAS        = blas
+   LIBMASSWRAP =
+   LIBMASS     = $(LIBMASSWRAP) massv_p4
 
-#RDE_OPTF_MODULE = -module $(BUILDMOD)
-ifneq (,$(filter pgi%,$(COMP_ARCH)))
-RDE_OPTF_MODULE = -module $(BUILDMOD)
-endif
-ifneq (,$(filter gfortran%,$(COMP_ARCH)))
-RDE_OPTF_MODULE = -J $(BUILDMOD)
-endif
-ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
-RDE_OPTF_MODULE = -module $(BUILDMOD)
-endif
+   #RDE_OPTF_MODULE = -module $(BUILDMOD)
+   ifneq (,$(filter pgi%,$(COMP_ARCH)))
+      RDE_OPTF_MODULE = -module $(BUILDMOD)
+   endif
+   ifneq (,$(filter gfortran%,$(COMP_ARCH)))
+      RDE_OPTF_MODULE = -J $(BUILDMOD)
+   endif
+   ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
+      RDE_OPTF_MODULE = -module $(BUILDMOD)
+   endif
 
-ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
-LAPACK      =
-BLAS        =
-RDE_FP_MODEL= -fp-model source
-RDE_INTEL_DIAG_DISABLE = -diag-disable 7713 -diag-disable 10212 -diag-disable 5140
-RDE_FFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
-RDE_CFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
-RDE_LFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
-endif
-ifneq (,$(filter intel%,$(COMP_ARCH)))
-RDE_MKL     = -mkl
-endif
-ifneq (,$(filter PrgEnv-intel%,$(COMP_ARCH)))
-RDE_MKL_NOMPI   = -mkl
-endif
-ifneq (,$(filter pgi%,$(COMP_ARCH)))
-RDE_KIEEE = -Kieee
-RDE_FFLAGS_COMP = $(RDE_KIEEE)
-endif
+   ifneq (,$(filter intel%,$(COMP_ARCH))$(filter PrgEnv-intel%,$(COMP_ARCH)))
+      LAPACK      =
+      BLAS        =
+      RDE_FP_MODEL= -fp-model source
+      RDE_INTEL_DIAG_DISABLE = -diag-disable 7713 -diag-disable 10212 -diag-disable 5140 -diag-disable 7416 -diag-disable 6182
+      RDE_FFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
+      RDE_CFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
+      RDE_LFLAGS_COMP = $(RDE_INTEL_DIAG_DISABLE) $(RDE_MKL) $(RDE_FP_MODEL)
+   endif
+   ifneq (,$(filter intel%,$(COMP_ARCH)))
+      RDE_MKL     = -mkl
+      RDE_LIBIRC  = irc
+      LIBSYSEXTRA = $(LIBIRC)
+   endif
+   ifneq (,$(filter PrgEnv-intel%,$(COMP_ARCH)))
+      RDE_MKL_NOMPI   = -mkl
+   endif
+   ifneq (,$(filter pgi%,$(COMP_ARCH)))
+      RDE_KIEEE = -Kieee
+      RDE_FFLAGS_COMP = $(RDE_KIEEE)
+   endif
 endif
 
 #Default target if no other is specified

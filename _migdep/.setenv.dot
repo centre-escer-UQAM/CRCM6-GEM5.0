@@ -81,5 +81,10 @@ export PATH=${__scriptpath}/bin:$PATH
 export SSMVERSION=$(ssm version | cut -d. -f1)
 
 export migdep=${__scriptpath}
+export migdep_version='dev'
+if [[ -f ${migdep}/VERSION ]] ; then
+   export migdep_version="$(cat ${migdep}/VERSION)"
+   export migdep_version=${migdep_version#*/}${__MIGVERSIONSFX__}
+fi
 
 unset __DESC __USAGE __usage_long __verbose __external __item __bndlname __scriptpath

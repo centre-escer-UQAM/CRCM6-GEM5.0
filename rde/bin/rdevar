@@ -43,14 +43,15 @@ export RDE_KNOWN_BASE_ARCH_OLD="
 export RDE_BASE_ARCH_EQUIV_LIST0="
  Linux_x86-64:linux26-x86-64
  Linux_x86-64:rhel-6.0-amd64-64
- Linux_x86-64:ubuntu-10.04-amd64-64
- Linux_x86-64:ubuntu-12.04-amd64-64
  Linux_x86-64:ubuntu-14.04-amd64-64
+ Linux_x86-64:ubuntu-18.04-amd64-64
+ Linux_x86-64:ubuntu-18.04-skylake-64
  Linux_x86-64:sles-11-amd64-64
  Linux_x86-64:sles-11-haswell-64
  Linux_x86-64:sles-11-haswell-64-xc40
  Linux_x86-64:sles-11-broadwell-64
  Linux_x86-64:sles-11-broadwell-64-xc40
+ Linux_x86-64:sles-15-skylake-64-xc50
  "
 export RDE_BASE_ARCH_EQUIV_LIST="${RDE_BASE_ARCH_EQUIV_LIST:-$RDE_BASE_ARCH_EQUIV_LIST0}"
 #TODO: export RDE_KNOWN_ARCH=

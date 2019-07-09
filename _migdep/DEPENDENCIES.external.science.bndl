@@ -1,20 +1,15 @@
+ubuntu-18.04-skylake-64:comm/eccc/all/opt/intelcomp/intelpsxe-cluster-19.0.3.199
+ubuntu-18.04-skylake-64:eccc/mrd/rpn/code-tools/01.1
+ubuntu-18.04-skylake-64:hpco/exp/openmpi/openmpi-3.1.2--hpcx-2.2.0--ofed-4.4.2--intel-2019.0.045
 
-hpco/tmp/eccc/201402/06/base
-
-Linux_x86-64:main/opt/intelcomp/intelcomp-2016.1.156
-Linux_x86-64:main/opt/openmpi/openmpi-1.6.5/intelcomp-2016.1.156
+sles-15-skylake-64-xc50:cray-fftw/3.3.8.2
 
 eccc/mrd/rpn/MIG/ENV/sep
 
-eccc/mrd/rpn/libs/16.2
-eccc/mrd/rpn/utils/16.2.2
-
-main/opt/cmcarc/cmcarc-4.3.1
-
-Linux_x86-64:eccc/cmd/cmdn/vgrid/6.3.0/intel-2016.1.156
-sles-11-broadwell-64-xc40:eccc/cmd/cmdn/vgrid/6.3.0/PrgEnv-intel-5.2.82
-
-Linux_x86-64:eccc/mrd/rpn/libs/master/rpncomm-intel-2016_4.5.16.12b_ubuntu-14.04-amd64-64
-sles-11-broadwell-64-xc40:eccc/mrd/rpn/libs/master/rpncomm-PrgEnv-intel-5.2.82_4.5.16.12b_sles-11-broadwell-64-xc40
+eccc/mrd/rpn/libs/19.0
+eccc/mrd/rpn/utils/19.0
+eccc/mrd/rpn/vgrid/6.4
 
 eccc/mrd/rpn/MIG/GEM/gem-data/4.2.0
+
+main/opt/cmcarc/cmcarc-4.3.1

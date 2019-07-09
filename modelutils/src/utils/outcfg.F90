@@ -441,7 +441,7 @@ contains
          case('debug_l')
             istat = str_tobool(m_cfgs(F_id)%debug_L,val_S)
             if (m_cfgs(F_id)%debug_L) then
-               istat = fstopc('MSGLVL','INFORM',.false.)
+               istat = fstopc('MSGLVL','WARNIN',.false.)
             else
                istat = fstopc('MSGLVL','SYSTEM',.false.)
             endif

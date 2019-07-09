@@ -383,7 +383,7 @@
 
       call inp_close ()
 
-      istat = fstopc ('MSGLVL','INFORM',.false.)
+      istat = fstopc ('MSGLVL','WARNIN',.false.)
 
  9000 format(/,' TREATING INPUT DATA VALID AT: ',a,&
              /,' ===============================================')

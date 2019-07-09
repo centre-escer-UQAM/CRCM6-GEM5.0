@@ -276,7 +276,7 @@
       deallocate(rff,irff,data4d,zero)
       deallocate(hybm,hybt); nullify(hybm,hybt)
 
-      istat = fstopc('MSGLVL','INFORM',.false.)
+      istat = fstopc('MSGLVL','WARNIN',.false.)
 
  7001 format(/,' OUT_PHY- WRITING PHYSICS OUTPUT FOR STEP (',I8,') in directory: ',a)
  8001 format(/,' OUT_PHY- WRITING CASCADE OUTPUT FOR STEP (',I8,') in directory: ',a)

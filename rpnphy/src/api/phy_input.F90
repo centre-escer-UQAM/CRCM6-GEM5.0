@@ -117,7 +117,7 @@ contains
          return
       endif
 
-      istat = fstopc('MSGLVL','INFORM',FSTOPC_SET)
+      istat = fstopc('MSGLVL','WARNIN',FSTOPC_SET)
 
       !# Retrieve input from the model dynamics into the dynamics bus
       istat = phyfillbus(F_step)

@@ -6,8 +6,8 @@ ubuntu-18.04-amd64-64:/fs/ssm/hpco/exp/intelpsxe-cluster-19.0.3.199
 ubuntu-18.04-amd64-64:rpn/code-tools/01.0
 ubuntu-18.04-amd64-64:/fs/ssm/hpco/exp/openmpi/openmpi-3.1.2--hpcx-2.2.0--ofed-4.5--intel-19.0.3.199
 
-rpn/utils/19.0
-rpn/libs/19.0
-rpn/vgrid/6.4
+rpn/utils/19.1
+rpn/libs/19.1
+rpn/vgrid/6.4.1
 
 ENV/modeldata/modeldata_4.2.0

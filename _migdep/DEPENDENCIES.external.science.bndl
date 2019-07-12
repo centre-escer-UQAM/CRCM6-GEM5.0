@@ -1,14 +1,15 @@
 ubuntu-18.04-skylake-64:comm/eccc/all/opt/intelcomp/intelpsxe-cluster-19.0.3.199
 ubuntu-18.04-skylake-64:eccc/mrd/rpn/code-tools/01.1
-ubuntu-18.04-skylake-64:hpco/exp/openmpi/openmpi-3.1.2--hpcx-2.2.0--ofed-4.4.2--intel-2019.0.045
+ubuntu-18.04-skylake-64:hpco/exp/openmpi/openmpi-3.1.2--hpcx-2.4.0-mofed-4.6--intel-19.0.3.199
+ubuntu-18.04-skylake-64:hpco/exp/openmpi-setup/openmpi-setup-0.1
 
 sles-15-skylake-64-xc50:cray-fftw/3.3.8.2
 
 eccc/mrd/rpn/MIG/ENV/sep
 
-eccc/mrd/rpn/libs/19.0
-eccc/mrd/rpn/utils/19.0
-eccc/mrd/rpn/vgrid/6.4
+eccc/mrd/rpn/libs/19.1
+eccc/mrd/rpn/utils/19.1
+eccc/mrd/rpn/vgrid/6.4.1
 
 eccc/mrd/rpn/MIG/GEM/gem-data/4.2.0
 

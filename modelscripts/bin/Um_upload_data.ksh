@@ -53,15 +53,15 @@ if [ ${src_mach} == ${dst_mach} -a $fcp == 0 ] ; then
 
 else
 
-# We here take advantage of the fact that ppp1-2:sitestore are mounted on hare and brooks
+# We here take advantage of the fact that ppp3-4:sitestore are mounted on banting and daley
   HOST_src="${src_mach}:"
-  if [ "${dst_mach}" == "hare" ]  ; then
-    if [ "$src_mach" == "eccc-ppp1" -o "$src_mach" == "eccc-ppp2" -o "$src_mach" == "hare" ]  ; then
+  if [ "${dst_mach}" == "banting" ]  ; then
+    if [ "$src_mach" == "eccc-ppp3" -o "$src_mach" == "eccc-ppp4" -o "$src_mach" == "banting" ]  ; then
       unset HOST_src
     fi
   fi
-  if [ "${dst_mach}" == "brooks" ] ; then
-    if [ "$src_mach" == "eccc-ppp1" -o "$src_mach" == "eccc-ppp2" -o "$src_mach" == "brooks" ] ; then
+  if [ "${dst_mach}" == "daley" ] ; then
+    if [ "$src_mach" == "eccc-ppp3" -o "$src_mach" == "eccc-ppp4" -o "$src_mach" == "daley" ] ; then
       unset HOST_src
     fi
   fi

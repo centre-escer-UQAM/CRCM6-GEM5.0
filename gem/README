@@ -171,7 +171,7 @@ done
 # From a server on the EC Network:
 
 export DEPOTSLIST="cccmaphy gem-mod gem-ref gem gemcanonical gemdyn modelscripts modelutils python-rpn rde rpnphy sps sverif"
-export REMOTEGITURL="ssh://sgem000@eccc-ppp1.science.gc.ca/home/sgem000/GitDepots"
+export REMOTEGITURL="ssh://sgem000@eccc-ppp4.science.gc.ca/home/sgem000/GitDepots"
 (cd ~armnenv/GitDepots ;\ 
 for item in ${DEPOTSLIST} ; do \
    echo "==== $item ====" ;\
@@ -319,9 +319,9 @@ ln -s gem/${VERSION_V}.bndl ${VERSION_V}.bndl
 
 #TODO: update
 # . s.ssmuse.dot GEM/gem/VERSION
-# . gemdev.dot test -v -cd -front eccc-ppp2 -mach brooks-test
+# . gemdev.dot test -v -cd -front eccc-ppp4 -mach daley
 # gemview -exp base &
-# gemlaunch -mach brooks-test
+# gemlaunch -mach daley
 # # Wait for run to end (in the gemview window)
 # # if the run  ended w/o error, validate results with:
 # gemvalidate

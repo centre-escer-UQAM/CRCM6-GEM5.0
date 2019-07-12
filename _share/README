@@ -171,7 +171,7 @@ done
 # From a server on the EC Network:
 
 export DEPOTSLIST="cccmaphy gem-mod gem-ref gem gemcanonical gemdyn modelscripts modelutils python-rpn rde rpnphy sps sverif"
-export REMOTEGITURL="ssh://sgem000@eccc-ppp1.science.gc.ca/home/sgem000/GitDepots"
+export REMOTEGITURL="ssh://sgem000@eccc-ppp4.science.gc.ca/home/sgem000/GitDepots"
 (cd ~armnenv/GitDepots ;\ 
 for item in ${DEPOTSLIST} ; do \
    echo "==== $item ====" ;\

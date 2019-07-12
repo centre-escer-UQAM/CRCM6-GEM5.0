@@ -28,7 +28,7 @@ if [ "${dst_mach}" == "${TRUE_HOST}" ] ; then
   /bin/rm -f ${dst}
   ln -s ${SRC} ${dst}
 else
-  if [ "$dst_mach" == "eccc-ppp1" -o "$dst_mach" == "eccc-ppp2" ] ; then
+  if [ "$dst_mach" == "eccc-ppp3" -o "$dst_mach" == "eccc-ppp4" ] ; then
     /bin/rm -rf ${dst}
     cp -r ${SRC} ${dst}
   else

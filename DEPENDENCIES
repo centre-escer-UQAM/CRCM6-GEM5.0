@@ -1,10 +1,10 @@
 
-gem=git@gitlab.science.gc.ca:MIG/gem.git/gem_5.0.0
-gemdyn=git@gitlab.science.gc.ca:MIG/gemdyn.git/gemdyn_5.0.0
-rpnphy=git@gitlab.science.gc.ca:MIG/rpnphy.git/rpnphy_6.0.0
-modelutils=git@gitlab.science.gc.ca:MIG/modelutils.git/modelutils_1.5.0
-modelscripts=git@gitlab.science.gc.ca:MIG/modelscripts.git/modelscripts_5.0.0
-rde=git@gitlab.science.gc.ca:MIG/rde.git/rde_1.1.5
-rpnpy=git@gitlab.science.gc.ca:MIG/python-rpn.git/rpnpy_2.0.7
-scm=git@gitlab.science.gc.ca:MIG/scm.git/scm_2.0.0
-sps=git@gitlab.science.gc.ca:MIG/sps.git/sps_6.0.0
+gem=git@gitlab.science.gc.ca:MIG/gem.git/gem_5.0-u1.rc1
+gemdyn=git@gitlab.science.gc.ca:MIG/gemdyn.git/gemdyn_5.0-u1.rc1
+rpnphy=git@gitlab.science.gc.ca:MIG/rpnphy.git/rpnphy_6.0-u1.rc1
+modelutils=git@gitlab.science.gc.ca:MIG/modelutils.git/modelutils_1.5-u1.rc1
+modelscripts=git@gitlab.science.gc.ca:MIG/modelscripts.git/modelscripts_5.0-u1.rc1
+rde=git@gitlab.science.gc.ca:MIG/rde.git/rde_1.1-u1.rc1
+rpnpy=git@gitlab.science.gc.ca:MIG/python-rpn.git/rpnpy_2.1.rc1
+scm=git@gitlab.science.gc.ca:MIG/scm.git/scm_2.0-u1.rc1
+sps=git@gitlab.science.gc.ca:MIG/sps.git/sps_6.0-u1.rc1

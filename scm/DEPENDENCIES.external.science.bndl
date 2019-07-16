@@ -1,6 +1,6 @@
-Linux_x86-64:/fs/ssm/comm/eccc/cmdd/rttov/rttov-1.0/serial/disable-shared/intelcomp-2016.1.156
-sles-11-broadwell-64-xc40:cray-netcdf
+ubuntu-18.04-skylake-64:hpco/exp/hdf5-netcdf4/serial/static/intel-19.0.3.199/02
+sles-15-skylake-64-xc50:cray-netcdf
 
-eccc/cmo/cmoi/base/20180117
+eccc/cmo/cmoi/base/20190712
 
 eccc/mrd/rpn/MIG/SCM/d/scm-data/scm-data_0.15.1

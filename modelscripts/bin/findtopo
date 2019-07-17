@@ -64,8 +64,8 @@ if [ $npey_high -lt 1 ] ; then
    npey_high=$((GNJ/10))
 fi
 
-# Machine specific (XC40)
-CORESperNODE=36
+# Machine specific (XC50)
+CORESperNODE=40
 THREADSperCORE=${smt}
 THREADSperNODE=$((CORESperNODE*THREADSperCORE))
 
@@ -102,7 +102,7 @@ while read line ; do
    nodes_int=$(echo ${nodes} | cut -d "." -f1)
    FULLNODE=""
    if [ $((nodes_int*THREADSperNODE)) -eq ${nthreads} ] ; then
-      FULLNODE=FULL_NODE_XC40smt${smt}
+      FULLNODE=FULL_NODE_XC50smt${smt}
    fi
    cores=$(echo "scale=0; ${nodes} * ${CORESperNODE}" | bc -l)
    n=$((nthreads/THREADSperNODE))

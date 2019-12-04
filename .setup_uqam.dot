@@ -1,0 +1,104 @@
+#!/bin/bash
+
+_MYSELF="${0##*/}"
+DESC='Set EnvVar and Load Dependencies'
+USAGE="USAGE: ${_MYSELF} [-v] [-f] [--cmc|--science] [COMP_ARCH]"
+
+usage_long() {
+   toto=$(echo -e $USAGE)
+   more <<EOF
+$DESC
+
+$toto
+
+Options:
+    -h, --help     : print this help
+    -v, --verbose  : verbose mode
+        --cmc      : set dependencies for CMC network
+        --science  : set dependencies for Sience network
+        --official : 
+EOF
+}
+
+export RDEFULLCODE=1
+export RDENETWORK=${RDENETWORK:-'science'}
+
+# export COMP_ARCH_DEFAULT=intel13sp1u2
+_myverbose=""
+_overridesok=0
+_versfx='-dev'
+while [[ $# -gt 0 ]] ; do
+   case $1 in
+      (-h|--help) usage_long; return 0;;
+      (-v|--_verbose) _myverbose="--verbose";;
+      #TODO: option for _overridesok=1
+      #TODO: option for subset of components (forced_components list)
+      (--cmc) RDENETWORK=cmc ;;
+      (--science) RDENETWORK=science ;;
+      (--official) export ATM_MODEL_ISOFFICIAL='true' ; _versfx='';;
+      (savehist*) ;;
+      # (*) COMP_ARCH=${1:-${COMP_ARCH_DEFAULT}} ;;
+      (*)
+         if [[ x$1 != x ]] ; then
+           echo "ERROR: Option Not recognized: $1" 2>&1;
+           return 1;
+         fi;;
+    esac
+    shift
+done
+
+export RDECOMPONENTS="gem gemdyn rpnphy modelutils modelscripts rde"
+
+## Set name=path var for each component
+for item in ${RDECOMPONENTS}; do
+   if [[ ${_overridesok} == 1 ]] ; then
+      export ${item}=${!item:-$(pwd)/${item}}
+   else
+      export ${item}=$(pwd)/${item}
+   fi
+   if [[ ! -d ${!item} ]] ; then
+      itemUC=$(echo ${item} | tr 'a-z' 'A-Z')
+      cat<<EOF
+ERROR: cannot find ${item}=${!item}
+       you may either link ${item} dir
+          ln -s /PATH/TO/${itemUC} ${item}
+       or define the env var
+          export ${item}=/PATH/TO/${itemUC}
+       then re-source this file
+EOF
+      return 1
+   fi
+done
+
+
+## Load external dependencies (including compiler)
+__here=$(pwd)
+for __item in _migdep ${RDECOMPONENTS}; do
+   if [[ -f ${__item}/.setenv.dot ]] ; then
+      echo "+ . ./${__item}/.setenv.dot --external ${_myverbose}"
+      cd ${__item}
+      . ./.setenv.dot --external ${_myverbose}
+      cd ${__here}
+   else
+      echo "===> WARNING: Cannot find: ${item}/.setenv.dot <===" 1>&2
+   fi
+done
+unset __here __item
+
+## make sure local rde is used (may have been reset-ed by previous step)
+if [[ "x${rde}" == "x" ]] ; then
+   echo "===> ERROR: \${rde} not set <===" 1>&2
+   return 1
+fi
+if [[ "x$(true_path ${rde})" != "x$(true_path $(pwd)/rde)" ]] ; then
+   echo "===> ERROR: not using local rde: rde=${rde} <===" 1>&2
+   return 1
+fi
+
+
+## Add build/bin to PATH
+export PATH=$(pwd)/$(rdevar build/bin):$(pwd)/_bin:${PATH}
+export RDE_EXTRADIRS=".rde.no_extradirs"
+
+unset _myverbose _overridesok _MYSELF DESC USAGE usage_long
+

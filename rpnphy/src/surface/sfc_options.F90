@@ -121,6 +121,10 @@ module sfc_options
    logical           :: icemelt     = .false.
    namelist /surface_cfgs/ icemelt
 
+   !# Maximum sea ice thickness in meters
+   real              :: icemax      = -1.
+   namelist /surface_cfgs/ icemax
+
    !# Implicit surface fluxes if .true.; explicit fluxes if .false.
    logical           :: impflx      = .false.
    namelist /surface_cfgs/ impflx
@@ -248,6 +252,10 @@ module sfc_options
    character(len=16) :: snow_emiss = '1.'
    real              :: snow_emiss_const = -1.
    namelist /surface_cfgs/ snow_emiss
+
+   !# Maximum snow depth in meters
+   real              :: snowmax      = -1.
+   namelist /surface_cfgs/ snowmax
 
    !#  Soil texture database/calculations for SVS land surface scheme
    !# * 'GSDE   '   : 8 layers of sand & clay info from Global Soil Dataset for ESMs (GSDE) 

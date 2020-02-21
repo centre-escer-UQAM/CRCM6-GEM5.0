@@ -20,7 +20,7 @@ subroutine isba3(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
    use phy_status, only: phy_error_L
    use sfclayer_mod, only: sl_prelim,sl_sfclayer,SL_OK
    use sfc_options, only: atm_external, atm_tplus, radslope, vamin, sl_Lmin_soil, &
-        zu, zt, impflx, thermal_stress, z0tevol
+        zu, zt, impflx, thermal_stress, z0tevol, snowmax
    use sfcbus_mod
    implicit none
 #include <arch_specific.hf>
@@ -595,6 +595,15 @@ subroutine isba3(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
            ZQ1, ZQ2, ZQ3, ZQ4, ZQ5,                    &
            ZQ6, ZQ7, N)
    endif IF_THERMAL_STRESS
+
+
+   ! Limit snow depth (KW)
+   if ( snowmax.ge.0.0 ) then
+      do i=1,N
+         zsnodp(i) = min(zsnodp(i), snowmax)
+      end do
+   endif
+
 
    !# FILL THE ARRAYS TO BE AGGREGATED LATER IN S/R AGREGE
    call FILLAGG(BUS, BUSSIZ, PTSURF, PTSURFSIZ, INDX_SOIL, &

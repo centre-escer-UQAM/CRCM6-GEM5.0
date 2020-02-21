@@ -43,11 +43,12 @@ subroutine coherence3(ni, trnch)
 
    integer i, k
    real fsnow
+   real, parameter :: TMELI = 273.05
 
    real, pointer, dimension(:) :: zalveg,  zcveg,  zgamveg,  zglacier,  zglsea,  zicedp,  zlai,  zmg,  zrgl,  zrootdp,  zsnoal, zsnoden, zsnoma,  zsnoro,  zstomr,  zvegfrac,  zwsnow,  zwveg
 !!$      real, pointer, dimension(:) :: zsdepth
 
-   real, pointer, dimension(:,:) :: zclay, zisoil, zsand, zsnodp, ztglacier, ztsoil, zwsoil
+   real, pointer, dimension(:,:) :: zclay, zisoil, zsand, zsnodp, ztglacier, ztmice, ztsoil, zwsoil
    ! SVS
    real, pointer, dimension(:) :: zsnodpl, zsnval, zsnvden, zsnvdp, zsnvma, zsnvro, zvegh, zvegl, zwsnv
 
@@ -89,6 +90,7 @@ subroutine coherence3(ni, trnch)
    MKPTR2D(zsand,    sand)
    MKPTR2D(zsnodp,   snodp)
    MKPTR2D(ztglacier,tglacier)
+   MKPTR2D(ztmice,   tmice)
    MKPTR2D(ztsoil,   tsoil)
    MKPTR2D(zwsoil,   wsoil)
  
@@ -236,6 +238,7 @@ subroutine coherence3(ni, trnch)
             zglsea (i)          = 0.0
             zicedp (i)          = 0.0
             zsnodp (i,indx_ice) = 0.0
+            ztmice (i,:)        = TMELI + 0.1
          else
             zicedp (i) = max( zicedp(i) , minicedp )
          end if

@@ -498,6 +498,14 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
 
       endif
 
+      
+      ! Limit snow depth
+      if ( snowmax.ge.0.0 ) then
+         do I=1,N
+            zsnodp(i) = min(zsnodp(i), snowmax)
+         end do
+      endif
+
 
 !       6.     The fluxes
 !       -----------------

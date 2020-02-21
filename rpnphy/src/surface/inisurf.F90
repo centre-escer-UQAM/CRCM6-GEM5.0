@@ -231,6 +231,36 @@ subroutine inisurf4(kount, ni, nk, trnch)
       end do
    endif
 
+
+   ! Limit sea ice thickness (KW)
+   if ( icemax.ge.0.0 .and. any('icedp' == phyinread_list_s(1:phyinread_n))) then
+      do i=1,ni
+         zicedp(i) = min(zicedp(i), icemax)
+      end do
+   endif
+
+
+   ! Limit snow depth (KW)
+   if ( snowmax.ge.0.0 .and. any('snodp' == phyinread_list_s(1:phyinread_n))) then 
+      do k=1,nsurf+1
+         do i=1,ni
+            zsnodp(i,k) = min(zsnodp(i,k), snowmax)
+         end do
+      end do
+   endif
+
+
+   ! Set snow depth for points without specific surface fractions to 0. (KW)
+   ! No snow over water
+   zsnodp(:,indx_water) = 0.0
+   do i=1,ni
+     ! Glaciers
+     if ( zvegf(i,2) .lt. critmask ) zsnodp(i,indx_glacier) = 0.0
+     ! Either ocean, glacier or lake => no soil
+     if ( zvegf(i,1) + zvegf(i,2) + zvegf(i,3) .ge. 1-critmask ) zsnodp(i,indx_soil   ) = 0.0
+   end do
+
+
    !========================================================================
    !                             for lakes only
    !========================================================================

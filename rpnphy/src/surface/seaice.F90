@@ -50,6 +50,9 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
    !Revisions
    ! 001     M. Carrera and V. Fortin (Nov 2007) - Compute total runoff
    !                as precipitation - evaporation (no storage)
+   ! 002     K. Winger UQAM/ESCER (Dec 2019) - Initialize tmice to TFRZW when ice just appeared
+   !                                         - Limit sea ice thickness
+   !
    !@Notes
    !          One-dimensional thermodynamic sea ice model:
    !          - based on modified version of nl-layer model of Semtner (1976, JPO 6, 379-389).
@@ -228,6 +231,14 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
       uu       (1:n) => bus( x(umoins,1,nk)      : )
       vv       (1:n) => bus( x(vmoins,1,nk)      : )
    endif
+
+
+!     Set ice temperature of points which had no ice before to TFRZW (KW)
+!     (Points with no ice get set to tmice = TMELI + 0.1)
+      do I=1,N
+         if (t(i,1) >= TMELI + 0.05) t(i,:) = TFRZW
+      enddo
+
 
 !                               test on minimum value for number of layers
       if( NL .lt. 2 ) then
@@ -792,6 +803,9 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
               SCR10 (I) = 1.0
             endif
 
+!                                limit sea ice thinkness (KW)
+            if ( icemax.ge.0.0 ) HICE(I) = min(HICE(I), icemax)
+
           else
             if( SCR5(I).gt.0.0 ) then
 !                               cool oceanic mixed layer...
@@ -823,6 +837,14 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
             ZSNODP(I) = ZSNODP(I) + DELT*ZSNOWRATE(I)*(1000./ROSNOW(1))
           endif
         end do
+
+
+        ! Limit snow depth
+        if ( snowmax.ge.0.0 ) then
+           do I=1,N
+              zsnodp(i) = min(zsnodp(i), snowmax)
+           end do
+        endif
 
 !                               transition periods
         do I=1,N

@@ -15,7 +15,7 @@
 
 !**s/r itf_phy_output
 
-      subroutine itf_phy_output2 (stepno)
+subroutine itf_phy_output2 (stepno)
       use vertical_interpolation, only: vertint2
       use vGrid_Descriptors, only: vgrid_descriptor,vgd_get,vgd_free,VGD_OK,VGD_ERROR
       use vgrid_wb, only: vgrid_wb_get
@@ -36,8 +36,14 @@
       use gmm_itf_mod
       use ptopo
       use str_mod, only: str_encode_num
+      use cstv
       implicit none
 #include <arch_specific.hf>
+
+!revision
+! v5_00 - Winger K. (ESCER/UQAM) - Add option to output min/max variables
+!                                - Add option to output accumulators as averages
+!                                - Set prefix for pilot and analysis files
 
       integer stepno
 
@@ -61,6 +67,7 @@
       real, dimension(:,:,:,:), pointer :: ptr4d
       real, dimension(:,:,:), allocatable         :: buso_pres,cible
       real, dimension(:,:,:,:), allocatable, target :: data4d, zero
+      real, dimension(:,:,:,:), allocatable, target :: undef_min, undef_max
       real hybt_gnk2(1),hybm_gnk2(1)
       integer ind0(1), istart(4), iend(4)
 !
@@ -84,7 +91,10 @@
 !     setup domain extent to retrieve physics data
       allocate ( data4d(l_ni,l_nj,G_nk+1,1), zero(p_li0:p_li1,p_lj0:p_lj1,G_nk+1,1), &
                  rff(Outp_multxmosaic), irff(Outp_multxmosaic))
+      allocate ( undef_min(p_li0:p_li1,p_lj0:p_lj1,G_nk+1,1), &
+                 undef_max(p_li0:p_li1,p_lj0:p_lj1,G_nk+1,1))
       data4d= 0. ; zero= 0.
+      undef_min= +1.E+36; undef_max= -1.E+36
 
       istat= gmm_get(gmmk_pw_log_pm_s, pw_log_pm)
       istat= gmm_get(gmmk_pw_log_pt_s, pw_log_pt)
@@ -107,10 +117,10 @@
          kk       = outp_sorties(jj,stepno)
          gridset  = Outp_grid(kk)
          levset   = Outp_lev(kk)
-         accum_L  = (Outp_avg_L(kk).or.Outp_accum_L(kk))
+         accum_L  = (Outp_avg_L(kk).or.Outp_accum_L(kk).or.Outp_avgacc_L(kk))
          avgfact  = 1.d0/dble(max(1,lctl_step-Outp_lasstep(kk,stepno)))
          last_timestep= -1
-         if (accum_L) then
+         if (accum_L .or. Outp_min_L(kk) .or. Outp_max_L(kk)) then
             last_timestep= max(0,Outp_lasstep(kk,stepno))
          endif
          allocate ( indo( min(Level_max(levset),Level_momentum ) ) )
@@ -134,6 +144,9 @@
          Out_prefix_S(2:2) = Level_typ_S(levset)
          call up2low (Out_prefix_S ,prefix)
          Out_reduc_l       = OutGrid_reduc(gridset)
+
+! Change prefix if pilots or analysis files are written (KW)
+         if ( Grid_prefix_S(gridset) /= '  ' ) prefix = Grid_prefix_S(gridset)
 
          call out_open_file (trim(prefix))
 
@@ -172,7 +185,8 @@
                   ptr3d => data4d(p_li0:p_li1,p_lj0:p_lj1,1:cnt,1)
                   istat = phy_get ( ptr3d, Outp_var_S(ii,kk), &
                                     F_npath='O', F_bpath='PVED')
-                  if (Outp_avg_L(kk)) data4d = data4d*avgfact
+                  if (Outp_avg_L   (kk)) data4d = data4d*avgfact
+                  if (Outp_avgacc_L(kk)) data4d = data4d*avgfact/Cstv_dt_8
                   call out_fstecr3 ( data4d, 1,l_ni, 1,l_nj, rff  ,&
                           Outp_var_S(ii,kk),Outp_convmult(ii,kk)  ,&
                           Outp_convadd(ii,kk), knd, last_timestep,&
@@ -183,6 +197,17 @@
                       istat = phy_put ( ptr3d, Outp_var_S(ii,kk),&
                                         F_npath='O', F_bpath='PV')
                   endif
+                  if (Outp_min_L(kk)) then
+                      ptr3d => undef_min(:,:,1:cnt,1)
+                      istat = phy_put ( ptr3d, Outp_var_S(ii,kk),&
+                                        F_npath='O', F_bpath='PV')
+                  endif
+                  if (Outp_max_L(kk)) then
+                      ptr3d => undef_max(:,:,1:cnt,1)
+                      istat = phy_put ( ptr3d, Outp_var_S(ii,kk),&
+                                        F_npath='O', F_bpath='PV')
+                  endif
+
 
                else ! 3D field
 
@@ -201,7 +226,8 @@
                      ptr4d => data4d(p_li0:p_li1,p_lj0:p_lj1,:,1:1)
                      istat = phy_get (ptr4d,Outp_var_S(ii,kk),F_npath='O', &
                           F_bpath='PVD',F_start=istart,F_end=iend)
-                     if (Outp_avg_L(kk)) data4d = data4d*avgfact
+                     if (Outp_avg_L   (kk)) data4d = data4d*avgfact
+                     if (Outp_avgacc_L(kk)) data4d = data4d*avgfact/Cstv_dt_8
 
                      if (Level_typ_S(levset) == 'M') then
 
@@ -254,6 +280,16 @@
                         istat = phy_put(ptr4d,Outp_var_S(ii,kk),F_npath='O', &
                              F_bpath='PV',F_start=istart,F_end=iend)
                      endif
+                     if (Outp_min_L(kk)) then
+                        ptr4d => undef_min
+                        istat = phy_put(ptr4d,Outp_var_S(ii,kk),F_npath='O', &
+                             F_bpath='PV',F_start=istart,F_end=iend)
+                     endif
+                     if (Outp_max_L(kk)) then
+                        ptr4d => undef_max
+                        istat = phy_put(ptr4d,Outp_var_S(ii,kk),F_npath='O', &
+                             F_bpath='PV',F_start=istart,F_end=iend)
+                     endif
 
                   enddo DO_ICAT
                endif FIELD_SHAPE
@@ -276,7 +312,7 @@
       deallocate(rff,irff,data4d,zero)
       deallocate(hybm,hybt); nullify(hybm,hybt)
 
-      istat = fstopc('MSGLVL','WARNIN',.false.)
+      istat = fstopc('MSGLVL','INFORM',.false.)
 
  7001 format(/,' OUT_PHY- WRITING PHYSICS OUTPUT FOR STEP (',I8,') in directory: ',a)
  8001 format(/,' OUT_PHY- WRITING CASCADE OUTPUT FOR STEP (',I8,') in directory: ',a)

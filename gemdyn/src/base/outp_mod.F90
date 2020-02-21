@@ -40,6 +40,12 @@ module outp
 !                    | for Outp_var(*,j)                               |
 ! Outp_accum_L       | Outp_accum_L(j)  contains TRUE or FALSE         |
 !                    | for Outp_var(*,j)                               |
+! Outp_avgacc_L      | Outp_avgacc_L(j) contains TRUE or FALSE         |
+!                    | for Outp_var(*,j)                               |
+! Outp_min_L         | Outp_min_L(j)    contains TRUE or FALSE         |
+!                    | for Outp_var(*,j)                               |
+! Outp_max_L         | Outp_max_L(j)    contains TRUE or FALSE         |
+!                    | for Outp_var(*,j)                               |
 ! Outp_diag_S        | List of diagnostic level fields to compute (e.g.|
 !                    | 'TT,HU,UU,VV' for all diagnostic calculations)  |
 ! gmmk_diag_tt_s     | GMM name for diagnostic level temperature       |
@@ -53,6 +59,7 @@ module outp
    character(len=GMM_MAXNAMELENGTH) :: gmmk_diag_tt_s, gmmk_diag_hu_s
    character(len=GMM_MAXNAMELENGTH) :: gmmk_diag_uu_s, gmmk_diag_vv_s
    logical Outp_avg_L(MAXSET),Outp_accum_L(MAXSET)
+   logical Outp_avgacc_L(MAXSET),Outp_min_L(MAXSET),Outp_max_L(MAXSET)
    integer Outp_nbit(MAXELEM,MAXSET)
    integer Outp_filtpass(MAXELEM,MAXSET)
    integer, dimension(:,:), pointer :: Outp_lasstep

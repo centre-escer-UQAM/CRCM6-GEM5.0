@@ -46,6 +46,7 @@
 ! v3_30 - Lee/Bilodeau      - bug fix to allow lower and upper case var names
 ! v4_50 - Lee V.            - Add Outd_varname_S for "longer" output names
 ! v4_70 - Lee V.            - Force 32 bit output for LA,LO
+! v5_00 - Winger K. (ESCER/UQAM) - Add output options: avgacc, min, max
 !
 !object
 !       initialization of the common blocks OUTD,OUTP. This function is
@@ -83,6 +84,9 @@
 !          sortie_p([AFSI,AFSV],grid, 1, levels, 1, steps, 1)
 !          sortie_p([AFSI],grid, 1, levels, 1, steps, 3,average)
 !          sortie_p([AFSV],grid, 1, levels, 1, steps, 3,accum)
+!          sortie_p([AFSV],grid, 1, levels, 1, steps, 3,avgacc)
+!          sortie_p([AFSV],grid, 1, levels, 1, steps, 3,min)
+!          sortie_p([AFSV],grid, 1, levels, 1, steps, 3,max)
 !
 ! sortie([vr1,vr2,vr3,...],levels,[levelset],grid,[gridset],steps,[stepset])
 !
@@ -101,7 +105,7 @@
       character(len=16):: string16
       integer :: levset,stepset,gridset,varmax
       integer :: i, j, ii, jj
-      logical :: accum_L,avg_L
+      logical :: accum_L,avg_L,avgacc_L,min_L,max_L
 !
 !----------------------------------------------------------------
 !
@@ -129,6 +133,9 @@
       stepset=-1
       accum_L=.false.
       avg_L=.false.
+      avgacc_L=.false.
+      min_L=.false.
+      max_L=.false.
       do i=varmax+2, F_argc
          if (F_argv_S(i) == 'levels') then
             read(F_argv_S(i+1),*) levset
@@ -140,6 +147,12 @@
             accum_L=.true.
          else if (F_argv_S(i) == 'average') then
             avg_L=.true.
+         else if (F_argv_S(i).eq.'avgacc') then
+            avgacc_L=.true.
+         else if (F_argv_S(i).eq.'min') then
+            min_L=.true.
+         else if (F_argv_S(i).eq.'max') then
+            max_L=.true.
          endif
       enddo
 
@@ -297,8 +310,11 @@
              Outp_grid(j)      = gridset
              Outp_lev(j)       = levset
              Outp_step(j)      = stepset
-             Outp_accum_L(j)   = accum_L
-             Outp_avg_L  (j)   = avg_L
+             Outp_accum_L (j)  = accum_L
+             Outp_avg_L   (j)  = avg_L
+             Outp_avgacc_L(j)  = avgacc_L
+             Outp_min_L   (j)  = min_L
+             Outp_max_L   (j)  = max_L
              if (Lun_out > 0) then
                 write(Lun_out,*) '***PHY***Outp_sets=',Outp_sets
                 write(Lun_out,*) 'Outp_var_max=',Outp_var_max(j)
@@ -307,8 +323,11 @@
                 write(Lun_out,*) 'Outp_grid=',Outp_grid(j)
                 write(Lun_out,*) 'Outp_lev=',Outp_lev(j)
                 write(Lun_out,*) 'Outp_step=',Outp_step(j)
-                if (Outp_accum_L(j))write(Lun_out,*)'Outp_accum_L=',Outp_accum_L(j)
-                if (Outp_avg_L  (j))write(Lun_out,*)'Outp_avg_L='  ,Outp_avg_L  (j)
+                if (Outp_accum_L  (j))write(Lun_out,*)'Outp_accum_L  =',Outp_accum_L(j)
+                if (Outp_avg_L    (j))write(Lun_out,*)'Outp_avg_L    =',Outp_avg_L  (j)
+                 if (Outp_avgacc_L(j))write(Lun_out,*)'Outp_avgacc_L =',Outp_avg_L  (j) 
+                 if (Outp_min_L   (j))write(Lun_out,*)'Outp_min_L    =',Outp_min_L  (j) 
+                 if (Outp_max_L   (j))write(Lun_out,*)'Outp_max_L    =',Outp_max_L  (j) 
              endif
          else
              if (Lun_out > 0) write(Lun_out,1400)

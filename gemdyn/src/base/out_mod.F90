@@ -46,7 +46,7 @@ module out_mod
 ! ---------------------------------------------------------------------
 
    character(len=1024) :: Out_dirname_S
-   character(len=19)   :: Out_laststep_S
+   character(len=24)   :: Out_laststep_S
    character(len=12)   :: Out_etik_S
    character(len=6)    :: Out_type_S
    character(len=1)    :: Out_gridtyp_S, Out_proj_S,Out_unit_S

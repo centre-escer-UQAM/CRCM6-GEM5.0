@@ -45,6 +45,7 @@
 ! v3_30 - McTaggart-Cowan R.- parse optional tag extension from string
 ! v4_04 - Lee V. & Winger K.- to output LAM zone without pilot, without blend
 ! v4_70 - Lee V.            - Abort run if REDUC option is requested for GY
+! v5_00 - Winger K. (ESCER/UQAM) - Set prefix if pilots or analysis files are written
 !
 !object
 !	initialization of the common block GRID. This function is
@@ -122,6 +123,13 @@
           set_grid = 1
           return
       endif
+
+! Set prefix if pilots or analysis files are written (KW)
+      Grid_prefix_S(OutGrid_sets) = '  '
+      if (F_argc >= 3) then
+       if (F_argv_S(3)(2:8) == 'prefix=') &
+           Grid_prefix_S(OutGrid_sets) = F_argv_S(3)(9:10)
+      end if
 
       j = OutGrid_sets
       OutGrid_id(j)=gridset

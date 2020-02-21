@@ -22,6 +22,7 @@ module outgrid
 ! v2_30 - V. Lee                 - moved definition of OutGrid_MAXGRID1 to dimout.cdk
 ! v2_30                          - Added Grid_phi_ig2
 ! v3_30 - R. McTaggart-Cowan     - Added user defined tag extension
+! v5_00 - K. Winger (ESCER/UQAM) - Add Grid_prefix_S
 !______________________________________________________________________
 !                                                                      |
 !  VARIABLES FOR DEFINITION OF THE OUTPUT GRIDS (set_grid)             |
@@ -38,6 +39,7 @@ module outgrid
 ! OutGrid_x1         | x at outermost corner of output grid            |
 ! OutGrid_y1         | y at outermost corner of output grid            |
 ! OutGrid_stride     | every ith point to be outputted                 |
+! Grid_prefix_S      | prefix for output file                          |
 !----------------------------------------------------------------------
 !
 
@@ -48,5 +50,6 @@ module outgrid
    integer :: OutGrid_y0 (OutGrid_MAXGRID1), OutGrid_y1    (OutGrid_MAXGRID1)
    integer :: OutGrid_id (OutGrid_MAXGRID1), OutGrid_stride(OutGrid_MAXGRID1)
    integer :: OutGrid_sets
+   character(len=2) :: Grid_prefix_S (OutGrid_MAXGRID1)
 
 end module outgrid

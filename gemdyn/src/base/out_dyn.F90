@@ -37,6 +37,7 @@
 !
 !revision
 ! v4_80 - Desgagne M.       - major re-factorization of output
+! v5_00 - Winger K. (ESCER/UQAM) - Change prefix if pilots or analysis files are written
 
 #include <rmnlib_basics.hf>
 
@@ -79,6 +80,9 @@
             Out_prefix_S(2:2) = Level_typ_S(levset)
             call up2low (Out_prefix_S ,prefix)
             Out_reduc_l       = OutGrid_reduc(gridset)
+
+! Change prefix if pilots or analysis files are written (KW)
+            if ( Grid_prefix_S(gridset) /= '  ' ) prefix = Grid_prefix_S(gridset)
 
             call out_open_file (trim(prefix))
 
@@ -143,7 +147,7 @@
 
       endif
 
-      istat = fstopc('MSGLVL','WARNIN',.false.)
+      istat = fstopc('MSGLVL','INFORM',.false.)
       call timing_stop ( 80 )
 
  7001 format(/,' OUT_DYN- WRITING DYNAMIC OUTPUT FOR STEP (',I8,') in directory: ',a)

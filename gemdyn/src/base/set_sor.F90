@@ -42,6 +42,7 @@
 !
 !revision
 ! v4_80 - Desgagne M.       - major re-factorization of output
+! v5_00 - Winger K. (ESCER/UQAM) - Add Outp_avgacc_L, Outp_min_L, Outp_max_L
 
       include "rpn_comm.inc"
 
@@ -128,7 +129,9 @@
                endif
             enddo
          enddo
-         if (Outp_avg_L(k).or.Outp_accum_L(k)) Out3_accavg_L = .true.
+         if (Outp_avg_L(k).or.Outp_accum_L(k).or. &
+             Outp_avgacc_L(k)                .or. &
+             Outp_min_L(k).or.Outp_max_L(k)) Out3_accavg_L = .true.
       enddo
       do k=1, Outc_sets
          do j=1,Outc_var_max(k)

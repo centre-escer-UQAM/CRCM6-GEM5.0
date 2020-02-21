@@ -55,6 +55,8 @@ contains
       real, dimension(:,:), intent(in) :: tplus0,huplus0,qcplus0
 
       !@Author B. Bilodeau Feb 2003
+      !@Revisions
+      ! 001 K. Winger (ESCER/UQAM) Oct 2019 - make precipitation fields independent
       !*@/
 
 #include <msg.h>
@@ -410,22 +412,27 @@ contains
             zals(i) = zals(i) + ztls(i) * dt
 
             !pc : accumulation des precipitations implicites
-            zpc(i) = zalc(i) + zasc(i) + zalcs(i) + zascs(i) + zalcm(i)
+!            zpc(i) = zalc(i) + zasc(i) + zalcs(i) + zascs(i) + zalcm(i)
+            zpc(i) = zpc(i) + zrc(i) * dt
 
             !py : accumulation des precipitations de la convection profonde
-            zpy(i) = zalc(i) + zasc(i)
+!            zpy(i) = zalc(i) + zasc(i)
+            zpy(i) = zpy(i) + zry(i) * dt
 
             !pz : accumulation des precipitations de la convection restreinte
-            zpz(i) = zalcs(i) + zascs(i)
+!            zpz(i) = zalcs(i) + zascs(i)
+            zpz(i) = zpz(i) + zrz(i) * dt
 
             !acm: accumulation des precipitations de la mid-level convective scheme
             zacm(i) = zalcm(i)
 
             !ae : accumulation des precipitations, grid-scale condensation scheme
-            zae(i) = zals(i) + zass(i)
+!            zae(i) = zals(i) + zass(i)
+            zae(i) = zae(i) + zrr(i) * dt
 
             !pr : accumulation des precipitations totales
-            zpr(i) = zpc(i) + zae(i)
+!            zpr(i) = zpc(i) + zae(i)
+            zpr(i) = zpr(i) + zrt(i) * dt
 
             if (stcond == 'CONSUN') then
                tempo    = ztls(i) + ztss(i)

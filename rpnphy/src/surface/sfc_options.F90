@@ -36,7 +36,7 @@ module sfc_options
    !#----------------------------------
 
    real, parameter :: CRITEXTURE = 0.1
-   real, parameter :: CRITLAC    = 0.01
+   real, parameter :: CRITLAC    = 0.001
    real, parameter :: CRITMASK   = 0.001
    real, parameter :: CRITSNOW   = 0.0001
    real, parameter :: CRITWATER  = 0.001
@@ -212,6 +212,17 @@ module sfc_options
         'NIL', &
         'TEB'  &
         /)
+
+   !# Lake surface processes
+   !# * 'NIL'   : Lakes get treated my water routine
+   !# * 'FLAKE' : FLake lake scheme
+   character(len=16) :: schmlake     = 'NIL'
+   namelist /surface_cfgs/ schmlake
+   character(len=*), parameter :: SCHMLAKE_OPT(2) = (/ &
+        'NIL  ', &
+        'FLAKE'  &
+        /)
+
 
    !# Mimimum Obukhov length (L) for soil surfaces
    real           :: sl_Lmin_soil = -1.

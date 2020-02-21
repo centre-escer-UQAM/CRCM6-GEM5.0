@@ -84,15 +84,18 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    ! 019      J. Toviessi (July 2009) - added modifications for radslope
    ! 020      L. Spacek   (Nov 2011)  - insert calculations of tve, za etc.
    !                                    call to calz, lin_kdif_sim1
+   ! 021      K. Winger (ESCER/UQAM) (Oct 2019)  - Add call to lake models
    !*@/
 #include <msg.h>
    include "sfcinput.cdk"
 
-   logical :: do_glaciers, do_ice, do_urb
+   logical :: do_glaciers, do_ice, do_urb, do_lake
    integer :: i, k, sommet
-   integer :: ni_soil,  ni_glacier,  ni_water,  ni_ice, ni_urb
-   integer :: siz_soil, siz_glacier, siz_water, siz_ice, siz_urb
-   real :: lemin, lemax, mask
+   integer :: ni_soil,  ni_glacier,  ni_water,  ni_ice, ni_urb, ni_lake
+   integer :: siz_soil, siz_glacier, siz_water, siz_ice, siz_urb, siz_lake
+   real    :: lemin, lemax, mask
+   real*8  :: sum_poids_8
+
 
    !     les poids
    !     les "rangs" (dans l'espace de la grille complete)
@@ -102,16 +105,16 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    integer,dimension(ni,indx_max) :: rangs
    real   ,dimension(ni,indx_max) :: poids
    integer,dimension(ni)            :: rg_soil, rg_water, rg_ice,  &
-        rg_glacier, rg_urb
+        rg_glacier, rg_urb, rg_lake
    integer,dimension(2,ni)          :: lcl_indx
    integer,dimension(nvarsurf)      :: ptr_soil, ptr_water, ptr_ice, &
-        ptr_glacier, ptr_urb
+        ptr_glacier, ptr_urb, ptr_lake
    real,   dimension(surfesptot*ni) :: bus_soil, bus_water, bus_ice, &
-        bus_glacier, bus_urb
+        bus_glacier, bus_urb, bus_lake
    !
    real, pointer, dimension(:)      :: zdtdiag, zmg, zfvapliq, zfvapliqaf, &
         zglacier, zglsea, zpmoins, zpplus, ztdiag, ztnolim, zurban, zztsl, &
-        zqdiag, zudiag, zvdiag,zicedp,ztwater, zqdiagstn, ztdiagstn, &
+        zqdiag, zudiag, zvdiag,zicedp, zlakefr, ztwater, zqdiagstn, ztdiagstn, &
         zudiagstn, zvdiagstn, zqdiagstnv, ztdiagstnv, zudiagstnv, zvdiagstnv
    real, pointer, dimension(:,:)    :: poids_out, zfvap, zilmo, zrunofftot, &
         zrunofftotaf, ztmoins, ztplus, &
@@ -134,6 +137,7 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    MKPTR1D(zglacier, glacier)
    MKPTR1D(zglsea, glsea)
    MKPTR1D(zicedp, icedp)
+   MKPTR1D(zlakefr, lakefr)
    MKPTR1D(ztwater, twater)
    MKPTR1D(zpmoins, pmoins)
    MKPTR1D(zpplus, pplus)
@@ -186,12 +190,12 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
            ijdrv_phy(1:2,1:ni,trnch:trnch), ni)
    endif
 
-   ! mg, glsea, glacier et urban doivent etre bornes entre 0 et 1
+   ! mg, glsea, glacier, urban et lakefr doivent etre bornes entre 0 et 1
    ! pour que les poids soient valides
 
    do i=1,ni
-      lemin = min(zmg(i),zglsea(i),zglacier(i),zurban(i))
-      lemax = max(zmg(i),zglsea(i),zglacier(i),zurban(i))
+      lemin = min(zmg(i),zglsea(i),zglacier(i),zurban(i), zlakefr(i))
+      lemax = max(zmg(i),zglsea(i),zglacier(i),zurban(i), zlakefr(i))
       if (lemin.lt.0. .or. lemax.gt.1.) then
          call msg_toall(MSG_ERROR, '(sfc_main) INVALID WEIGHTS FOR SURFACE PROCESSES, MAKE SURE THAT LAND-SEA MASK, SEA ICE FRACTION, FRACTION OF GLACIERS, MASK OF URBAN AREAS, ARE BOUNDED BETWEEN 0 AND 1')
          return
@@ -201,7 +205,7 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    ! initialisations
 
    rangs=0. ; poids=0. ; rg_soil=0. ; rg_glacier=0.
-   rg_water=0. ; rg_ice=0. ; rg_urb=0.
+   rg_water=0. ; rg_ice=0. ; rg_urb=0. ; rg_lake=0.
 
    ! calcul des poids
 
@@ -215,15 +219,60 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
       endif
 
       ! sol
+!      poids(i,indx_soil)    =     mask  * (1.-zglacier(i))*(1.-zurban(i))
+      ! villes
+!      poids(i,indx_urb )    =     mask  * (1.-zglacier(i))*zurban(i)
+      ! glaciers continentaux
+!      poids(i,indx_glacier) =     mask  * zglacier(i)
+      ! eau
+!      poids(i,indx_water)   = (1.-mask) * (1.-zglsea(i))  - (mask  * zlakefr(i) * (1.-zglsea(i)))
+      ! glace marine
+!      poids(i,indx_ice)     = (1.-mask) * zglsea(i)       - (mask  * zlakefr(i) *     zglsea(i))
+      ! lacs
+!      poids(i,indx_lake)    =     mask  * zlakefr(i)
+
+
+      ! sol
       poids(i,indx_soil)    =     mask  * (1.-zglacier(i))*(1.-zurban(i))
       ! villes
       poids(i,indx_urb )    =     mask  * (1.-zglacier(i))*zurban(i)
       ! glaciers continentaux
       poids(i,indx_glacier) =     mask  * zglacier(i)
+      ! lacs
+      poids(i,indx_lake)    =     zlakefr(i)
       ! eau
-      poids(i,indx_water)   = (1.-mask) * (1.-zglsea(i))
+      poids(i,indx_water)   = (1.-mask-zlakefr(i)) * (1.-zglsea(i))
       ! glace marine
-      poids(i,indx_ice)     = (1.-mask) * zglsea(i)
+      poids(i,indx_ice)     = (1.-mask-zlakefr(i)) *     zglsea(i)
+
+
+      if (SCHMLAKE.ne.'NIL') then
+         if (poids(i,indx_water) < critmask .and. poids(i,indx_lake) > 0.) then
+            poids(i,indx_lake)  = poids(i,indx_lake) + poids(i,indx_water)
+            poids(i,indx_water) = 0.
+         endif
+      endif
+
+
+
+      ! Make sure all surface fractions have a minimum size of critmask
+      if (poids(i,indx_soil)    < critmask) poids(i,indx_soil)    = 0.
+      if (poids(i,indx_urb )    < critmask) poids(i,indx_urb )    = 0.
+      if (poids(i,indx_glacier) < critmask) poids(i,indx_glacier) = 0.
+      if (poids(i,indx_lake)    < critlac ) poids(i,indx_lake)    = 0.
+      if (poids(i,indx_water)   < critmask) poids(i,indx_water)   = 0.
+      if (poids(i,indx_ice)     < critmask) poids(i,indx_ice)     = 0.
+
+      ! Make sure the sum of all surface fractions is still 1.
+      sum_poids_8 = poids(i,indx_soil) +poids(i,indx_urb)+poids(i,indx_glacier) &
+                  + poids(i,indx_water)+poids(i,indx_ice)+poids(i,indx_lake)
+      sum_poids_8 = 1. / sum_poids_8
+      poids(i,indx_soil)    = poids(i,indx_soil)    * sum_poids_8
+      poids(i,indx_urb )    = poids(i,indx_urb )    * sum_poids_8
+      poids(i,indx_glacier) = poids(i,indx_glacier) * sum_poids_8
+      poids(i,indx_lake)    = poids(i,indx_lake)    * sum_poids_8
+      poids(i,indx_water)   = poids(i,indx_water)   * sum_poids_8
+      poids(i,indx_ice)     = poids(i,indx_ice)     * sum_poids_8
 
    end do
 
@@ -232,6 +281,7 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    ni_soil      = 0; bus_soil(1)    = 0.
    ni_glacier   = 0; bus_glacier(1) = 0.
    ni_urb       = 0; bus_urb(1)     = 0.
+   ni_lake      = 0; bus_lake(1)    = 0.
 
    ! definition des "rangs"
    ! agregation
@@ -266,6 +316,12 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
          ni_urb               = ni_urb + 1
          rangs(i,indx_urb)    = ni_urb
          rg_urb(ni_urb)       = i
+      endif
+
+      if (poids(i,indx_lake).gt.0.0) then
+         ni_lake              = ni_lake + 1
+         rangs(i,indx_lake)   = ni_lake
+         rg_lake(ni_lake)     = i
       endif
 
    end do DO_AGREG
@@ -473,18 +529,57 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
            ni, indx_urb, trnch, CP_FROM_SFCBUS)
    endif
 
+
+   !******************************
+   !        LAKES                *
+   !******************************
+
+   sommet = 1
+   do i=1,nvarsurf
+      ptr_lake(i) = sommet
+      sommet = sommet + vl(i)%niveaux * vl(i)%mul * vl(i)%mosaik * ni_lake
+   end do
+
+   siz_lake = max(surfesptot*ni_lake,1)
+
+   if (siz_lake.gt.1) then
+
+      do i=1,siz_lake
+         bus_lake(i) = 0.0
+      end do
+
+      ! transvidage des 3 bus dans bus_lake
+      call copybus3(bus_lake, siz_lake, &
+           ptr_lake, nvarsurf, &
+           rg_lake, ni_lake, &
+           ni, indx_lake, trnch, CP_TO_SFCBUS)
+
+      lcl_indx(1,1:ni_lake) = rg_lake(1:ni_lake)
+      lcl_indx(2,1:ni_lake) = trnch
+
+      call lakes( bus_lake, siz_lake   ,  &
+           ptr_lake, nvarsurf    ,  &
+           lcl_indx , trnch, kount,  &
+           ni_lake , ni_lake, nk-1 )
+
+      call copybus3(bus_lake, siz_lake, &
+           ptr_lake, nvarsurf, &
+           rg_lake, ni_lake, &
+           ni, indx_lake, trnch, CP_FROM_SFCBUS)
+   endif
+
    !******************************
    !     AGREGATION              *
    !******************************
 
-   call agrege2( &
-        bus_soil, bus_glacier, bus_water, bus_ice, bus_urb, &
-        siz_soil, siz_glacier, siz_water, siz_ice, siz_urb, &
-        ni_soil,  ni_glacier,  ni_water,  ni_ice,  ni_urb, &
-        ptr_soil, ptr_glacier, ptr_water, ptr_ice, ptr_urb, &
+   call agrege3( &
+        bus_soil, bus_glacier, bus_water, bus_ice, bus_urb, bus_lake, &
+        siz_soil, siz_glacier, siz_water, siz_ice, siz_urb, siz_lake, &
+         ni_soil,  ni_glacier,  ni_water,  ni_ice,  ni_urb,  ni_lake, &
+        ptr_soil, ptr_glacier, ptr_water, ptr_ice, ptr_urb, ptr_lake, &
         nvarsurf, &
         rangs, poids, ni, trnch, &
-        do_glaciers, do_ice, do_urb)
+        do_glaciers, do_ice, do_urb, do_lake)
 
    !       ACCUMULATE RUNNOFF FOR EACH SURFACE TYPE
    do k=1,nsurf+1
@@ -548,6 +643,10 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
 
    if (SCHMURB.ne.'NIL') then
       poids_out(:,indx_urb    ) = poids(:,indx_urb    )
+   endif
+
+   if (SCHMLAKE.ne.'NIL') then
+      poids_out(:,indx_lake   ) = poids(:,indx_lake   )
    endif
 
    do i=1,ni

@@ -15,7 +15,7 @@
 !-------------------------------------- LICENCE END ---------------------------
 
 !/@*
-subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
+subroutine lakes(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
      n, m, nk )
    use tdpack
    use sfclayer_mod, only: sl_prelim,sl_sfclayer,SL_OK
@@ -82,7 +82,7 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    real, parameter :: delh_tresh = 1.e-10  !Treshold to compute ctu in ocean coupled mode
    real, parameter :: zt_rho = 1.5     !Height used to compute air density in ocean coupled mode
    integer, parameter :: max_iter = 10 !Maximum number of iterations for convergence of warm layer increment
-   integer, parameter ::INDX_SFC = INDX_WATER
+   integer, parameter ::INDX_SFC = INDX_LAKE
    logical, parameter :: WATER_TDIAGLIM = .false.
 
    real,pointer,dimension(:) ::  alvis_wat, cmu, ctu, fc_wat, mlac
@@ -93,7 +93,7 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    real,pointer,dimension(:) ::  zalfaq, zalfat, zdlat, zfcor
    real,pointer,dimension(:) ::  zftemp, zfvap, zqdiag, zrainrate
    real,pointer,dimension(:) ::  zrunofftot, zsnowrate, ztdiag
-   real,pointer,dimension(:) ::  ztsurf, ztsrad, zudiag, zvdiag
+   real,pointer,dimension(:) ::  ztsurf, ztsrad, zudiag, zvdiag, zTSVAVG
    real,pointer,dimension(:) ::  zfrv, zzusl, zztsl
    real,pointer,dimension(:) ::  zflusolis,zfdsi,zskin_depth,zskin_inc
    real,pointer,dimension(:) :: zqdiagtyp, ztdiagtyp, zudiagtyp, zvdiagtyp
@@ -124,6 +124,8 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
 
    SURFLEN = M
 
+!if (trnch==16) print *,'In lakes INDX_SFC = ',INDX_SFC
+
    alvis_wat(1:n) => bus( x(alvis,1,indx_sfc) : )
    cmu      (1:n) => bus( x(bm,1,1)           : )
    ctu      (1:n) => bus( x(bt,1,indx_sfc)    : )
@@ -153,6 +155,7 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    zskin_depth(1:n) => bus( x(skin_depth,1,1) : )
    zskin_inc(1:n) => bus( x(skin_inc,1,1)     : )
    ztsurf   (1:n) => bus( x(tsurf,1,indx_sfc) : )
+   zTSVAVG  (1:n) => bus( x(TSVAVG,1,1)        : )
    ztsrad   (1:n) => bus( x(tsrad,1,1)        : )
    zudiag   (1:n) => bus( x(udiag,1,1)        : )
    zudiagtyp(1:n) => bus( x(udiagtyp,1,indx_sfc) : )
@@ -204,6 +207,11 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
       uu       (1:n) => bus( x(umoins,1,nk)      : )
       vv       (1:n) => bus( x(vmoins,1,nk)      : )
    endif
+
+
+!if ( trnch==12 ) print *,'In lakes: ztsurf :',ztsurf
+!if ( trnch==16 ) print *,'In lakes: zTSVAVG:',zTSVAVG
+
 
    !------------------------------------------------------------------------
 
@@ -571,8 +579,13 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    endif IF_THERMAL_STRESS
    !--------------------------------------
 
+
+!ztsurf = 444.
+
+
+
    ! FILL THE ARRAYS TO BE AGGREGATED LATER IN S/R AGREGE
-   call FILLAGG ( BUS, BUSSIZ, PTSURF, PTSURFSIZ, INDX_WATER, SURFLEN )
+   call FILLAGG ( BUS, BUSSIZ, PTSURF, PTSURFSIZ, INDX_LAKE, SURFLEN )
 
    return
 
@@ -605,4 +618,4 @@ contains
            (nu+1)*karman*frv_w/(base_depth*stab_func) * inc) - zdsst
    end function warm_func
 
-end subroutine water1
+end subroutine lakes

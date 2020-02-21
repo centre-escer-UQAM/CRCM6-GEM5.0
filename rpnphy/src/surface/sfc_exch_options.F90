@@ -31,6 +31,7 @@ contains
       !        of each execution of the model
       !@Author  L. Spacek (Spring 2013)
       !@Revisions
+      ! 001 K. Winger (ESCER/UQAM) (Oct 2019) - Add 'indx_lake'
       !*@/
 
 #include <msg.h>
@@ -80,6 +81,7 @@ contains
       ier = min(wb_put('sfc/indx_water',indx_water,options),ier)
       ier = min(wb_put('sfc/indx_ice',indx_ice,options),ier)
       ier = min(wb_put('sfc/indx_urb',indx_urb,options),ier)
+      ier = min(wb_put('sfc/indx_lake',indx_lake,options),ier)
       ier = min(wb_put('sfc/indx_agrege',indx_agrege,options),ier)
       ier = min(wb_put('sfc/l07_ah',l07_ah,options),ier)
       ier = min(wb_put('sfc/l07_am',l07_am,options),ier)

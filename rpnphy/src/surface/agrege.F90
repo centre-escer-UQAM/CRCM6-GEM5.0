@@ -14,14 +14,14 @@
 !CANADA, H9P 1J3; or send e-mail to service.rpn@ec.gc.ca
 !-------------------------------------- LICENCE END --------------------------------------
 
-subroutine agrege2( &
-     bus_soil, bus_glacier, bus_water, bus_ice, bus_urb, &
-     siz_soil, siz_glacier, siz_water, siz_ice, siz_urb, &
-     ni_soil,  ni_glacier,  ni_water,   ni_ice,  ni_urb, &
-     ptr_soil, ptr_glacier, ptr_water, ptr_ice, ptr_urb, &
+subroutine agrege3( &
+     bus_soil, bus_glacier, bus_water, bus_ice, bus_urb, bus_lake, &
+     siz_soil, siz_glacier, siz_water, siz_ice, siz_urb, siz_lake, &
+     ni_soil,  ni_glacier,  ni_water,   ni_ice,  ni_urb,  ni_lake, &
+     ptr_soil, ptr_glacier, ptr_water, ptr_ice, ptr_urb, ptr_lake, &
      ptsurfsiz, &
      rangs, poids, ni, trnch, &
-     do_glaciers, do_ice, do_urb)
+     do_glaciers, do_ice, do_urb, do_lake)
    use sfcbus_mod
    implicit none
 #include <arch_specific.hf>
@@ -29,20 +29,25 @@ subroutine agrege2( &
    integer ni, trnch, ptsurfsiz
    integer ptr_soil(ptsurfsiz), ptr_glacier(ptsurfsiz)
    integer ptr_water  (ptsurfsiz), ptr_ice  (ptsurfsiz)
-   integer ptr_urb  (ptsurfsiz)
-   integer siz_soil, siz_water, siz_glacier, siz_ice, siz_urb
-   integer ni_water, ni_soil, ni_ice, ni_glacier, ni_urb
+   integer ptr_urb  (ptsurfsiz), ptr_lake(ptsurfsiz)
+   integer siz_soil, siz_water, siz_glacier, siz_ice, siz_urb, siz_lake
+   integer ni_water, ni_soil, ni_ice, ni_glacier, ni_urb, ni_lake
    integer rangs(ni,*)
    real bus_water    (siz_water), bus_soil  (siz_soil)
    real bus_ice(siz_ice), bus_glacier(siz_glacier)
    real bus_urb(siz_urb)
+   real bus_lake(siz_lake)
    real poids(ni,*)
-   logical do_glaciers, do_ice, do_urb
+   logical do_glaciers, do_ice, do_urb, do_lake
 
    !@Author B. Bilodeau Sept 1999
+   !
+   !@Revisions
+   ! 001 K. Winger      (Sep 2019) - Add lake fraction
+   !
    !@Object Perform the aggregation of arrays orginating
-   !             from the 5 surface modules (sea ice, glaciers,
-   !             water, soil and urban).
+   !             from the 6 surface modules (sea ice, glaciers,
+   !             water, soil, urban and lakes).
    !@Arguments
    !             - Input -
    ! BUS_SOIL    "mini-bus" for soil     surface (from D, F and V)
@@ -50,22 +55,26 @@ subroutine agrege2( &
    ! BUS_WATER   "mini-bus" for water    surface (from D, F and V)
    ! BUS_ICE     "mini-bus" for sea ice  surface (from D, F and V)
    ! BUS_URB     "mini-bus" for urban    surface (from D, F and V)
+   ! BUS_LAKE    "mini-bus" for lakes    surface (from D, F and V)
    ! SIZ_SOIL    dimension of BUS_SOIL
    ! SIZ_GLACIER dimension of BUS_GLACIER
    ! SIZ_WATER   dimension of BUS_WATER
    ! SIZ_ICE     dimension of BUS_ICE
    ! SIZ_URB     dimension of BUS_URB
+   ! SIZ_LAKE    dimension of BUS_LAKE
    ! NI_SOIL     length of the row for BUS_SOIL
    ! NI_GLACIER  length of the row for BUS_GLACIER
    ! NI_WATER    length of the row for BUS_WATER
    ! NI_ICE      length of the row for BUS_ICE
    ! NI_URB      length of the row for BUS_URB
+   ! NI_LAKE     length of the row for BUS_LAKE
    ! NI          length of the full row
    ! PTR_SOIL    starting location of each variable in the soil    "mini-bus"
    ! PTR_GLACIER    "        "     "   "     "      "   "  glacier     "
    ! PTR_WATER      "        "     "   "     "      "   "  water       "
    ! PTR_ICE        "        "     "   "     "      "   "  ice         "
    ! PTR_URB        "        "     "   "     "      "   "  urb         "
+   ! PTR_LAKE       "        "     "   "     "      "   "  lake        "
    ! PTSURFSIZ   number of elements (variables) in the "mini-buses"
    ! RANGS       index  of each "mini-bus" element in the full row
    ! POIDS       weight of each "mini-bus" element in the tile
@@ -75,8 +84,10 @@ subroutine agrege2( &
    !             .FALSE. no  point  "   "    "     "    "       "
    ! DO_URB      .TRUE. some points on the actual row contain urban areas
    !             .FALSE. no  point  "   "    "     "    "       "    "
+   ! DO_LAKE     .TRUE. some points on the actual row contain lakes
+   !             .FALSE. no  point  "   "    "     "    "       "    "
 
-   integer ik_soil, ik_glacier, ik_water, ik_ice, ik_ori, ik_urb
+   integer ik_soil, ik_glacier, ik_water, ik_ice, ik_ori, ik_urb, ik_lake
    integer i, ik, k, m, var
    integer n, var_no
 
@@ -120,9 +131,17 @@ subroutine agrege2( &
 
             if (rangs(i,indx_water).eq.0) ik_water = 1
 
+            ik_lake    = ptr_lake (var)       + &
+                 (m-1)*ni_lake                + &
+                 (k-1)*ni_lake                + &
+                 rangs(i,indx_lake ) - 1
+
+            if (rangs(i,indx_lake ).eq.0) ik_lake  = 1
+
             bus_ori(ik_ori) = &
                  poids(i,indx_soil ) * bus_soil (ik_soil)   + &
-                 poids(i,indx_water) * bus_water(ik_water)
+                 poids(i,indx_water) * bus_water(ik_water)  + &
+                 poids(i,indx_lake ) * bus_lake (ik_lake) 
          end do
 
          !                 si necessaire, agregation des fractions de
@@ -194,8 +213,8 @@ subroutine agrege2( &
             i = ik - (k-1)*ni
 
             !              agregation des fractions de terre, d'eau,
-            !              de glace marine, de glaciers continentaux
-            !              et de zones urbaines
+            !              de glace marine, de glaciers continentaux,
+            !              de zones urbaines et de lakes
             ik_ori = 1 + &
                  (m-1)*ni                                       + &
                  ik - 1
@@ -236,6 +255,13 @@ subroutine agrege2( &
 
             if (rangs(i,indx_urb).eq.0) ik_urb = 1
 
+            ik_lake = ptr_lake(var_no)                               + &
+                 (m-1)*vl(var_no)%niveaux*ni_lake                 + &
+                 (k-1)*ni_lake                                 + &
+                 rangs(i,indx_lake) - 1
+
+            if (rangs(i,indx_lake).eq.0) ik_lake = 1
+
 
 
             if (var_no.eq.tsrad_i) then
@@ -247,7 +273,8 @@ subroutine agrege2( &
                     poids(i,indx_water  ) * (bus_water  (ik_water  )**4) + &
                     poids(i,indx_glacier) * (bus_glacier(ik_glacier)**4) + &
                     poids(i,indx_ice    ) * (bus_ice    (ik_ice    )**4) + &
-                    poids(i,indx_urb    ) * (bus_urb    (ik_urb    )**4)
+                    poids(i,indx_urb    ) * (bus_urb    (ik_urb    )**4) + &
+                    poids(i,indx_lake   ) * (bus_lake   (ik_lake   )**4)
 
                bus_ori(ik_ori) = bus_ori(ik_ori)**0.25
 
@@ -266,7 +293,10 @@ subroutine agrege2( &
                     poids(i,indx_ice    ) * &
                     alog(max(1.e-10,bus_ice    (ik_ice    ))) + &
                     poids(i,indx_urb    ) * &
-                    alog(max(1.e-10,bus_urb    (ik_urb    )))
+                    alog(max(1.e-10,bus_urb    (ik_urb    ))) + &
+                    poids(i,indx_lake   ) * &
+                    alog(max(1.e-10,bus_lake   (ik_lake   )))
+
 
                bus_ori(ik_ori) = exp(bus_ori(ik_ori))
 
@@ -277,4 +307,4 @@ subroutine agrege2( &
    end do DO_VAR2
 
    return
-end subroutine agrege2
+end subroutine agrege3

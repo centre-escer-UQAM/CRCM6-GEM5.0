@@ -343,6 +343,7 @@ contains
       ier = min(wb_get('sfc/indx_water'  ,indx_water  ),ier)
       ier = min(wb_get('sfc/indx_ice'    ,indx_ice    ),ier)
       ier = min(wb_get('sfc/indx_urb'    ,indx_urb    ),ier)
+      ier = min(wb_get('sfc/indx_lake'   ,indx_lake   ),ier)
       ier = min(wb_get('sfc/indx_agrege' ,indx_agrege ),ier)
       ier = min(wb_get('sfc/l07_ah'      ,l07_ah      ),ier)
       ier = min(wb_get('sfc/l07_am'      ,l07_am      ),ier)

@@ -24,6 +24,8 @@ function sfc_nml2(F_namelist) result(F_istat)
    implicit none
 #include <arch_specific.hf>
    !@objective Set defaults values and read surface namelist
+   !@Revisions
+   ! 001 K. Winger (ESCER/UQAM) - Add 'schmlake' 
    !@Arguments
    ! F_namelist    File name containing the namelists to read
    character(len=*), intent(in) :: F_namelist
@@ -148,6 +150,7 @@ contains
       istat = clib_toupper(ice_emiss)
       istat = clib_toupper(schmsol)
       istat = clib_toupper(schmurb)
+      istat = clib_toupper(schmlake)
       istat = clib_toupper(sl_func_stab)
       istat = clib_toupper(sl_func_unstab)
       istat = clib_toupper(snow_emiss)
@@ -167,6 +170,12 @@ contains
       if (.not.any(schmurb == SCHMURB_OPT)) then
          call str_concat(msg_S, SCHMURB_OPT,', ')
          call msg(MSG_ERROR,'(sfc_nml_check) schmurb = '//trim(schmurb)//' : Should be one of: '//trim(msg_S))
+         return
+      endif
+
+      if (.not.any(schmlake == SCHMLAKE_OPT)) then
+         call str_concat(msg_S, SCHMLAKE_OPT,', ')
+         call msg(MSG_ERROR,'(sfc_nml_check) schmlake = '//trim(schmlake)//' : Should be one of: '//trim(msg_S))
          return
       endif
 
@@ -325,7 +334,8 @@ contains
       !# nsurf nb of surface types (schemes)
       !# phybusinit / gesdict defines nrow = nagg = nsurf+1
       idxmax = max(indx_soil, indx_glacier, indx_water, indx_ice, indx_agrege)
-      if (schmurb /= 'NIL') idxmax = max(idxmax, indx_urb)
+      if (schmurb  /= 'NIL') idxmax = max(idxmax, indx_urb )
+      if (schmlake /= 'NIL') idxmax = max(idxmax, indx_lake)
       nsurf = idxmax - 1
 
       !# Z0tlat to radians
@@ -341,6 +351,7 @@ contains
       istat = min(wb_put('sfc/nsurf', nsurf, options), istat)
       istat = min(wb_put('sfc/schmsol', schmsol, options), istat)
       istat = min(wb_put('sfc/schmurb', schmurb, options), istat)
+      istat = min(wb_put('sfc/schmlake', schmlake, options), istat)
       istat = min(wb_put('sfc/snoalb_anl', snoalb_anl, options), istat)
       iverb = wb_verbosity(iverb)
       if (istat /= WB_OK) then

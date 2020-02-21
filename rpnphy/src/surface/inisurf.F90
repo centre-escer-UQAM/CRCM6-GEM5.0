@@ -35,6 +35,8 @@ subroutine inisurf4(kount, ni, nk, trnch)
    integer ni, nk, kount, trnch
 
    !@Author Stephane Belair (February 1999)
+   !@Revisions
+   ! 001 K. Winger      (Sep 2019) - Add lake fraction
    !@NOTE: This subroutine expects snow depth in cm.
    !       The snow depth is converted in metre (in this s/r)
    !       when the 'entry variables' are transfered to the
@@ -52,12 +54,13 @@ subroutine inisurf4(kount, ni, nk, trnch)
    real, save :: tauf   = 0.24
    real, save :: tauday = 24.
 
-   real    :: tempsum, tempclay, tempsand
-   integer :: i, k, nk1
+   real    :: tempsum, tempclay, tempsand, land_frac
+   integer :: i, k, nk1, l
+   real*8  :: sum_poids_8
 
    real, pointer, dimension(:) :: &
         zdrainaf, zemisr, zemistg, zemistgen, zfvapliqaf, zglacier, zglsea, &
-        zglsea0, zicedp, ziceline, zlhtg, zmg, zml, zresa, zresagr, zresavg, &
+        zglsea0, zicedp, ziceline, zlakefr, zlhtg, zmg, zml, zresa, zresagr, zresavg, &
         zresasa, zresasv, zslop, zsnoal, zsnoalen, zsnoagen, zsnodpl, zsnoden, &
         zsnoma, zsnoro, zsnvden, zsnvdp, zsnvma, ztsrad, ztwater, zwveg, &
         zwsnow, zz0en, zz0veg, zz0tveg
@@ -83,6 +86,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR1D(zglsea0,glsea0)
    MKPTR1D(zicedp,icedp)
    MKPTR1D(ziceline,iceline)
+   MKPTR1D(zlakefr,lakefr)
    MKPTR1D(zlhtg,lhtg)
    MKPTR1D(zmg,mg)
    MKPTR1D(zml,ml)
@@ -160,6 +164,44 @@ subroutine inisurf4(kount, ni, nk, trnch)
    !
 !VDIR NODEP
    DO_I: do i=1,ni
+
+      ! Make sure all surface fractions are above critmask/-lac and adjust MG to VF
+      if (any('vegf' == phyinread_list_s(1:phyinread_n))) then
+
+         ! Ocean fraction need to be twice as large as 'critmask' 
+         ! so it does not completely disappear when sea ice appears
+         if (zvegf(i,1) < critmask*2.) zvegf(i,1) = 0.
+
+         ! Glacier fraction
+         if (zvegf(i,2) < critmask   ) zvegf(i,2) = 0.
+
+         ! Lake fraction
+         if (zvegf(i,3) < critlac    ) then
+            ! If there is an ocean fraction convert lake into ocean
+            if (zvegf(i,1) > 0. ) zvegf(i,1) = zvegf(i,1) + zvegf(i,3)
+            zvegf(i,3) = 0.
+         endif
+
+         ! Land fraction
+         land_frac = 1. - zvegf(i,1) - zvegf(i,2) - zvegf(i,3)
+         if (land_frac  < critmask   ) then
+            land_frac = 0.
+            zvegf(i,4:26)  = 0.
+         endif
+
+         ! Make sure the sum of all surface fractions is still 1.
+         sum_poids_8 = land_frac + zvegf(i,1) + zvegf(i,2) + zvegf(i,3)
+         sum_poids_8 = 1. / sum_poids_8
+         do l = 1,26
+           zvegf(i,l) = zvegf(i,l) * sum_poids_8
+         enddo
+
+         ! Recalculate MG
+         zmg(i) = 1. - zvegf(i,1) - zvegf(i,3)
+
+      endif
+
+
       if (any('alvis' == phyinread_list_s(1:phyinread_n))) then
          nk1 = size(zalvis,2)
          zalvis(i,indx_soil   ) = zalvis(i,nk1)
@@ -169,6 +211,9 @@ subroutine inisurf4(kount, ni, nk, trnch)
          zalvis(i,indx_agrege ) = zalvis(i,nk1)
          if (schmurb.ne.'NIL') then
             zalvis(i,indx_urb ) = zalvis(i,nk1)
+         endif
+         if (schmlake.ne.'NIL') then
+            zalvis(i,indx_lake) = zalvis(i,nk1)
          endif
       endif
 
@@ -181,7 +226,8 @@ subroutine inisurf4(kount, ni, nk, trnch)
          zsnodp(i,indx_water  ) = 0.0
       endif
 
-      if (any('tsoil' == phyinread_list_s(1:phyinread_n))) then
+      if (any('tsoil' == phyinread_list_s(1:phyinread_n)) .and. &
+          all('tsrad' /= phyinread_list_s(1:phyinread_n))) then
          ztsrad(i) = ztsoil(i,1)
       endif
       if (any('z0en' == phyinread_list_s(1:phyinread_n))) then
@@ -190,11 +236,20 @@ subroutine inisurf4(kount, ni, nk, trnch)
          zz0 (i,indx_water  ) = z0sea
          zz0 (i,indx_ice    ) = z0ice
          zz0 (i,indx_agrege ) = max(zz0en(i),z0min)
+         if (schmlake.ne.'NIL') then
+            zz0 (i,indx_lake) = z0sea
+         endif
+      endif
+      if (any('z0en' == phyinread_list_s(1:phyinread_n)) .and. &
+          all('z0t'  /= phyinread_list_s(1:phyinread_n))) then
          zz0t(i,indx_soil   ) = max(zz0en(i),z0min)
          zz0t(i,indx_glacier) = max(zz0en(i),Z0GLA)
          zz0t(i,indx_water  ) = z0sea
          zz0t(i,indx_ice    ) = z0ice
          zz0t(i,indx_agrege ) = max(zz0en(i),z0min)
+         if (schmlake.ne.'NIL') then
+            zz0t(i,indx_lake) = z0sea
+         endif
       endif
       if (any('z0veg' == phyinread_list_s(1:phyinread_n))) then
          zz0veg (i) = max(zz0veg(i),z0min)
@@ -206,6 +261,13 @@ subroutine inisurf4(kount, ni, nk, trnch)
       !       Mask for the lakes
       if (any('vegf' == phyinread_list_s(1:phyinread_n))) then
          zml(i) = zvegf(i,3)
+         if (schmlake /= 'NIL') then
+!           if (any('mgen' == phyinread_list_s(1:phyinread_n))) then
+             zlakefr(i) = zml(i) !!! * zmg(i)
+!           endif
+         else
+           zlakefr(i) = 0.
+         endif
       endif
       if (kount == 0 .and. .not.icelac) ziceline(i) = 1.
 
@@ -216,6 +278,8 @@ subroutine inisurf4(kount, ni, nk, trnch)
          zrunofftotaf(i,indx_water  ) = 0.0
          zrunofftotaf(i,indx_ice    ) = 0.0
          zrunofftotaf(i,indx_agrege ) = 0.0
+         zrunofftotaf(i,indx_urb    ) = 0.0
+         zrunofftotaf(i,indx_lake   ) = 0.0
          !# evaporation
          zfvapliqaf(i) = 0.0
       endif
@@ -286,7 +350,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
 
    IF_ISBA: if (schmsol == 'ISBA') then
 
-      if (kount == 0) zresa(1:ni) = 50.
+      if (kount == 0 .and. all('resa' /= phyinread_list_s(1:phyinread_n))) zresa(1:ni) = 50.
 
       ! Special operations for the snow variables
       !

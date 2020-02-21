@@ -24,6 +24,8 @@ subroutine inichamp4(kount, trnch, ni, nk)
    integer, intent(in) :: kount, trnch , ni, nk
 
    !@Author B. Bilodeau (July 1997)
+   !@Revisions
+   ! 001 K. Winger      (Sep 2019) - Add initialization for lake fraction
    !@Object initialize arrays.
    !@Arguments
    !          - Input -
@@ -92,6 +94,10 @@ subroutine inichamp4(kount, trnch, ni, nk)
          if (schmurb.ne.'NIL') then
             zhst(i,indx_urb ) = 300.
          endif
+         if (schmlake.ne.'NIL') then
+            zhst(i,indx_lake ) = 300.
+         endif
+
          zh   (i) = 300.
          ! Initial radiative surface temperature estimate for the radiation scheme
          if (any('tsoil' == phyinread_list_s(1:phyinread_n))) then

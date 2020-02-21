@@ -196,6 +196,8 @@ module sfcbus_mod
       SFCVAR(laivf26, 'laivf26')
       SFCVAR(laivh, 'laivh')
       SFCVAR(laivl, 'laivl')
+      SFCVAR(lakedepth, 'lakedepth')
+      SFCVAR(lakefr, 'lakefr')
       SFCVAR(latflaf, 'latflaf')
       SFCVAR(latflw, 'latflw')
       SFCVAR(le_industry, 'le_industry')
@@ -474,7 +476,8 @@ module sfcbus_mod
    integer, parameter :: INDX_ICE     =  4
    integer, parameter :: INDX_AGREGE  =  5
    integer, parameter :: INDX_URB     =  6
-   integer, parameter :: INDX_MAX     =  6
+   integer, parameter :: INDX_LAKE    =  7
+   integer, parameter :: INDX_MAX     =  7
 
    type(SFCVARLIST_T), target  :: vd
    type(SFCVAR_T), allocatable :: vl(:)
@@ -513,7 +516,7 @@ contains
    function sfcbus_init() result(F_istat)
       use phy_typedef, only: phymeta
       use phygetmetaplus_mod, only: phymetaplus, phygetmetaplus
-      use sfc_options, only: schmurb
+      use sfc_options, only: schmurb, schmlake
       implicit none
       integer :: F_istat
 
@@ -530,7 +533,8 @@ contains
 
       if (nsurf == 0) then
          idxmax = max(INDX_SOIL, INDX_GLACIER, INDX_WATER, INDX_ICE, INDX_AGREGE)
-         if (schmurb /= 'NIL') idxmax = max(idxmax, INDX_URB)
+         if (schmurb  /= 'NIL') idxmax = max(idxmax, INDX_URB )
+         if (schmlake /= 'NIL') idxmax = max(idxmax, INDX_LAKE)
          nsurf = idxmax - 1
       endif
  

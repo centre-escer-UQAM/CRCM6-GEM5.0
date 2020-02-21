@@ -2,11 +2,11 @@
 ! GEM - Library of kernel routines for the GEM numerical atmospheric model
 ! Copyright (C) 1990-2010 - Division de Recherche en Prevision Numerique
 !                       Environnement Canada
-! This library is free software; you can redistribute it and/or modify it
+! This library is free software; you can redistribute it and/or modify it 
 ! under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, version 2.1 of the License. This library is
 ! distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-! without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+! without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
 ! PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with this library; if not, write to the Free Software Foundation, Inc.,
@@ -18,14 +18,16 @@
 !/@*
 module timestr_mod
    use str_mod, only: str_toreal,str_normalize
-   use mu_jdate_mod, only: jdate_from_cmc, jdate_year, jdate_month
+   use mu_jdate_mod, only: jdate_from_cmc, jdate_year, jdate_month, jdate_to_print, MU_JDATE_PDF_LEN
    implicit none
    private
-   !@objective
+   !@objective 
+   !@revisions
+   ! v5812 - Winger K. (ESCER/UQAM) - Add function timestr_date_S
    !@description
    ! Public functions
    public :: timestr_parse,timestr_check,timestr_isstep,timestr2sec,timestr2step, &
-        timestr_prognum,timestr_unitfact,timestr_default_set
+        timestr_prognum,timestr_unitfact,timestr_default_set,timestr_date_S
    ! Public constants
    integer,public :: TIMESTR_NO_MATCH = 0
    integer,public :: TIMESTR_MATCH = 1
@@ -34,7 +36,7 @@ module timestr_mod
 #include <rmnlib_basics.hf>
 #include <clib_interface_mu.hf>
 #include <msg.h>
-
+   
    interface timestr_parse
       module procedure timestr_parse_multi
       module procedure timestr_parse_1
@@ -66,9 +68,6 @@ module timestr_mod
       module procedure timestr_isstep_int_jdate
    end interface timestr_isstep
 
-   real(RDOUBLE),parameter :: EPSILON_8 = tiny(1.D0)
-   real,parameter :: EPSILON_4 = tiny(1.)
-
    character(len=64) :: m_timestr_default_S = 'steps,-1'
 
 contains
@@ -99,10 +98,10 @@ contains
       integer :: F_nvals !# Number of values (-1 on error)
       !@description
       ! The time string takes the following formats
-      !
+      ! 
       ! Old format:
       !    999U
-      !    Where:
+      !    Where: 
       !       999: time value, any fortran accepted real number
       !       U  : units of given "time value" (optional), one of:
       !            P for steps (if dt not provided, equivalent to S)
@@ -112,7 +111,7 @@ contains
       !            D for days
       !       If U if not provided a default unit is used,
       !          F_default_S or 'hours' is not provided
-      !
+      ! 
       ! New formats, accepted formats:
       !    VALUE
       !    UNITS,VALUE
@@ -122,7 +121,7 @@ contains
       !    TODO: accept mix of the above
       !    Where :
       !    UNITS     : units of given time value (optional)
-      !                accepted values (case insensitive):
+      !                accepted values (case insensitive): 
       !                     steps, seconds, minutes, hours, days, months
       !                Only the first 3 letters are checked
       !                If not provided default units are used,
@@ -299,7 +298,7 @@ contains
       real :: nunits
       real(RDOUBLE) :: dt,fact_8
       character(len=64) :: units_S
-
+      
       F_sec = 0.
       if (present(F_default_S)) then
          F_status = timestr_parse(nunits,units_S,F_timestr_S,F_default_S)
@@ -433,11 +432,6 @@ contains
       endif
       if (.not.RMN_IS_OK(F_status)) return
 
-      if (abs(F_dt) < EPSILON_8) then
-         call msg(MSG_ERROR,"(timestr2step) Cannot use provided timestep == 0.")
-         F_status = RMN_ERR
-         return
-      endif
       F_nstep = sec_8 / F_dt
 
       return
@@ -466,11 +460,6 @@ contains
       endif
       if (.not.RMN_IS_OK(F_status)) return
 
-      if (abs(F_dt) < EPSILON_8) then
-         call msg(MSG_ERROR,"(timestr2step) Cannot use provided timestep == 0.")
-         F_status = RMN_ERR
-         return
-      endif
       F_nstep = sec_8 / F_dt
 
       return
@@ -499,11 +488,6 @@ contains
       endif
       if (.not.RMN_IS_OK(F_status)) return
 
-      if (abs(F_dt) < EPSILON_8) then
-         call msg(MSG_ERROR,"(timestr2step) Cannot use provided timestep == 0.")
-         F_status = RMN_ERR
-         return
-      endif
       F_nstep = sec_8 / F_dt
 
       return
@@ -532,11 +516,6 @@ contains
       endif
       if (.not.RMN_IS_OK(F_status)) return
 
-      if (abs(F_dt) < EPSILON_8) then
-         call msg(MSG_ERROR,"(timestr2step) Cannot use provided timestep == 0.")
-         F_status = RMN_ERR
-         return
-      endif
       F_nstep = sec_8 / F_dt
 
       return
@@ -584,7 +563,7 @@ contains
       !@return
       integer :: F_status
       !*@/
-      real(RDOUBLE), parameter :: EPSILON_8b = 1.0D-12
+      real(RDOUBLE), parameter :: EPSILON_8 = 1.0D-12
       integer :: interval, mystep,m0,m1,y0,y1,nmonths
       integer(IDOUBLE) :: jdatev2, istep, dt
       real(RDOUBLE) :: fact_8
@@ -602,10 +581,6 @@ contains
       endif
 
       interval = nint(F_interval*fact_8)
-      if (interval == 0) then
-         call msg(MSG_ERROR,"(timestr_prognum) Cannot use interval == 0")
-         return
-      endif
 
       if (F_units_S(1:3) == 'MON') then
 
@@ -625,7 +600,7 @@ contains
          if (F_step>0) mystep= mystep + min(1,mod(F_step,interval))
          mystep = mystep * interval
          if (present(F_maxstep)) mystep = min(mystep,F_maxstep)
-         F_prognum = ceiling(dble(mystep)/fact_8 - EPSILON_8b)
+         F_prognum = ceiling(dble(mystep)/fact_8 - EPSILON_8)
 
       endif
 
@@ -657,7 +632,7 @@ contains
          F_status  = timestr_parse_multi(values,loop,hasloop_L,units_S,F_timestr_S)
       endif
       if (.not.RMN_IS_OK(F_status)) return
-
+      
       if (hasloop_L .or. F_status /= 1) then
          !#TODO: implement for other time specifications
          F_status = RMN_ERR
@@ -699,7 +674,7 @@ contains
          F_status  = timestr_parse_multi(values,loop,hasloop_L,units_S,F_timestr_S)
       endif
       if (.not.RMN_IS_OK(F_status)) return
-
+      
       if (hasloop_L .or. F_status /= 1) then
          !#TODO: implement for other time specifications
          F_status = RMN_ERR
@@ -732,7 +707,7 @@ contains
       !*@/
       integer :: interval,istat,prognum,prognum1,maxstep,gap
       real(RDOUBLE) :: fact_8, ris_8, seconds_8
-
+      
       F_status  = RMN_ERR
       maxstep = F_step+9999
       if (present(F_maxstep)) then
@@ -756,14 +731,9 @@ contains
          interval = nint(F_interval*fact_8)
          F_status = TIMESTR_NO_MATCH
          if (mod(F_step,interval) == 0) F_status = TIMESTR_MATCH
-
+         
       else !# IF_MON
-
-         if (abs(F_dt) < EPSILON_4) then
-            call msg(MSG_ERROR,"(timestr_isstep) Cannot use provided timestep == 0.")
-            return
-         endif
-
+      
          gap = 1800/F_dt
          gap = gap + 1
 
@@ -806,9 +776,9 @@ contains
       !@return
       integer :: F_status
       !*@/
-      integer :: interval,istat,prognum,prognum1,maxstep
-      real(RDOUBLE) :: fact_8
-
+      integer :: interval,istat,prognum,prognum1,maxstep,gap
+      real(RDOUBLE) :: fact_8, ris_8, seconds_8
+      
       F_status  = RMN_ERR
       maxstep = F_step+9999
       if (present(F_maxstep)) then
@@ -832,9 +802,9 @@ contains
          interval = nint(F_interval*fact_8)
          F_status = TIMESTR_NO_MATCH
          if (mod(F_step,interval) == 0) F_status = TIMESTR_MATCH
-
+         
       else !# IF_MON
-
+         
          istat = timestr_prognum(prognum,F_units_S,F_interval,F_jdateo,F_dt,F_step,maxstep)
          if (.not.RMN_IS_OK(istat)) then
             call msg(MSG_ERROR,"(timestr_isstep) Unknown units: "//trim(F_units_S))
@@ -866,10 +836,6 @@ contains
       F_fact_8 = -1.D0
       dt_8   = 1.D0
       if (present(F_dt_8)) dt_8 = F_dt_8
-      if (abs(dt_8) < EPSILON_8) then
-         call msg(MSG_ERROR,"(timestr_unitfact) Cannot use provided timestep == 0.")
-         return
-      endif
 
       select case(F_units_S(1:3))
       case('STE')
@@ -890,6 +856,26 @@ contains
       end select
       return
    end function timestr_unitfact
+
+   !/@*
+   function timestr_date_S(F_dateo,F_dt,F_step) result(F_date_S)
+      !@objective Return current date (YYYYMMDD.hhmmss)
+      implicit none
+      !@arguments
+      integer,          intent(in)  :: F_dateo    !# Date of origin
+      integer,          intent(in)  :: F_step
+      real,             intent(in)  :: F_dt       !# Timestep length [sec]
+      !@return
+      character(len=MU_JDATE_PDF_LEN) :: F_date_S
+      !*@/
+      integer(IDOUBLE) :: jdatev2, istep, dt
+
+      istep = F_step ; dt = F_dt
+      jdatev2 = jdate_from_cmc(F_dateo) + (istep * dt)
+      F_date_S = jdate_to_print(jdatev2)
+
+      return
+   end function timestr_date_S
 
 
    !#TODO: timestr_isStep(): isstep, next-interval-len, next-interval-step/time/date?, see outcfg_time

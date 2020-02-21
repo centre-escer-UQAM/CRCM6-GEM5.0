@@ -41,7 +41,7 @@
 ! v2_31 - Desgagne M.       - remove system call to Um_hook.sh (-post)
 ! v3_10 - Corbeil & Desgagne & Lee - AIXport+Opti+OpenMP
 ! v3_11 - M. Desgagne       - change to exfin
-
+! v5_00 - Winger K. (ESCER/UQAM) - Do not remove restarts anymore
 
       integer, external :: exfin
 
@@ -69,10 +69,10 @@
 
       if (Lun_out > 0) call out_stat2 ()
 
-      if (.not. continue_L) then
-         err = clib_remove('gem_restart')
-         err = clib_remove('gmm_restart')
-      endif
+!      if (.not. continue_L) then
+!         err = clib_remove('gem_restart')
+!         err = clib_remove('gmm_restart')
+!      endif
 
       err= clib_remove(trim(Path_nml_S))
       err= clib_remove(trim(Path_outcfg_S))

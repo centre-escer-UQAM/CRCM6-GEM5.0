@@ -38,6 +38,7 @@
 !revision
 ! v4_70 - authors          - initial version
 ! v4_XX - Tanguay M.       - SOURCE_PS: REAL*8 with iterations
+! v5_00 - Winger K. (ESCER/UQAM)- comment SOURCE_PS writing
 
       logical, parameter :: SMOOTH_EXPLICIT=.false.
       integer, parameter :: SMOOTH_GWD=2
@@ -195,11 +196,11 @@
 
          end do
 
-         if (Lun_out>0) write(Lun_out,*) ''
-         if (Lun_out>0) write(Lun_out,*) '--------------------------------------'
-         if (Lun_out>0) write(Lun_out,*) 'SOURCE_PS is done for DRY AIR (REAL*8)'
-         if (Lun_out>0) write(Lun_out,*) '--------------------------------------'
-         if (Lun_out>0) write(Lun_out,*) ''
+!         if (Lun_out>0) write(Lun_out,*) ''
+!         if (Lun_out>0) write(Lun_out,*) '--------------------------------------'
+!         if (Lun_out>0) write(Lun_out,*) 'SOURCE_PS is done for DRY AIR (REAL*8)'
+!         if (Lun_out>0) write(Lun_out,*) '--------------------------------------'
+!         if (Lun_out>0) write(Lun_out,*) ''
 
          call pw_update_GPW()
 

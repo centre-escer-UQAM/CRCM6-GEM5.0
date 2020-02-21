@@ -28,6 +28,11 @@
       implicit none
 #include <arch_specific.hf>
 
+!revision
+! v4812 - Winger K. (ESCER/UQAM) - Add 'Lctl_step' to output information
+!                                - For 'Fcst_rstrt_S' change 'Step_kount' to 'Step_job'
+
+
       integer F_finalstep
 
       include "rpn_comm.inc"
@@ -54,7 +59,9 @@
             if (finalstep_L .and. Ptopo_last_domain_L) append='^last'
             open  ( unf,file=filen,access='SEQUENTIAL',&
                     form='FORMATTED',position='APPEND' )
-            write (unf,'(3(a))') 'NORMAL_OUTPUT ','NA ',trim(Out_laststep_S)//trim(append)
+! 'Lctl_step' added (KW)
+!            write (unf,'(3(a))') 'NORMAL_OUTPUT ','NA ',trim(Out_laststep_S)//trim(append)
+            write (unf,'(2(a),i,x,a)') 'NORMAL_OUTPUT ','NA ',Lctl_step,trim(Out_laststep_S)//trim(append)
             close (unf)
          endif
       endif
@@ -95,7 +102,7 @@
             (Init_mode_L .and. (Step_kount >= Init_halfspan)) ) &
            gem_muststop = gem_muststop .or. &
            timestr_isstep ( Fcst_rstrt_S, Step_CMCdate0, real(Cstv_dt_8),&
-                            Step_kount ) == TIMESTR_MATCH
+                            Step_job   ) == TIMESTR_MATCH
 
       gem_muststop= gem_muststop .and. .not.end_of_run_L
 

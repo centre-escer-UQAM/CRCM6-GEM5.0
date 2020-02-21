@@ -30,6 +30,10 @@
 
 #include <arch_specific.hf>
 
+! Revisions
+!
+! 5_00 Winger K. (ESCER/UQAM) - Do not use system call -> change restart name
+
       character(len=2048) :: dirname_S,cmd
       character(len=16) :: datev
       character(len=3) :: mycol_S,myrow_S
@@ -52,19 +56,22 @@
          call wrrstrt ()
          dayfrac = dble(Step_kount) * Cstv_dt_8 * OV_day
          call incdatsd (datev,Step_runstrt_S,dayfrac)
-         dirname_S= trim(Path_output_S)//'/'//Out_laststep_S//'/restart_'//trim(datev)
+         dirname_S= trim(Path_output_S)//'/'//Out_laststep_S// &
+                    '/restart_'//trim(datev) ! Add 'trim' (KW)
          if (Grd_yinyang_L) then
             dirname_S=trim(dirname_S)//'/'//trim(Grd_yinyang_S)
          end if
-         if (Ptopo_myproc == 0) then
-            err= clib_mkdir_r ( trim(dirname_S) )
-            call mkdir_gem ( trim(dirname_S), Ptopo_npex, Ptopo_npey )
-         endif
+!         if (Ptopo_myproc == 0) then
+!            err= clib_mkdir_r ( trim(dirname_S) )
+!            call mkdir_gem ( trim(dirname_S), Ptopo_npex, Ptopo_npey )
+!         endif
          call rpn_comm_Barrier("grid", err)
          write(mycol_S,'(i3.3)') Ptopo_mycol
          write(myrow_S,'(i3.3)') Ptopo_myrow
          cmd='mv *_restart '//trim(dirname_S)//'/'//mycol_S//'-'//myrow_S
-         call system (cmd)
+!!! (KW)         call system (cmd)
+print *,'Not executed anymore: ',cmd
+
 !yet another solution...
 !err = clib_glob(filelist,nfiles,'_restart',maxnfiles)
 !do ifile = 1,nfiles

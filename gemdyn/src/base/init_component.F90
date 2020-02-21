@@ -35,6 +35,7 @@
 !revision
 ! v4_50 - M. Desgagne       - Initial version
 ! v4_80 - M. Desgagne       - remove *bloc*, introduce RPN_COMM_*_io_*
+! v5_00 - K. Winger (ESCER/UQAM) - set Step_alarm= 60 resp. 600
 !
       include "rpn_comm.inc"
 
@@ -47,7 +48,7 @@
 !--------------------------------------------------------------------
 !
       call gemtim4 ( 6, '', .false. )
-      Step_alarm= 0
+      Step_alarm= 60
       ierr= model_timeout_alarm (Step_alarm)
       call rpn_comm_mydomain (init_ndoms, mydomain)
 
@@ -72,6 +73,9 @@
       Ptopo_couleur= RPN_COMM_init_multi_level (             &
                    pe_zero_topo, Ptopo_myproc,Ptopo_numproc, &
                    Ptopo_npex,Ptopo_npey,Grd_ndomains,ngrids )
+
+      Step_alarm= 600
+      ierr= model_timeout_alarm (Step_alarm)
 
       call timing_init2 ( Ptopo_myproc, COMPONENT )
       call timing_start2 ( 1, 'GEMDM', 0)

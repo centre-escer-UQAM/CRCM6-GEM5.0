@@ -27,6 +27,9 @@
       implicit none
 #include <arch_specific.hf>
 
+! Revisions
+! 5_00   K. Winger (ESCER/UQAM) - Correct interval output for 1. interval (lstep >= 0)
+
       character(len=*) nomvar
       logical F_empty_stk_L
       integer lminx,lmaxx,lminy,lmaxy,nkfa,nbit,nk_o,kind,lstep
@@ -84,7 +87,7 @@ End Interface
       modeip1= 1
       if (kind == 2) modeip1= 3 !old ip1 style for pressure lvls output
 
-      if ( lstep > 0 ) then
+      if ( lstep >= 0 ) then
          RP2%lo  = dble(lstep           ) * dble(Step_dt) / 3600.d0
          RP2%hi  = dble(max(0,lctl_step)) * dble(Step_dt) / 3600.d0
          RP2%kind= KIND_HOURS
@@ -98,7 +101,7 @@ End Interface
             f2c(i,j,istk)= fa(i,j,ind_o(k))*mul + add
          end do
          end do
-         if ( lstep > 0 ) then
+         if ( lstep >= 0 ) then
             RP1%lo  = rf(ind_o(k))
             RP1%hi  = RP1%lo
             RP1%kind= kind

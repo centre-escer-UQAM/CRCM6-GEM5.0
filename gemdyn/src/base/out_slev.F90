@@ -29,6 +29,8 @@
 ! v3_20 - Lee V.            - Adapted for GEMDM
 ! v4_40 - Lee V.            - change in argument call for this routine
 !                             in order to select the "bot" levels
+! v5_00 - Winger K. (ESCER/UQAM) - do not write diagnostic level automatically with
+!                                  lowest prognostic model level
 !ARGUMENTS
 !    NAMES       I/O  TYPE  DESCRIPTION
 
@@ -38,12 +40,15 @@
 !
 !     initialize output level array to 0
 !     output in model levels for dynamic variables
+      F_nearsfc_L = .false.
       kk=0
       do k=1,F_levmax
          if (F_level(k) == 0.0) then
 !     ground zero (surface or lowest possible level in model)
              kk=kk+1
              F_indo(kk)=F_nk
+             ! Set flag to write diagnostic level (KW)
+             F_nearsfc_L = .true.
          else if (F_level(k) < 0.0) then
              kk=kk+1
 !     ground zero with surfaces above it
@@ -59,9 +64,11 @@
       F_nko=kk
 
       ! Diagnostic level additions
-      F_nearsfc_L = .false.
-      if ( (F_nko == F_nk) .or. &
-              any(F_indo(1:F_nko)==F_nk)) F_nearsfc_L = .true.
+! Comment do diagnostic level does not get written automatically with
+! lowest prognostic model level (KW)
+!      F_nearsfc_L = .false.
+!      if ( (F_nko == F_nk) .or. &
+!              any(F_indo(1:F_nko)==F_nk)) F_nearsfc_L = .true.
 
       if (F_nearsfc_L .and. all(F_level(1:F_levmax)==0.0)) F_nko = 0
 !

@@ -36,11 +36,16 @@
 !----------------------------------------------------------------
 ! F_rstrt_L     O         Is a restart required
 !----------------------------------------------------------------
+!
+!revision
+! v4812 - Winger K. (ESCER/UQAM) - Flush both, Fortran and C listing streams
+!                                - add variable Step_job
+!                                - touch file to check if model is still running
 
       logical, external :: gem_muststop
-      integer, external :: model_timeout_alarm
+      integer, external :: model_timeout_alarm, fnom, fclos
       character(len=16) :: datev
-      integer stepf,last_step,seconds_since,istat,print_label
+      integer stepf,last_step,seconds_since,istat,print_label, ier, oun
       real*8 dayfrac, sec_in_day
       parameter (sec_in_day=86400.0d0)
 !
@@ -70,6 +75,8 @@
          last_step = stepf + Step_initial
       endif
 
+      Step_job = 0
+
       F_rstrt_L = .false.
       if ( .not. Rstri_rstn_L ) then
          call out_outdir
@@ -84,7 +91,14 @@
          seconds_since= model_timeout_alarm(Step_alarm)
 
          Lctl_step= Lctl_step + 1  ;  Step_kount= Step_kount + 1
-         if (Lun_out > 0) write (Lun_out,print_label) Lctl_step,last_step
+         Step_job = Step_job  + 1
+         if (Lun_out > 0) then
+            write (Lun_out,print_label) Lctl_step,last_step
+            oun = 0
+            ier = fnom (oun,'still_running','SEQ+FMT',0)
+            write (oun,"('Running timestep: ',i8)") Lctl_step
+            ier = fclos(oun)
+         end if
 
          call out_outdir
 
@@ -120,6 +134,7 @@
 
          if (Lun_out > 0) write(Lun_out,3000) Lctl_step
 
+         seconds_since= model_timeout_alarm(Step_alarm*3)
          call save_restart
 
          F_rstrt_L= gem_muststop (stepf)
@@ -127,6 +142,10 @@
          if (F_rstrt_L) exit
 
          call msg_buffer_reset()
+
+         ! Flush both, Fortran and C listing streams (KW)
+         if (Lun_out.gt.0) call flush_listing_stream(Lun_out)
+
       end do
 
  999  seconds_since= model_timeout_alarm(Step_alarm)

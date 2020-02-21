@@ -32,6 +32,7 @@
 !
 !revision
 ! v4_40 - Desgagne M.       - initial MPI version
+! v5_00 - Winger K. (ESCER/UQAM) - write Fcst_rstrt_S as i8 
 !
 !object
 !  Default configuration and reading namelist 'step'
@@ -94,7 +95,7 @@
       Step_nesdt= dble(nsteps)
 
       if ( Fcst_rstrt_S  == '' ) then
-         write(Fcst_rstrt_S,'(a,i6)') 'step,',Step_total+1
+         write(Fcst_rstrt_S,'(a,i8)') 'step,',Step_total+1
       else
          err= timestr_check ( Fcst_rstrt_S )
       endif

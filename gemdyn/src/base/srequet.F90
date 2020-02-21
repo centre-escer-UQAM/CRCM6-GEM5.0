@@ -44,6 +44,7 @@
 ! v2_31 - Lee V.            - includes output list for chemistry tracers
 ! v3_30 - A. Kallaur        - reinclude call to rpn_fortran_callback for
 !                             chemical flds output.
+! v5_00 - Winger K. (ESCER/UQAM) - Stop model execution if there are problems with the outcfg.out
 !
 !object
 !    This function uses the ARMNLIB RPN functions
@@ -127,6 +128,16 @@
          write(Lun_out,*)'SREQUET:Number of warnings =',istat
       endif
       srequet=istat
+
+      ! Stop model execution if there are problems with the outcfg.out (KW)
+      if (istat .gt. 0) then
+        if (Lun_out.gt.0) then
+          write(Lun_out,*) ''
+          write(Lun_out,*) '   Problems with outcfg.out !!!'
+          write(Lun_out,*) ''
+        endif
+        stop
+      endif
 
       return
       end

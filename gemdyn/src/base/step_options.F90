@@ -17,6 +17,10 @@ module step_options
    public
    save
 
+!revision
+! v5_00 - Winger K. (ESCER/UQAM) - Set Step_alarm = 300
+!                                - Add variable Step_job
+
    !# Starting date for model run  (yyyymmdd.hhmmss)
    character(len=16) :: Step_runstrt_S = 'NIL'
    namelist /step/ Step_runstrt_S
@@ -54,7 +58,7 @@ module step_options
    namelist /step/ Fcst_bkup_additional_S
 
    !# Setting for Fortran alarm time
-   integer :: Step_alarm = 600
+   integer :: Step_alarm = 300
    namelist /step/ Step_alarm
 
    !# Account for leap years
@@ -69,7 +73,8 @@ module step_options
 
    integer Step_total, Step_gstat, Step_delay, Step_spinphy, &
            Step_kount, Step_CMCdate0           , &
-           Step_initial, Step_bkup_additional
+           Step_initial, Step_bkup_additional  , &
+           Step_job
 
    real*8  Step_nesdt, Step_maxwall
 

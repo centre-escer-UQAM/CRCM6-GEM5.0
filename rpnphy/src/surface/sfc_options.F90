@@ -178,6 +178,10 @@ module sfc_options
    logical           :: limsnodp    = .false.
    namelist /surface_cfgs/ limsnodp
 
+   !# Lake transparency for lake schemes
+   real              :: ltran0      = 0.2
+   namelist /surface_cfgs/ ltran0
+
    !# (coupling) fluxes over ocean are taken from ocean model if .true.
    logical           :: owflux      = .false.
    namelist /surface_cfgs/ owflux

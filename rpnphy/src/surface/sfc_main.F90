@@ -218,19 +218,6 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
          mask = 0.0
       endif
 
-      ! sol
-!      poids(i,indx_soil)    =     mask  * (1.-zglacier(i))*(1.-zurban(i))
-      ! villes
-!      poids(i,indx_urb )    =     mask  * (1.-zglacier(i))*zurban(i)
-      ! glaciers continentaux
-!      poids(i,indx_glacier) =     mask  * zglacier(i)
-      ! eau
-!      poids(i,indx_water)   = (1.-mask) * (1.-zglsea(i))  - (mask  * zlakefr(i) * (1.-zglsea(i)))
-      ! glace marine
-!      poids(i,indx_ice)     = (1.-mask) * zglsea(i)       - (mask  * zlakefr(i) *     zglsea(i))
-      ! lacs
-!      poids(i,indx_lake)    =     mask  * zlakefr(i)
-
 
       ! sol
       poids(i,indx_soil)    =     mask  * (1.-zglacier(i))*(1.-zurban(i))
@@ -557,9 +544,9 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
       lcl_indx(1,1:ni_lake) = rg_lake(1:ni_lake)
       lcl_indx(2,1:ni_lake) = trnch
 
-      call lakes( bus_lake, siz_lake   ,  &
+      call flake_main( bus_lake, siz_lake   ,  &
            ptr_lake, nvarsurf    ,  &
-           lcl_indx , trnch, kount,  &
+           dt , trnch, kount,  &
            ni_lake , ni_lake, nk-1 )
 
       call copybus3(bus_lake, siz_lake, &

@@ -80,8 +80,10 @@ subroutine sfc_businit(moyhr,ni,nk)
         yq3, yq4, yq5, yq6, yq7, &
         z0en, z0veg, z0tveg, qdiagtyp, tdiagtyp, udiagtyp, vdiagtyp, &
         qdiagtypv, tdiagtypv, udiagtypv, vdiagtypv, tddiagtyp, tddiagtypv
+   ! lake fields
+   integer :: lakefr, frv_li, frv_lw, lakect, lakedepth, lakefice, lakehice, &
+        lakehml, laketbot, laketice, laketmnw, laketp, laketransp, laketwml
    character(len=2) :: nm, nagg, nrow
-   integer :: lakefr
    !--------   FOR SVS -----------------
    character(len=2) :: ngl, nglp1, nstel, nstpl, iemib, iicel
    integer :: accevap,acroot, algr, alvl , alvh, avg_gwsol, clayen, co2i1, cvh, cvl, d50, d95, &
@@ -394,8 +396,22 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(z0mvl,        'VN=z0mvl        ;ON=Z0VL;VD=local mom roughness length for low veg.                           ;VB=p0')
    endif IF_SVS
 
-
-
+   IF_LAKES: if (schmlake /= 'NIL') then
+      PHYVAR2D1(frv_li,       'VN=frv_li       ;ON=LIFV;VD=Lake ice surface friction velocity                                ;VB=p0')
+      PHYVAR2D1(frv_lw,       'VN=frv_lw       ;ON=LWFV;VD=Lake water surface friction velocity                              ;VB=p0')
+      PHYVAR2D1(lakedepth,    'VN=lakedepth    ;ON=LDEP;VD=Lake depth                                                        ;VB=p1')
+      PHYVAR2D1(lakefice,     'VN=lakefice     ;ON=LIFR;VD=Lake ice fraction                                                 ;VB=p0')
+      PHYVAR2D1(lakehice,     'VN=lakehice     ;ON=LITH;VD=Lake ice thickness                                                ;VB=p0')
+      PHYVAR2D1(laketice,     'VN=laketice     ;ON=LITP;VD=Lake ice surface temperature                                      ;VB=p0')
+      PHYVAR2D1(laketransp,   'VN=laketransp   ;ON=LTRN;VD=Lake water transparency                                           ;VB=p0')
+      PHYVAR2D1(lakehml,      'VN=lakehml      ;ON=LMLD;VD=Lake mixed layer thickness                                        ;VB=p0')
+      if (schmlake == 'FLAKE') then
+         PHYVAR2D1(lakect,    'VN=lakect       ;ON=LSF ;VD=Lake shape factor (thermocline) in FLake                          ;VB=p0')
+         PHYVAR2D1(laketbot,  'VN=laketbot     ;ON=LBTP;VD=Lake bottom temperature in FLake                                  ;VB=p0')
+         PHYVAR2D1(laketmnw,  'VN=laketmnw     ;ON=LWTP;VD=Lake water average temperature in FLake                           ;VB=p0')
+         PHYVAR2D1(laketwml,  'VN=laketwml     ;ON=LMLT;VD=Lake mixed layer temperature in FLake                             ;VB=p0')
+      endif
+   endif IF_LAKES
 
    if (schmurb /= 'TEB') return
 

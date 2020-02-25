@@ -85,7 +85,8 @@ subroutine lacs4(F_climat_L, ni, trnch)
             endif
          endif
 
-      else !# IF_LAC - Over lakes
+!      else !# IF_LAC - Over lakes
+      else if (schmlake == 'NIL') then !# IF_LAC - Over (non-interactive) lakes
 
          ! Water temperature of ice-covered lakes is 0 C. only
          ! if point is "north" of ice line.

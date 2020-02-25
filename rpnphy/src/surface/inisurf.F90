@@ -60,10 +60,13 @@ subroutine inisurf4(kount, ni, nk, trnch)
 
    real, pointer, dimension(:) :: &
         zdrainaf, zemisr, zemistg, zemistgen, zfvapliqaf, zglacier, zglsea, &
-        zglsea0, zicedp, ziceline, zlakefr, zlhtg, zmg, zml, zresa, zresagr, zresavg, &
+        zglsea0, zicedp, ziceline, zlhtg, zmg, zml, zresa, zresagr, zresavg, &
         zresasa, zresasv, zslop, zsnoal, zsnoalen, zsnoagen, zsnodpl, zsnoden, &
         zsnoma, zsnoro, zsnvden, zsnvdp, zsnvma, ztsrad, ztwater, zwveg, &
         zwsnow, zz0en, zz0veg, zz0tveg
+   ! pointers added for lake fraction
+   real, pointer, dimension(:) :: &
+        zlakedepth, zlakefr, zlaketransp
    real, pointer, dimension(:,:) :: &
         zalvis, zclay, zclayen, zisoil, zrunofftotaf, zsand, zsanden, zsnodp, &
         ztglacier, ztmice, ztmoins, ztsoil, zvegf, zwsoil, zz0, zz0t
@@ -86,7 +89,9 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR1D(zglsea0,glsea0)
    MKPTR1D(zicedp,icedp)
    MKPTR1D(ziceline,iceline)
+   MKPTR1D(zlakedepth,lakedepth)
    MKPTR1D(zlakefr,lakefr)
+   MKPTR1D(zlaketransp,laketransp)
    MKPTR1D(zlhtg,lhtg)
    MKPTR1D(zmg,mg)
    MKPTR1D(zml,ml)
@@ -551,6 +556,23 @@ subroutine inisurf4(kount, ni, nk, trnch)
    !  would need to be processed within initown() to implement this support.
    if (kount == 0 .and. schmurb == 'TEB') &
         call initown2(ni, nk, trnch)
+
+
+   !========================================================================
+   !                       for interactive lakes only
+   !========================================================================
+
+   IF_LAKES: if (kount == 0 .and. schmlake /= 'NIL') then
+
+      if (any('lakedepth' == phyinread_list_s(1:phyinread_n)))  &
+         zlakedepth(i) = max(10.0,zlakedepth(i) * 0.1)    ! when using LDPT, which is in cenimeters
+         zlakedepth(i) = max(10.0,zlakedepth(i))          ! when using LDEP, which is in meters
+      if (all('laketransp' /= phyinread_list_s(1:phyinread_n))) &
+         zlaketransp(i) = ltran0
+
+      call inilake(ni,trnch)
+
+   endif IF_LAKES
 
    return
 end subroutine inisurf4

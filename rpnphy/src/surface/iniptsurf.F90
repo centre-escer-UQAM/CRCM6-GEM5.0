@@ -52,7 +52,7 @@ function iniptsurf4(ni,nk) result(F_istat)
    integer, parameter :: nb_water = 4
    integer, parameter :: nb_ice = 2
    integer, parameter :: nb_urb = 95
-   integer, parameter :: nb_lake = 4
+   integer, parameter :: nb_lake = 13
 
    character(len=16) :: agrege_out(nb_agrege), &
         glaciers_out(nb_glaciers), water_out(nb_water), ice_out(nb_ice), &
@@ -127,8 +127,10 @@ function iniptsurf4(ni,nk) result(F_istat)
         /
 
    ! liste des variables de sortie du modules "lake"
-   data lake_out    / &
-        'TWATER', 'DSST', 'SKIN_DEPTH', 'SKIN_INC' &
+   data lake_out      / &
+        'LAKECT'   , 'LAKETP'    , 'LAKETWML'  , 'LAKEFICE' , 'LAKEHICE' , &
+        'LAKEDEPTH', 'LAKEHML'   , 'LAKETBOT'  , 'LAKETICE' ,              &
+        'LAKETMNW' , 'LAKETRANSP', 'FRV_LI'    , 'FRV_LW'                  &
         /
 
    F_istat = RMN_ERR

@@ -55,6 +55,7 @@ subroutine glaciers1(BUS, BUSSIZ, PTSURF, PTSURFSIZ, TRNCH, KOUNT, N, M, NK)
    !*@/
    !Revisions
    ! 001    M. Carrera and V. Fortin (Nov 2007) - Compute total runoff
+   ! 002    K. Winger UQAM/ESCER     (Dec 2019) - Limit snow depth
 
    integer SURFLEN
 #define x(fptr,fj,fk) ptsurf(vd%fptr%i)+(fk-1)*surflen+fj-1

@@ -47,6 +47,8 @@ subroutine isba3(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
 
    !@Author S. Belair (January 1997)
    !*@/
+   !Revisions
+   ! 001    K. Winger UQAM/ESCER     (Dec 2019) - Limit snow depth
 
 #include "tdpack_const.hf"
 

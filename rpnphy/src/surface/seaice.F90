@@ -52,6 +52,7 @@ subroutine seaice2(BUS, BUSSIZ, PTSURF, PTSURFSIZ, lcl_indx, TRNCH, KOUNT, &
    !                as precipitation - evaporation (no storage)
    ! 002     K. Winger UQAM/ESCER (Dec 2019) - Initialize tmice to TFRZW when ice just appeared
    !                                         - Limit sea ice thickness
+   !                                         - Limit snow depth
    !
    !@Notes
    !          One-dimensional thermodynamic sea ice model:

@@ -32,6 +32,7 @@ subroutine sfc_businit(moyhr,ni,nk)
    ! 002      B. Dugas   (Oct 2010) - A few small corrections
    ! 003      L. Spacek  (Sep 2011) - Eliminate obsolete convection options
    ! 004      M. Abrahamowicz (May 2016) - Add SVS
+   ! 005      K. Winger (ESCER/UQAM) (Feb 2017) - Add variables for lake fraction
    !*@/
 
 #include "phymkptr.hf"
@@ -80,6 +81,7 @@ subroutine sfc_businit(moyhr,ni,nk)
         z0en, z0veg, z0tveg, qdiagtyp, tdiagtyp, udiagtyp, vdiagtyp, &
         qdiagtypv, tdiagtypv, udiagtypv, vdiagtypv, tddiagtyp, tddiagtypv
    character(len=2) :: nm, nagg, nrow
+   integer :: lakefr
    !--------   FOR SVS -----------------
    character(len=2) :: ngl, nglp1, nstel, nstpl, iemib, iicel
    integer :: accevap,acroot, algr, alvl , alvh, avg_gwsol, clayen, co2i1, cvh, cvl, d50, d95, &
@@ -140,6 +142,7 @@ subroutine sfc_businit(moyhr,ni,nk)
    PHYVAR2D1(glsea0,       'VN=glsea0       ;ON=GY  ;VD=sea ice fraction (unmodified)                                        ;VB=p1;IN=LG  ;MIN=0')
    PHYVAR2D1(icedp,        'VN=icedp        ;ON=I8  ;VD=sea ice thickness                                                    ;VB=p1        ;MIN=0')
    PHYVAR2D1(iceline,      'VN=iceline      ;ON=ICEL;VD=ice line                                                             ;VB=p'//iicel)
+   PHYVAR2D1(lakefr,       'VN=lakefr       ;ON=FU  ;VD=lake fraction                                                        ;VB=p0        ;MIN=0')
    PHYVAR3D1(qdiagtyp,     "VN=qdiagtyp     ;ON=DQST;VD=screen level specific humidity for each sfc type   ; MIN=0 ; VS=A*"//nagg//" ; VB=v0")
    PHYVAR3D1(qdiagtypv,    "VN=qdiagtypv    ;ON=DQSZ;VD=qdiagtyp for z0 vegetation-only ; MIN=0 ; VS=A*"//nagg//" ; VB=v0")
    PHYVAR2D1(skin_depth,   'VN=skin_depth   ;ON=SDEP;VD=sea surface cold skin depth                                          ;VB=p0')

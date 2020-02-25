@@ -29,7 +29,9 @@ subroutine coherence3(ni, trnch)
    ! 001      see version 5.6.0 for previous history
    ! 002      add ADJ_I0_SNOW key/cfg in front of I0 adjustement due to snow
    !          presence on the ground ( M. Abrahamowicz , July 2015)
-   ! 003 K. Winger     (Sep 2019) - If land fraction too small set snodp to zero for TEB and lakes
+   ! 003 K. Winger (UQAM/ESCER) (Feb 2020) - Set tmice to default value when there is no ice 
+   !                                         to be able to set it to freezing in seaice when ice newly appears
+   !                                       - If land fraction too small set snodp to zero for TEB and lakes
    !
    !@Object Assure the coherence between the different masks
    !         (i.e., MG, GLSEA, and GLACIER) and the surface fields
@@ -44,11 +46,12 @@ subroutine coherence3(ni, trnch)
 
    integer i, k
    real fsnow
+   real, parameter :: TMELI = 273.05
 
    real, pointer, dimension(:) :: zalveg,  zcveg,  zgamveg,  zglacier,  zglsea,  zicedp,  zlai,  zmg,  zrgl,  zrootdp,  zsnoal, zsnoden, zsnoma,  zsnoro,  zstomr,  zvegfrac,  zwsnow,  zwveg
 !!$      real, pointer, dimension(:) :: zsdepth
 
-   real, pointer, dimension(:,:) :: zclay, zisoil, zsand, zsnodp, ztglacier, ztsoil, zwsoil
+   real, pointer, dimension(:,:) :: zclay, zisoil, zsand, zsnodp, ztglacier, ztmice, ztsoil, zwsoil
    ! SVS
    real, pointer, dimension(:) :: zsnodpl, zsnval, zsnvden, zsnvdp, zsnvma, zsnvro, zvegh, zvegl, zwsnv
 
@@ -90,6 +93,7 @@ subroutine coherence3(ni, trnch)
    MKPTR2D(zsand,    sand)
    MKPTR2D(zsnodp,   snodp)
    MKPTR2D(ztglacier,tglacier)
+   MKPTR2D(ztmice,   tmice)
    MKPTR2D(ztsoil,   tsoil)
    MKPTR2D(zwsoil,   wsoil)
  
@@ -238,6 +242,7 @@ subroutine coherence3(ni, trnch)
             zglsea (i)          = 0.0
             zicedp (i)          = 0.0
             zsnodp (i,indx_ice) = 0.0
+            ztmice (i,:)        = TMELI + 0.1
          else
             zicedp (i) = max( zicedp(i) , minicedp )
          end if

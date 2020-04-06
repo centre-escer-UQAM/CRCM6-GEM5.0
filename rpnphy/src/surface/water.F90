@@ -52,7 +52,6 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    !Revisions
    ! 001      M. Carrera and V. Fortin (Nov 2007) - Compute total runoff
    !                as precipitation - evaporation (no storage)
-   ! 002    K. Winger (ESCER/UQAM)   (Sep 2019) - Add return in offline mode for kount==0
    !@Notes
    !          Z0 = BETA1*USTAR**2/GRAV (in metres) with minimum value
    !          Z0MIN and a maximum value Z0MAX
@@ -118,9 +117,6 @@ subroutine water1(bus, bussiz, ptsurf, ptsurfsiz, lcl_indx, trnch, kount, &
    logical            :: cplupd
 
    !** ------------------------------------------------------------------
-
-   !# In offline mode the t-step 0 is (correctly) not performed
-!   if (FLUVERT.eq.'SURFACE'.and.KOUNT.eq.0) return
 
    SURFLEN = M
 

@@ -76,6 +76,7 @@ SUBROUTINE flake_main ( bus, bussiz,          &
 #define x(fptr,fj,fk) ptsurf(vd%fptr%i)+(fk-1)*surflen+fj-1
 
    integer, parameter :: INDX_SFC = INDX_LAKE
+   real, parameter :: ZT_RHO = 1.5              !Height used to compute air density (m)
    !
    logical, parameter :: LAKE_TDIAGLIM=.false.
    !
@@ -86,7 +87,7 @@ SUBROUTINE flake_main ( bus, bussiz,          &
    !     AUTOMATIC ARRAYS
    !***************************************************
    !
-   real,dimension(n) :: EMIST, VMOD, VDIR
+   real,dimension(n) :: VMOD, VDIR
    real,dimension(n) :: SCR1, SCR2, SCR3, SCR4, SCR5
    !
    !***************************************************
@@ -106,7 +107,20 @@ SUBROUTINE flake_main ( bus, bussiz,          &
    real,pointer,dimension(:) ::  ZTSURF, ZTSRAD, ZUDIAG, ZVDIAG
    real,pointer,dimension(:) ::  ZFRV_AVG, ZZUSL, ZZTSL
    real,pointer,dimension(:) ::  ZRAINRATE,ZSNOWRATE, zrunofftot
-   real,pointer,dimension(:) ::  ztt2m
+   real,pointer,dimension(:) ::  zemisr
+
+   ! Variable for Heat Stress Indices
+   real,pointer,dimension(:) :: zfsd, zfsf, zcoszeni
+   real,pointer,dimension(:) :: zutcisun, zutcishade, zwbgtsun, zwbgtshade
+   real,pointer,dimension(:) :: zradsun, zradshade, ztglbsun, ztglbshade
+   real,pointer,dimension(:) :: ztwetb, zq1, zq2, zq3, zq4, zq5, zq6, zq7
+   real,pointer,dimension(:) :: zqdiagtyp, ztdiagtyp, zudiagtyp, zvdiagtyp
+   real,pointer,dimension(:) :: zqdiagtypv, ztdiagtypv, zudiagtypv, zvdiagtypv
+
+   real,dimension(n) :: zu10, zusr   ! wind at 10m and at sensor level
+   real,dimension(n) :: zref_sw_surf, zemit_lw_surf, zzenith
+   real,dimension(n) :: zusurfzt, zvsurfzt, zqd
+
 
    !AMTV OPEN WATER VARIABLES
 
@@ -166,8 +180,6 @@ SUBROUTINE flake_main ( bus, bussiz,          &
 
    real FI0,CONDFI,TFRZW,TMELI,TMELS
 
-   real ALBOW,ALBDI,ALBMI,ALBDS,ALBMS,EMISI,EMISNO,EMISW
-
    real COEFCOND,COEFHCAP,COEFEXT
 
    real ROICE,ROSNOW(2),ROSWTR
@@ -188,11 +200,8 @@ SUBROUTINE flake_main ( bus, bussiz,          &
    DATA   CON9     , CON10 , CON11 , CON12  &
          /19.39    , 0.1   , 0.44  , 0.075  /
    DATA  TFRZW , TMELI , TMELS /  271.2 , 273.05 , 273.15  /
-   DATA   ALBOW   ,  ALBDI  ,  ALBMI ,  ALBDS  ,  ALBMS &
-         /0.08    ,  0.57   ,  0.50  ,  0.83   ,  0.77  /
    DATA   FI0   ,  CONDFI , COEFCOND , COEFHCAP , COEFEXT &
          /0.17  ,  2.034  , 0.1172   , 1.715E+7 , 1.5     /
-   DATA  EMISI , EMISNO , EMISW / 0.99 , 0.99 , 0.97 /
    DATA  ROICE ,  ROSWTR  / 913.0 ,  1025.0  /
    DATA  ROSNOW / 330.0 , 450.0 /
    DATA  Z0ICE ,  Z0W  / 1.6E-4 , 3.2E-5 /
@@ -244,12 +253,21 @@ SUBROUTINE flake_main ( bus, bussiz,          &
    SURFLEN = M
    !
    ! Input fields
-   hu         (1:n) => bus( x(humoins,   1,nk)       : ) ! Input
-   ps         (1:n) => bus( x(pmoins,    1,1)        : ) ! Input
-   th         (1:n) => bus( x(thetaa,    1,1)        : ) ! Input
-   tt         (1:n) => bus( x(tmoins,    1,nk)       : ) ! Input
-   uu         (1:n) => bus( x(umoins,    1,nk)       : ) ! Input
-   vv         (1:n) => bus( x(vmoins,    1,nk)       : ) ! Input
+   if (atm_tplus) then
+      hu       (1:n) => bus( x(huplus, 1,nk)      : ) ! Input
+      ps       (1:n) => bus( x(pplus,  1,1)       : ) ! Input
+      th       (1:n) => bus( x(thetaap,1,1)       : ) ! Input
+      tt       (1:n) => bus( x(tplus,  1,nk)      : ) ! Input
+      uu       (1:n) => bus( x(uplus,  1,nk)      : ) ! Input
+      vv       (1:n) => bus( x(vplus,  1,nk)      : ) ! Input
+   else
+      hu       (1:n) => bus( x(humoins,1,nk)      : ) ! Input
+      ps       (1:n) => bus( x(pmoins, 1,1)       : ) ! Input
+      th       (1:n) => bus( x(thetaa, 1,1)       : ) ! Input
+      tt       (1:n) => bus( x(tmoins, 1,nk)      : ) ! Input
+      uu       (1:n) => bus( x(umoins, 1,nk)      : ) ! Input
+      vv       (1:n) => bus( x(vmoins, 1,nk)      : ) ! Input
+   endif
    zdlat      (1:n) => bus( x(dlat,      1,1)        : ) ! Input
    zdlon      (1:n) => bus( x(dlon,      1,1)        : ) ! Not used
    zfcor      (1:n) => bus( x(fcor,      1,1)        : ) ! Input
@@ -290,6 +308,7 @@ SUBROUTINE flake_main ( bus, bussiz,          &
    z0m_avg    (1:n) => bus( x(z0,        1,indx_sfc) : ) ! Output
    zalfaq     (1:n) => bus( x(alfaq,     1,1)        : ) ! Output
    zalfat     (1:n) => bus( x(alfat,     1,1)        : ) ! Output
+   zemisr     (1:n) => bus( x(emisr,     1,1)        : ) ! Output
    zftemp     (1:n) => bus( x(ftemp,     1,indx_sfc) : ) ! Output
    zfvap      (1:n) => bus( x(fvap,      1,indx_sfc) : ) ! Output
    zqdiag     (1:n) => bus( x(qdiag,     1,1)        : ) ! Output
@@ -304,7 +323,36 @@ SUBROUTINE flake_main ( bus, bussiz,          &
    zfrv_ice   (1:n) => bus( x(frv_li,    1,1)        : ) ! Output
    zfrv_wat   (1:n) => bus( x(frv_lw,    1,1)        : ) ! Output
 
-!   ztt2m      (1:n) => bus( x(tt2m,      1,indx_sfc) : ) ! Output
+   ! Diagnostic fields for all surface fractions
+   zudiagtyp (1:n) => bus( x(udiagtyp,1,indx_sfc) : )
+   zudiagtypv(1:n) => bus( x(udiagtypv,1,indx_sfc) : )
+   zvdiagtyp (1:n) => bus( x(vdiagtyp,1,indx_sfc) : )
+   zvdiagtypv(1:n) => bus( x(vdiagtypv,1,indx_sfc) : )
+   ztdiagtyp (1:n) => bus( x(tdiagtyp,1,indx_sfc) : )
+   ztdiagtypv(1:n) => bus( x(tdiagtypv,1,indx_sfc) : )
+   zqdiagtyp (1:n) => bus( x(qdiagtyp,1,indx_sfc) : )
+   zqdiagtypv(1:n) => bus( x(qdiagtypv,1,indx_sfc) : )
+
+   ! Variable for Heat Stress Indices
+   zcoszeni (1:n)   => bus( x(cang,1,1)         : )
+   zfsd (1:n)       => bus( x(fsd,1,1)         : )
+   zfsf (1:n)       => bus( x(fsf,1,1)         : )
+   zutcisun (1:n)   => bus( x(yutcisun,1,indx_sfc)    : )
+   zutcishade (1:n) => bus( x(yutcishade,1,indx_sfc)  : )
+   zwbgtsun (1:n)   => bus( x(ywbgtsun,1,indx_sfc)    : )
+   zwbgtshade (1:n) => bus( x(ywbgtshade,1,indx_sfc)  : )
+   zradsun (1:n)    => bus( x(yradsun,1,indx_sfc)     : )
+   zradshade (1:n)  => bus( x(yradshade,1,indx_sfc)   : )
+   ztglbsun (1:n)   => bus( x(ytglbsun,1,indx_sfc)    : )
+   ztglbshade (1:n) => bus( x(ytglbshade,1,indx_sfc)  : )
+   ztwetb (1:n)     => bus( x(ytwetb,1,indx_sfc)      : )
+   zq1 (1:n)        => bus( x(yq1,1,indx_sfc)         : )
+   zq2 (1:n)        => bus( x(yq2,1,indx_sfc)         : )
+   zq3 (1:n)        => bus( x(yq3,1,indx_sfc)         : )
+   zq4 (1:n)        => bus( x(yq4,1,indx_sfc)         : )
+   zq5 (1:n)        => bus( x(yq5,1,indx_sfc)         : )
+   zq6 (1:n)        => bus( x(yq6,1,indx_sfc)         : )
+   zq7 (1:n)        => bus( x(yq7,1,indx_sfc)         : )
 
 
 !* 1.     Preliminaries
@@ -915,9 +963,82 @@ SUBROUTINE flake_main ( bus, bussiz,          &
 
    END DO
 
+   ! Surface emissivity with respect to the long-wave radiation 
+   ! (from flakem_sfcflx.F90: c_lwrad_emis  = 0.99_ireals)
+   zemisr(i) = 0.99
 
-!  Copy surface averaged fields into fields for each surface fraction
-!   zTT2m(:)  = ztdiag(:)                ! instantaneos
+   ! Fill surface type-specific diagnostic values
+   zqdiagtyp = zqdiag
+   ztdiagtyp = ztdiag
+   zudiagtyp = zudiag
+   zvdiagtyp = zvdiag
+   zqdiagtypv = zqdiag
+   ztdiagtypv = ztdiag
+   zudiagtypv = zudiag
+   zvdiagtypv = zvdiag
+
+
+   !--------------------------------------
+   !   8.     Heat Stress Indices
+   !------------------------------------
+   !#TODO: at least 4 times identical code in surface... separeted s/r to call
+   IF_TERMAL_STRESS: if (thermal_stress) then
+
+      i = sl_sfclayer(th,hu,vmod,vdir,zzusl,zztsl,ts_wat,qs_wat,z0m_wat,z0h_wat,zdlat,zfcor, &
+                      hghtm_diag=zu, hghtt_diag=zt, tdiaglim=LAKE_TDIAGLIM, &
+                      u_diag=zudiag_wat, v_diag=zvdiag_wat)
+      i = sl_sfclayer(th,hu,vmod,vdir,zzusl,zztsl,ts_ice,qs_ice,z0m_ice,z0h_ice,zdlat,zfcor, &
+                      hghtm_diag=zu, hghtt_diag=zt, tdiaglim=LAKE_TDIAGLIM, &
+                      u_diag=zudiag_ice, v_diag=zvdiag_ice)
+
+      zvsurfzt  (I)=ZVDIAG_WAT(I)*(1.-LFICE(I))+ZVDIAG_ICE(I)*LFICE(I) !*VDIAG
+      zusurfzt  (I)=ZUDIAG_WAT(I)*(1.-LFICE(I))+ZUDIAG_ICE(I)*LFICE(I) !*UDIAG
+
+      if (i /= SL_OK) then
+         call physeterror('FLake', 'error 3 returned by sl_sfclayer()')
+         return
+      endif
+
+      do I=1,N
+
+         if (abs(zzusl(i)-zu) <= 2.0) then
+            zu10(i) = sqrt(uu(i)**2+vv(i)**2)
+         else
+            zu10(i) = sqrt(zudiag(i)**2+zvdiag(i)**2)
+         endif
+
+         ! wind  at SensoR level zubos at z=zt
+         if( (abs(zusurfzt(i)) >= 0.1) .and. (abs(zvsurfzt(i)) >= 0.1)) then
+         zusr(i) = sqrt( zusurfzt(i)**2 + zvsurfzt(i)**2)
+         else
+         zusr(i) = zu10(i)
+         endif
+
+             zqd(i) = max( ZQDIAG(i) , 1.e-6)
+            zref_sw_surf(i) = alvis_avg(i) * fsol(i)
+            zemit_lw_surf(i) = (1. -zemisr(i)) * qlwin(i) + zemisr(i)*stefan*ztsrad(i)**4
+
+         zzenith(i) = acos(zcoszeni(i))
+         if (fsol(i) > 0.0) then
+            zzenith(i) = min(zzenith(i), pi/2.)
+         else
+            zzenith(i) = max(zzenith(i), pi/2.)
+         endif
+
+      end do
+
+      call SURF_THERMAL_STRESS(ZTDIAG, zqd,            &
+           ZU10,ZUSR,  ps,                             &
+           ZFSD, ZFSF, qlwin, ZZENITH,                 &
+           ZREF_SW_SURF,ZEMIT_LW_SURF,                 &
+           Zutcisun ,Zutcishade,                       &
+           zwbgtsun, zwbgtshade,                       &
+           zradsun, zradshade,                         &
+           ztglbsun, ztglbshade, ztwetb,               &
+           ZQ1, ZQ2, ZQ3, ZQ4, ZQ5,                    &
+           ZQ6,ZQ7, N)
+   endif IF_TERMAL_STRESS
+
 
 !    FILL THE ARRAYS TO BE AGGREGATED LATER IN S/R AGREGE
    CALL FILLAGG( BUS,BUSSIZ, PTSURF,PTSURFSIZ, INDX_LAKE, SURFLEN )

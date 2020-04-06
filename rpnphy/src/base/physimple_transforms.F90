@@ -110,7 +110,7 @@ contains
          end select
       endif
 
-      if (msg_S /= '') call msg(MSG_INFO,'(physimple_transforms3d) '//trim(var_in_S)//' => '//trim(var_S)//' ('//trim(msg_S)//')')
+!      if (msg_S /= '') call msg(MSG_INFO,'(physimple_transforms3d) '//trim(var_in_S)//' => '//trim(var_S)//' ('//trim(msg_S)//')')
       ! ---------------------------------------------------------------------
       return
    end subroutine physimple_transforms3d

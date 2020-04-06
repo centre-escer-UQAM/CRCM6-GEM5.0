@@ -152,7 +152,7 @@
       ! If output directory has not been created yet => create it
       if ( Step_kount .eq. 0) next_out_step = 0
 
-print *,'out_outdir t,last_out_date_S,out_date_S:',Step_kount,last_out_date_S,out_date_S
+!print *,'out_outdir t,last_out_date_S,out_date_S:',Step_kount,last_out_date_S,out_date_S
 
       if ( last_out_date_S .ne. out_date_S ) then
 

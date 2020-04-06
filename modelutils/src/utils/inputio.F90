@@ -365,11 +365,11 @@ contains
          if (cfgvar%files_S(nn) == '') exit
          msg_S = trim(msg_S)//'+'//cfgvar%files_S(nn)(1:4)
       enddo
-      call msg(MSG_INFO, '(inputio) Looking for '//trim(fld%vn1_S)//' '// &
-           trim(fld%vn2_S)//' in file "'//trim(msg_S)// &
-           '" (interpolation h/v/t: '//trim(cfgvar%hint_S)//'/'// &
-           trim(cfgvar%vint_S)//'/'//trim(cfgvar%tint_S)//') (tv='// &
-           trim(cfgvar%typvar_S)//')')
+!      call msg(MSG_INFO, '(inputio) Looking for '//trim(fld%vn1_S)//' '// &
+!           trim(fld%vn2_S)//' in file "'//trim(msg_S)// &
+!           '" (interpolation h/v/t: '//trim(cfgvar%hint_S)//'/'// &
+!           trim(cfgvar%vint_S)//'/'//trim(cfgvar%tint_S)//') (tv='// &
+!           trim(cfgvar%typvar_S)//')')
 
       istat = -1
       niter = 0
@@ -1359,11 +1359,11 @@ contains
          if (RMN_IS_OK(F_istat)) then
             if (F_istat > 0 .and. F_istat < nint(TIME_INTERP_WEIGHT_FACT)) then
                write(tmp_S,'(i6)') (F_istat*100)/nint(TIME_INTERP_WEIGHT_FACT)
-               call msg(MSG_INFO, '(inputio) Got time interpolated value for '//&
-                    trim(F_fldout%vn1_S)//' '//trim(F_fldout%vn2_S)// &
-                    ' (interpolation h/v/t: '//trim(F_cfgvar%hint_S)//'/'// &
-                    trim(F_cfgvar%vint_S)//'/'//trim(F_cfgvar%tint_S)//') (tv='// &
-                    trim(F_cfgvar%typvar_S)//') (t_int_weight='//trim(tmp_S)//'%)')
+!               call msg(MSG_INFO, '(inputio) Got time interpolated value for '//&
+!                    trim(F_fldout%vn1_S)//' '//trim(F_fldout%vn2_S)// &
+!                    ' (interpolation h/v/t: '//trim(F_cfgvar%hint_S)//'/'// &
+!                    trim(F_cfgvar%vint_S)//'/'//trim(F_cfgvar%tint_S)//') (tv='// &
+!                    trim(F_cfgvar%typvar_S)//') (t_int_weight='//trim(tmp_S)//'%)')
             endif
          else
             call msg(MSG_WARNING, &

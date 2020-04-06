@@ -52,6 +52,7 @@ module phy_input_mod
    include "rpn_comm.inc"
    include "phyinput.cdk"
    include "buses.cdk"
+   include "physteps.cdk"
 
    integer, external :: phyent2per, phyfillbus
 
@@ -296,7 +297,7 @@ contains
       F_istat = min(priv_checklist(readlist_nk,readlist_S,nread,F_step),F_istat)
 
       if (RMN_IS_OK(F_istat) .and. nread > 0) then
-         call msg(MSG_INFO,'(phy_input) All needed var were found')
+         if (Step_kount <= 0) call msg(MSG_INFO,'(phy_input) All needed var were found')
          F_istat = phyent2per(readlist_S, nread, F_step)
       endif
 
@@ -309,7 +310,7 @@ contains
             write(str32,'(a,i2,a)') trim(readlist_S(ivar))//'(',phyinread_list_nk(ivar),')'
             str512 = trim(str512)//', '//trim(str32)
          enddo
-         call msg(MSG_INFO,'(phy_input) Read: '//trim(str512))
+         if (Step_kount <= 0)  call msg(MSG_INFO,'(phy_input) Read: '//trim(str512))
       endif
       call msg_verbosity(iverb)
       ! ---------------------------------------------------------------------

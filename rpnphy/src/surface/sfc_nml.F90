@@ -314,6 +314,23 @@ contains
 
       endif
 
+      ! ------ CHECK CLASS OPTIONS --------------
+      if( schmsol == 'CLASS') then
+      if ( class_ig < 3 ) then
+         write(msg_S,*) class_ig
+         call msg(MSG_ERROR, '(sfc_nml_check) class_ig = '//trim(msg_S)//' : should be at least 3')
+         return
+      endif
+
+      if (any(schmsol_lev(1:class_ig) <= 0.0) .and. &
+          .not.(class_ig == 3 .and.  all(schmsol_lev(1:class_ig) == 0.0))) then
+         call msg(MSG_ERROR,'(sfc_nml_check) Invalid soil level definition: all levels should have a thickness greater than 0.')
+         return
+      endif
+
+      endif
+
+
 
       m_istat = RMN_OK
       !----------------------------------------------------------------

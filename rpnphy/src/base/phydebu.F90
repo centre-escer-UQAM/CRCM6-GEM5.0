@@ -23,6 +23,11 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
    use phybusalloc, only: phybusalloc1
    use module_mp_p3, only: p3_init
    use ghg_mod, only: ghg_init
+
+   use cstv
+   use step_options
+   use mu_jdate_mod, only: jdate_from_cmc
+
    implicit none
 #include <arch_specific.hf>
    !@Object Init physics at the beginning of each execution of the model
@@ -107,6 +112,9 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
 
    character(len=1024) :: fichier, path
    integer :: i, nv, myproc, ier
+
+   integer(IDOUBLE)    :: jdatev
+   integer :: dateo,datev
    !---------------------------------------------------------------------
    F_istat = PHY_ERROR
 
@@ -202,7 +210,14 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
 
          !# read GHG concentration factor file
          path = trim(F_path_S)//'/CLIMATO' !#ghg-table-1950-2015_v1'
-         ier = ghg_init(path, jdateo, myproc)
+
+
+         call datp2f(dateo,Step_runstrt_S)                           ! CMC date of origin
+         call incdatr(datev, dateo, Step_kount*(Cstv_dt_8/3600.d0))  ! CMC date of validity
+         jdatev = jdate_from_cmc(datev)                              ! Julian date of validity
+
+!         ier = ghg_init(path, jdateo, myproc)
+         ier = ghg_init(path, jdatev, myproc)
          if (.not. RMN_IS_OK(ier)) then
             call msg(MSG_ERROR,'(phydebu) Problem in ghg_init')
             return

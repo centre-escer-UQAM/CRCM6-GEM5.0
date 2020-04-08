@@ -19,6 +19,7 @@ subroutine sfc_businit(moyhr,ni,nk)
    use sfc_options
    use sfcbus_mod
    use svs_configs
+   use class_configs
    implicit none
 #include <arch_specific.hf>
    !@Object Establishes requirements in terms of variables in the 4 main buses
@@ -83,24 +84,43 @@ subroutine sfc_businit(moyhr,ni,nk)
    ! lake fields
    integer :: lakefr, frv_li, frv_lw, lakect, lakedepth, lakefice, lakehice, &
         lakehml, laketbot, laketice, laketmnw, laketp, laketransp, laketwml
-   character(len=2) :: nm, nagg, nrow
+   character(len=2) :: nm, nagg, nrow, ncg, ncv, ncvp, ncvxcg
    !--------   FOR SVS -----------------
    character(len=2) :: ngl, nglp1, nstel, nstpl, iemib, iicel
    integer :: accevap,acroot, algr, alvl , alvh, avg_gwsol, clayen, co2i1, cvh, cvl, d50, d95, &
         deciduous, draindens, eg, emis, emisgr, emistg, emistgen, emisvh, emisvl, &
         er, etr, evergreen, &
-        fbcof, frootd, gamvh, gamvl, grkef, grksat, hfluxsa, hfluxsv, &
+        fbcof, frootd, gamvh, gamvl, grkef, hfluxsa, hfluxsv, &
         impervu, &
         khc, ksat, ksatc, laictem, laideci, laiva, laivf26, laivh, laivl, &
-        latflaf, latflw, lesv, psi, psisat, psngrvl, psnvh, psnvha, &
+        latflaf, latflw, lesv, psi, psngrvl, psnvh, psnvha, &
         rcctem, resagr, resavg, resasa, resasv, resaef, rglvh, rglvl, &
         rnetsa, rnetsv, rsnowsa, &
         rsnowsv, rveg, sanden, skyview, slop, snodpl, snval, &
         snvden,  snvdp, snvma,  snvro, stomrvh, stomrvl, svs_wta, &
         tground, tsa, tsnavg, tsnow, tsnowveg, &
         tsvavg, tvege,  vegh, vegl, vegtrans, vgctem, &
-        watflow, wsoilm, wfcdp, wfcint, wsnv, &
+        watflow, wsoilm, wfcdp, wsnv, &
         z0ha, z0mvh, z0mvl
+   !--------   for SVS and CLASS ---------
+   integer :: grksat, psisat, wfcint
+   !--------   FOR CLASS -----------------
+   integer :: ail, pai, rmat, algdry, algwet, alirc, alvsc, bbi, cang, cdh, cdm, &
+        cmai, delzw, evapo, fcanmx, fcovc, fcovcs, fcovg, fcovgs, firupaf, &
+        flgg, flgs, flgv, fsgg, fsgs, fsgv, fsnow, fsolupaf, grkfac, &
+        grktld, hcps, hevc, hevg, hevs, hfsc, hfsg, hfss, hmfc, hmfg, hmfn, &
+        htc, htcc, htcs, huaircan, iveg, laimax, laimin, &
+        mosfract, orgm, pcfc, pcfg, pclc, pcpg, psiga, &
+        psigb, psiwlt, qa50, qfc, qfcf, qfcl, qfg, qfn, qswd, rib, &
+        rofacc, rofc, rofn, rovg, runoff, sdepth, &
+        subflw, taircan, tbase, &
+        tbasfl, tcs, thfc, thlmin, thlrat, thlret, thpor, tindex, tovrfl, &
+        tpond, trunoff, tsno, tsubfl, tsurfsa, tveg, &
+        veggro, vegma, vpda, vpdb, &
+        wfsurf, wtrc, wtrg, wtrs, xdrain, xslope, zbotw, zoln, zpond, &
+        zponden
+   integer :: anis, are, excw, lbedr, leggw, slpgw, totw, wtnew
+
 
    if (schmsol == 'SVS') then
       ! initialize levels for soil texture data
@@ -116,6 +136,14 @@ subroutine sfc_businit(moyhr,ni,nk)
       ! number of layer for PHYSICS bus SVS clay and sand var.
       Write(nstpl,'(i2)') nl_stp
 
+   elseif (schmsol == 'CLASS') then
+
+      ! number of special vegetation classes (CLASS)
+      Write(ncv,'(i2)') class_IC
+      Write(ncvp,'(i2)') (class_IC+1)
+      ! needed for rooting depth
+      Write(ncvxcg,'(i3)') (class_IC*class_IG)
+
    endif
 
    !---------------------------------------------------------------------
@@ -127,6 +155,13 @@ subroutine sfc_businit(moyhr,ni,nk)
 
    !# nl is the number of levels in sea ice
    write(nrow,'(i2)') nl
+
+   !# ncg is the number of ground layers (CLASS)
+   Write(ncg,'(i2)') class_IG
+
+   !# ncv is the number of special vegetation classes (CLASS)
+   Write(ncv,'(i2)') class_IC
+   Write(ncvp,'(i2)') (class_IC+1)
 
    !# EMIB is only a required input if isba_soil_emiss=='CLIMATO'
    iemib = '0'
@@ -395,6 +430,141 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(z0mvh,        'VN=z0mvh        ;ON=Z0VH;VD=local mom roughness length for high veg.                          ;VB=p0')
       PHYVAR2D1(z0mvl,        'VN=z0mvl        ;ON=Z0VL;VD=local mom roughness length for low veg.                           ;VB=p0')
    endif IF_SVS
+
+
+   IF_CLASS: if (schmsol == 'CLASS') then
+      PHYVAR2D1(ail,          'VN=ail          ;ON=AIL ;VD=leaf area index (diag.)                        ;VS=A*'//ncv//'         ;VB=p0')
+      PHYVAR2D1(pai,          'VN=pai          ;ON=PAI ;VD=plant area index (diag.)                       ;VS=A*'//ncv//'         ;VB=p0')
+      PHYVAR2D1(rmat,         'VN=rmat         ;ON=RMAT;VD=rooting depth (diag.)                          ;VS=A*'//ncvxcg//'         ;VB=p0')
+      PHYVAR2D1(algdry,       'VN=algdry       ;ON=B1  ;VD=albedo of dry soil                                                        ;VB=p0')
+      PHYVAR2D1(algwet,       'VN=algwet       ;ON=R7  ;VD=albedo of wet soil                                                        ;VB=p0')
+      PHYVAR3D1(alirc,        'VN=alirc        ;ON=C2  ;VD=canopy albedo (near i.r.)                      ;VS=A*'//ncvp//'         ;VB=p0')
+      PHYVAR3D1(alvsc,        'VN=alvsc        ;ON=C4  ;VD=canopy albedo (visible)                        ;VS=A*'//ncvp//'         ;VB=p0')
+      PHYVAR3D1(bbi,          'VN=bbi          ;ON=C6  ;VD=Clapp and Hornberger hydraulic coefficient B   ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(cdh,          'VN=cdh          ;ON=G2  ;VD=bulk heat transfer coefficient                                            ;VB=v0')
+      PHYVAR2D1(cdm,          'VN=cdm          ;ON=CM  ;VD=bulk momentum transfer coefficient                                        ;VB=v0')
+      PHYVAR3D1(clay,         'VN=clay         ;ON=CLAY;VD=percentage of clay in soil                     ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(cmai,         'VN=cmai         ;ON=CY  ;VD=instantaneous canopy mass                                                 ;VB=p0')
+      PHYVAR3D1(delzw,        'VN=delzw        ;ON=C7  ;VD=thickness of soil layers for water             ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(drain,        'VN=drain        ;ON=DR  ;VD=water drainage at bottom of soil layer                                    ;VB=p0')
+      PHYVAR2D1(drainaf,      'VN=drainaf      ;ON=O1  ;VD=accum. of base drainage                                                 ;VB=p0')
+      PHYVAR2D1(evapo,        'VN=evapo        ;ON=V5  ;VD=evapo./subl. rate from ground                                           ;VB=v0')
+      PHYVAR3D1(fcanmx,       'VN=fcanmx       ;ON=Y2C ;VD=fract. coverage of vegetation classes          ;VS=A*'//ncvp//'         ;VB=p0')
+      PHYVAR2D1(fcovc,        'VN=fcovc        ;ON=C3  ;VD=fractional coverage for canopy                                            ;VB=v0')
+      PHYVAR2D1(fcovcs,       'VN=fcovcs       ;ON=S5  ;VD=fractional coverage for canopy+snow                                       ;VB=v0')
+      PHYVAR2D1(fcovg,        'VN=fcovg        ;ON=BG  ;VD=fractional coverage for bare ground                                       ;VB=v0')
+      PHYVAR2D1(fcovgs,       'VN=fcovgs       ;ON=S6  ;VD=fractional coverage for snow                                              ;VB=v0')
+      PHYVAR2D1(firupaf,      'VN=firupaf      ;ON=N5  ;VD=acc. of soil surf. upward infrared flux                                   ;VB=p0')
+      PHYVAR2D1(flgg,         'VN=flgg         ;ON=F9  ;VD=LW radiation absorbed by ground                                           ;VB=v0')
+      PHYVAR2D1(flgs,         'VN=flgs         ;ON=O3  ;VD=LW radiation absorbed by snow                                             ;VB=v0')
+      PHYVAR2D1(flgv,         'VN=flgv         ;ON=F7  ;VD=LW radiation absorbed by canopy                                           ;VB=v0')
+      PHYVAR2D1(fsgg,         'VN=fsgg         ;ON=F6  ;VD=SW radiation absorbed by ground                                           ;VB=v0')
+      PHYVAR2D1(fsgs,         'VN=fsgs         ;ON=F5  ;VD=SW radiation absorbed by snow                                             ;VB=v0')
+      PHYVAR2D1(fsgv,         'VN=fsgv         ;ON=F4  ;VD=SW radiation absorbed by canopy                                           ;VB=v0')
+      PHYVAR2D1(fsnow,        'VN=fsnow        ;ON=FSNO;VD=diagnosed fractional snow coverage                                        ;VB=v0')
+      PHYVAR2D1(fsolupaf,     'VN=fsolupaf     ;ON=N6  ;VD=acc. of soil surf. upward solar flux                                      ;VB=p0')
+      PHYVAR2D1(grkfac,       'VN=grkfac       ;ON=GRKF;VD=WATROF par. for MESH code (grkfac)                                      ;VB=v0')
+      PHYVAR3D1(grksat,       'VN=grksat       ;ON=HT  ;VD=sat. soil hydraulic conductivity               ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(grktld,       'VN=grktld       ;ON=C8  ;VD= soil hydraulic conductivity                   ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(hcps,         'VN=hcps         ;ON=C9  ;VD=vol. heat capacity of soil                     ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(hevc,         'VN=hevc         ;ON=V2  ;VD=Latent heat flux from canopy                                              ;VB=v0')
+      PHYVAR2D1(hevg,         'VN=hevg         ;ON=V4  ;VD=Latent heat flux from ground                                              ;VB=v0')
+      PHYVAR2D1(hevs,         'VN=hevs         ;ON=V3  ;VD=Latent heat flux from snow                                                ;VB=v0')
+      PHYVAR2D1(hfsc,         'VN=hfsc         ;ON=H4  ;VD=Sensible heat flux from canopy                                            ;VB=v0')
+      PHYVAR2D1(hfsg,         'VN=hfsg         ;ON=H6  ;VD=Sensible heat flux from ground                                            ;VB=v0')
+      PHYVAR2D1(hfss,         'VN=hfss         ;ON=H5  ;VD=Sensible heat flux from snow                                              ;VB=v0')
+      PHYVAR2D1(hmfc,         'VN=hmfc         ;ON=G3  ;VD=Melting heat flux from canopy                                             ;VB=v0')
+      PHYVAR3D1(hmfg,         'VN=hmfg         ;ON=O4  ;VD=Melting heat flux from ground                  ;VS=A*'//ncg//'          ;VB=v0')
+      PHYVAR2D1(hmfn,         'VN=hmfn         ;ON=G4  ;VD=Melting heat flux from snow                                               ;VB=v0')
+      PHYVAR3D1(htc,          'VN=htc          ;ON=M1C ;VD=Heat transfer through soil layers by perc.     ;VS=A*'//ncg//'          ;VB=v0')
+      PHYVAR2D1(htcc,         'VN=htcc         ;ON=M2C ;VD=Heat transfer to veg. via pcp. interception                               ;VB=v0')
+      PHYVAR2D1(htcs,         'VN=htcs         ;ON=Y3  ;VD=Heat transfer through snow via perc. and cond.                            ;VB=v0')
+      PHYVAR2D1(huaircan,     'VN=huaircan     ;ON=SQAC;VD=specific humidity inside canopy                                           ;VB=p0')
+      PHYVAR3D1(isoil,        'VN=isoil        ;ON=I2  ;VD=soil volumetric ice contents                   ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(iveg,         'VN=iveg         ;ON=SK  ;VD=snow stored on canopy                                                     ;VB=p0')
+      PHYVAR3D1(laimax,       'VN=laimax       ;ON=LX  ;VD=maximum leaf area index (LAI)                  ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR3D1(laimin,       'VN=laimin       ;ON=LN  ;VD=minimum leaf area index (LAI)                  ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR2D1(mosfract,     'VN=mosfract     ;ON=MO  ;VD=amount of cover found in this mosaic tile                                 ;VB=p0')
+      PHYVAR3D1(orgm,         'VN=orgm         ;ON=Z7  ;VD=percentage of organic matter in soil           ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(overfl,       'VN=overfl       ;ON=RO  ;VD=overland runoff                                                           ;VB=v0')
+      PHYVAR2D1(overflaf,     'VN=overflaf     ;ON=N0  ;VD=accum. of surface runoff                                                ;VB=p0')
+      PHYVAR2D1(pcfc,         'VN=pcfc         ;ON=L5  ;VD=frozen precip. falling on canopy                                          ;VB=v0')
+      PHYVAR2D1(pcfg,         'VN=pcfg         ;ON=P9  ;VD=frozen precip reaching ground                                             ;VB=v0')
+      PHYVAR2D1(pclc,         'VN=pclc         ;ON=P6  ;VD=liquid precip. falling on canopy                                          ;VB=v0')
+      PHYVAR2D1(pcpg,         'VN=pcpg         ;ON=P7  ;VD=liquid precip. reaching ground                                            ;VB=v0')
+      PHYVAR3D1(psiga,        'VN=psiga        ;ON=J3  ;VD=parameter psiga in stomatal resistance         ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR3D1(psigb,        'VN=psigb        ;ON=D4  ;VD=parameter psigb in stomatal resistance         ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR3D1(psisat,       'VN=psisat       ;ON=D5  ;VD=sat. soil water suction                        ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(psiwlt,       'VN=psiwlt       ;ON=D6  ;VD=soil water suction at wilting point            ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(qa50,         'VN=qa50         ;ON=D7  ;VD=parameter in stomatal conductance              ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR3D1(qfc,          'VN=qfc          ;ON=M5  ;VD=Water extract. from soil layers due to transp. ;VS=A*'//ncg//'          ;VB=v0')
+      PHYVAR2D1(qfcf,         'VN=qfcf         ;ON=S1  ;VD=subl. rate of canopy frozen water                                         ;VB=v0')
+      PHYVAR2D1(qfcl,         'VN=qfcl         ;ON=E2  ;VD=evapo. rate of canopy liq. water                                          ;VB=v0')
+      PHYVAR2D1(qfg,          'VN=qfg          ;ON=E3  ;VD=evapo. rate from soil surface                                             ;VB=v0')
+      PHYVAR2D1(qfn,          'VN=qfn          ;ON=S2  ;VD=subl. rate from snow cover                                                ;VB=v0')
+      PHYVAR2D1(qswd,         'VN=qswd         ;ON=M6  ;VD=diffuse downward solar radiation flux                                   ;VB=v0')
+      PHYVAR2D1(rofacc,       'VN=rofacc       ;ON=RFAC;VD=acc. of total (surf. + base) runoff                                     ;VB=p0')
+      PHYVAR2D1(rofc,         'VN=rofc         ;ON=DC  ;VD=dripping from canopy                                                      ;VB=v0')
+      PHYVAR2D1(rofn,         'VN=rofn         ;ON=MS  ;VD=melting snow from snowpack                                                ;VB=v0')
+      PHYVAR3D1(rootdp,       'VN=rootdp       ;ON=D2  ;VD=rooting soil depth                             ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR2D1(rovg,         'VN=rovg         ;ON=M7  ;VD=to be determined (rovg)                                                   ;VB=v0')
+      PHYVAR2D1(runoff,       'VN=runoff       ;ON=N8  ;VD=total (surf. + base) runoff                                               ;VB=v0')
+      PHYVAR3D1(sand,         'VN=sand         ;ON=SAND;VD=percentage of sand in soil                     ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(sdepth,       'VN=sdepth       ;ON=DPTH;VD=depth of soil water layer in CLASS                                        ;VB=p0')
+      PHYVAR2D1(snoal,        'VN=snoal        ;ON=I6  ;VD=albedo of snow                                                            ;VB=p0')
+      PHYVAR2D1(snoma,        'VN=snoma        ;ON=I5  ;VD=snow mass                                                                 ;VB=p0')
+      PHYVAR3D1(stomr,        'VN=stomr        ;ON=RS  ;VD=minimum stomatal resistance                    ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR2D1(subflw,       'VN=subflw       ;ON=R6  ;VD=Interflow from sides of soil column                                       ;VB=v0')
+      PHYVAR2D1(taircan,      'VN=taircan      ;ON=STAC;VD=air temperature inside canopy                                             ;VB=p0')
+      PHYVAR2D1(tbase,        'VN=tbase        ;ON=R2  ;VD=temp. at the base of soil water column                                    ;VB=p0')
+      PHYVAR2D1(tbasfl,       'VN=tbasfl       ;ON=STBF;VD=temperature of baseflow                                                   ;VB=v0')
+      PHYVAR3D1(tcs,          'VN=tcs          ;ON=H7  ;VD=thermal heat conductivity of soil              ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(thfc,         'VN=thfc         ;ON=D9  ;VD=vol. water content at field capacity           ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(thlmin,       'VN=thlmin       ;ON=E5  ;VD=minimun vol. water content                     ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(thlrat,       'VN=thlrat       ;ON=E6  ;VD=soil retention capacity                        ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(thlret,       'VN=thlret       ;ON=E7  ;VD=liq. water content behind wetting front        ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(thpor,        'VN=thpor        ;ON=E8  ;VD=volumetric fraction of pores in soil           ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(tindex,       'VN=tindex       ;ON=TX  ;VD=index of the tile type                                                    ;VB=p0')
+      PHYVAR2D1(tovrfl,       'VN=tovrfl       ;ON=STOF;VD=temperature of overland flow                                              ;VB=v0')
+      PHYVAR2D1(tpond,        'VN=tpond        ;ON=Q4  ;VD=temperature of water lying on surface                                     ;VB=p0')
+      PHYVAR2D1(trunoff,      'VN=trunoff      ;ON=TROF;VD=temperature of runoff                                                     ;VB=v0')
+      PHYVAR2D1(tsno,         'VN=tsno         ;ON=TN  ;VD=ground snow temperature                                                   ;VB=p0')
+      PHYVAR3D1(tsoil,        'VN=tsoil        ;ON=I0  ;VD=surface and soil temperatures                  ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(tsubfl,       'VN=tsubfl       ;ON=STIF;VD=temperature of subsurface runoff                                          ;VB=v0')
+      PHYVAR2D1(tsurfsa,      'VN=tsurfsa      ;ON=STSS;VD=surface tmp of class subareas                  ;VS=A*4                  ;VB=p0')
+      PHYVAR2D1(tveg,         'VN=tveg         ;ON=TE  ;VD=canopy temperature                                                        ;VB=p0')
+      PHYVAR2D1(vegf,         'VN=vegf         ;ON=2V  ;VD=vegetation fractions                           ;VS=A*26                 ;VB=p0')
+      PHYVAR2D1(veggro,       'VN=veggro       ;ON=GR  ;VD=canopy growth factor                                                      ;VB=p0')
+      PHYVAR3D1(vegma,        'VN=vegma        ;ON=MC  ;VD=standing mass of canopy                        ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR3D1(vpda,         'VN=vpda         ;ON=E9  ;VD=parameter vpda in stomatal resistance          ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR3D1(vpdb,         'VN=vpdb         ;ON=F1  ;VD=parameter vpdb in stomatal resistance          ;VS=A*'//ncv//'          ;VB=p0')
+      PHYVAR2D1(wfcint,       'VN=wfcint       ;ON=WFCI;VD=WATROF par. for MESH code (wfcint)                                      ;VB=v0')
+      PHYVAR2D1(wflux,        'VN=wflux        ;ON=M8  ;VD=water flux from surface to atm.                                           ;VB=v0')
+      PHYVAR2D1(wfluxaf,      'VN=wfluxaf      ;ON=N7  ;VD=acc. of soil surface upward water flux                                  ;VB=p0')
+      PHYVAR2D1(wfsurf,       'VN=wfsurf       ;ON=WFSF;VD=WATROF par. for MESH code (wfsurf)                                      ;VB=v0')
+      PHYVAR2D1(wsnow,        'VN=wsnow        ;ON=I4  ;VD=water in the snow pack                                                    ;VB=p0')
+      PHYVAR3D1(wsoil,        'VN=wsoil        ;ON=I1  ;VD=soil volumetric water contents                 ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR2D1(wtrc,         'VN=wtrc         ;ON=W6C ;VD=water lost from canopy(senescence)                                        ;VB=v0')
+      PHYVAR2D1(wtrg,         'VN=wtrg         ;ON=W8C ;VD=water lost to surface                                                     ;VB=v0')
+      PHYVAR2D1(wtrs,         'VN=wtrs         ;ON=W7C ;VD=water lost to snowpack                                                    ;VB=v0')
+      PHYVAR2D1(wveg,         'VN=wveg         ;ON=I3  ;VD=water retained on the vegetation                                          ;VB=p0')
+      PHYVAR2D1(xdrain,       'VN=xdrain       ;ON=L9  ;VD=drainage factor in CLASS                                                ;VB=p0')
+      PHYVAR2D1(xslope,       'VN=xslope       ;ON=SFIS;VD=mosaic slope                                                              ;VB=p0')
+      PHYVAR3D1(zbotw,        'VN=zbotw        ;ON=G0  ;VD=soil layer depths for water                    ;VS=A*'//ncg//'          ;VB=p0')
+      PHYVAR3D1(zoln,         'VN=zoln         ;ON=X9  ;VD=roughness length for each veg. class           ;VS=A*'//ncvp//'         ;VB=p0')
+      PHYVAR2D1(zpond,        'VN=zpond        ;ON=M9  ;VD=height of water lying on surface                                          ;VB=p0')
+! New variables for running the alternate ground water scheme
+      PHYVAR2D1(anis,         'VN=anis         ;ON=ANIS;VD=anisotropy                                                                ;VB=p0')
+      PHYVAR2D1(are,          'VN=are          ;ON=ARE ;VD=grid point area (km2)                                                     ;VB=p0')
+      PHYVAR2D1(excw,         'VN=excw         ;ON=EXCW;VD=water depth exceeding ground water capacity                               ;VB=p0')
+      PHYVAR2D1(lbedr,        'VN=lbedr        ;ON=IBED;VD=soil layer containing water table                                         ;VB=p0')
+      PHYVAR2D1(leggw,        'VN=leggw        ;ON=LEG ;VD=canal length                                                              ;VB=p0')
+      PHYVAR2D1(slpgw,        'VN=slpgw        ;ON=SLP ;VD=land surface slope                                                        ;VB=p0')
+      PHYVAR2D1(totw,         'VN=totw         ;ON=WATT;VD=ground water storage                                                      ;VB=p0')
+      PHYVAR2D1(wtnew,        'VN=wtnew        ;ON=WT2 ;VD=updated ground water storage                                              ;VB=p0')
+
+   endif IF_CLASS
+
 
    IF_LAKES: if (schmlake /= 'NIL') then
       PHYVAR2D1(frv_li,       'VN=frv_li       ;ON=LIFV;VD=Lake ice surface friction velocity                                ;VB=p0')

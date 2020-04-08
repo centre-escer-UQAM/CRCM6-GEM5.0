@@ -15,10 +15,11 @@
 !-------------------------------------- LICENCE END ---------------------------
 
 module sfc_options
+   use class_configs
    implicit none
    public
    save
- 
+
    integer, parameter, private :: IDOUBLE = 8
 
    !#
@@ -201,10 +202,11 @@ module sfc_options
    !# * 'SVS ' : Soil, Vegetation, and Snow (SVS) (Multibudget) land sfc scheme
    character(len=16) :: schmsol     = 'ISBA'
    namelist /surface_cfgs/ schmsol
-   character(len=*), parameter :: SCHMSOL_OPT(3) = (/ &
-        'NIL ', &
-        'ISBA', &
-        'SVS '  &
+   character(len=*), parameter :: SCHMSOL_OPT(4) = (/ &
+        'NIL  ', &
+        'ISBA ', &
+        'SVS  ', &
+        'CLASS'  &
         /)
 
    !# Urban surface processes
@@ -373,6 +375,18 @@ module sfc_options
    !# Height at which to compute anemomenter-level winds (m)
    real              :: zu = 10.
    namelist /surface_cfgs/ zu
+
+
+   !# CLASS parameters
+   !# ================
+   !# Number of soil layers in CLASS
+   integer           :: class_ig    = 3
+   namelist /surface_cfgs/ class_ig
+
+   !# Soil layer thickness in CLASS
+   real              :: schmsol_lev(slevmax+3) = 0.0
+   namelist /surface_cfgs/ schmsol_lev
+
 
 contains
 

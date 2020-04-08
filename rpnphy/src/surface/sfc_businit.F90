@@ -238,6 +238,7 @@ print *,'sfc_businit ncvxcg:',ncvxcg
    PHYVAR2D1(fvapliqaf,    'VN=fvapliqaf    ;ON=AHFL;VD=accum. surf. evaporation (HFLQ) (kg/m2 or mm)                     ;VB=p0')
    PHYVAR3D1(runofftot,    'VN=runofftot    ;ON=TRUN;VD=total surface runoff                           ;VS=A*'//nagg//' ;VB=v0')
    PHYVAR3D1(runofftotaf,  'VN=runofftotaf  ;ON=TRAF;VD=accum. of total surface runoff                 ;VS=A*'//nagg//' ;VB=p0')
+   PHYVAR2D1(snoma,        'VN=snoma        ;ON=I5  ;VD=snow mass                                                         ;VB=p0        ;MIN=0')
 
    IF_ISBA: if (schmsol == 'ISBA') then
       PHYVAR2D1(acoef,        'VN=acoef        ;ON=1I  ;VD=a coef. in wgeq                                                   ;VB=p0')
@@ -288,7 +289,6 @@ print *,'sfc_businit ncvxcg:',ncvxcg
       endif
       PHYVAR3D1(snoal,        'VN=snoal        ;ON=I6  ;VD=albedo of snow                                 ;VS=A@'//nm//'   ;VB=p0        ;MIN=0')
       PHYVAR3D1(snoden,       'VN=snoden       ;ON=DN  ;VD=snow density in kg/m3                          ;VS=A@'//nm//'   ;VB=p0        ;MIN=0; IN=DN0')
-      PHYVAR2D1(snoma,        'VN=snoma        ;ON=I5  ;VD=snow mass                                                         ;VB=p0        ;MIN=0')
       PHYVAR2D1(snoro,        'VN=snoro        ;ON=7S  ;VD=relative snow density                                             ;VB=p1;IN=DN  ;MIN=0')
       PHYVAR2D1(stomr,        'VN=stomr        ;ON=RS  ;VD=minimum stomatal resistance                                       ;VB=p0')
       PHYVAR3D1(tsoil,        'VN=tsoil        ;ON=I0  ;VD=surface and soil temperatures                  ;VS=A*2          ;VB=p1')
@@ -394,7 +394,6 @@ print *,'sfc_businit ncvxcg:',ncvxcg
       PHYVAR2D1(snoal,        'VN=snoal        ;ON=SNAL;VD=snow-over-low-veg/bare-ground albedo                              ;VB=p1        ;MIN=0')
       PHYVAR2D1(snoden,       'VN=snoden       ;ON=SNDN;VD=snow-over-low-veg/bare-ground density in kg/m3                    ;VB=p1        ;MIN=0')
       PHYVAR2D1(snodpl,       'VN=snodpl       ;ON=SNDP;VD=snow-over-low-veg/bare-ground depth                               ;VB=p1        ;MIN=0')
-      PHYVAR2D1(snoma,        'VN=snoma        ;ON=SNM ;VD=snow-over-low-veg/bare-ground mass                                ;VB=p0        ;MIN=0')
       PHYVAR2D1(snoro,        'VN=snoro        ;ON=SNDR;VD=snow-over-low-veg/bare-ground relative density                    ;VB=p0        ;MIN=0')
       PHYVAR2D1(snval,        'VN=snval        ;ON=SVAL;VD=snow-under-high-veg albedo                                        ;VB=p1')
       PHYVAR2D1(snvden,       'VN=snvden       ;ON=SVDN;VD=snow-under-high-veg density in kg/m3                              ;VB=p1')
@@ -514,7 +513,6 @@ print *,'sfc_businit ncvxcg:',ncvxcg
       PHYVAR3D1(sand,         'VN=sand         ;ON=SAND;VD=percentage of sand in soil                     ;VS=A*'//ncg//'          ;VB=p0')
       PHYVAR2D1(sdepth,       'VN=sdepth       ;ON=DPTH;VD=depth of soil water layer in CLASS                                        ;VB=p0')
       PHYVAR2D1(snoal,        'VN=snoal        ;ON=I6  ;VD=albedo of snow                                                            ;VB=p0')
-      PHYVAR2D1(snoma,        'VN=snoma        ;ON=I5  ;VD=snow mass                                                                 ;VB=p0')
       PHYVAR3D1(stomr,        'VN=stomr        ;ON=RS  ;VD=minimum stomatal resistance                    ;VS=A*'//ncv//'          ;VB=p0')
       PHYVAR2D1(subflw,       'VN=subflw       ;ON=R6  ;VD=Interflow from sides of soil column                                       ;VB=v0')
       PHYVAR2D1(taircan,      'VN=taircan      ;ON=STAC;VD=air temperature inside canopy                                             ;VB=p0')

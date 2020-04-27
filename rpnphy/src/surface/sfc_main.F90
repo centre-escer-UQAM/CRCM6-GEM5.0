@@ -349,6 +349,13 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
               dt, kount, trnch, &
               ni_soil, ni_soil, nk-1)
 
+      elseif (schmsol.eq.'CLASS') then
+
+         call class_main (bus_soil, siz_soil, &
+              ptr_soil, nvarsurf, &
+              dt, kount, trnch, &
+              ni_soil, ni_soil, nk-1)
+
       endif
       if (phy_error_L) return
 

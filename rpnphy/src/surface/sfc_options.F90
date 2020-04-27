@@ -377,8 +377,8 @@ module sfc_options
    namelist /surface_cfgs/ zu
 
 
-   !# CLASS parameters
-   !# ================
+   !# CLASS & CTEM parameters
+   !# =======================
    !# Number of soil layers in CLASS
    integer           :: class_ig    = 3
    namelist /surface_cfgs/ class_ig
@@ -387,8 +387,36 @@ module sfc_options
    real              :: schmsol_lev(slevmax+3) = 0.0
    namelist /surface_cfgs/ schmsol_lev
 
+   !# Ground water scheme
+   !# 1: Old scheme
+   !# 2: New scheme with simplified base flow calculations
+   !# 3: New scheme with full base flow calculations
+   integer           :: igwscheme = 1
+   namelist /surface_cfgs/ igwscheme
+
+   !# Dynamic vegetation (competition between plant types) within CTEM
+   logical           :: ctem_compete = .false.
+   namelist /surface_cfgs/ ctem_compete
+
+   !# Vegetation processes within CLASS
+   !# 0: computed by CLASS
+   !# 1: computed by CTEM
+   integer           :: ctem_mode   = 0
+   namelist /surface_cfgs/ ctem_mode
+
+   !# Carbon spinup in CTEM
+   !# 1   : no spinup
+   !# 2-10: enabled (higher numbers spin up soil carbon pool faster)
+   integer           :: ctem_spinfast = 1
+   namelist /surface_cfgs/ ctem_spinfast
+
+   !# Start with no vegetation (applies only if ctem_compete = .true.)
+   logical           :: ctem_startbare = .false.
+   namelist /surface_cfgs/ ctem_startbare
 
 contains
+
+
 
    function sfc_options_init() result(F_istat)
       use sfclayer_mod, only: sl_get, SL_OK

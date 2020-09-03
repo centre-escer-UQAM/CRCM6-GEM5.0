@@ -1,0 +1,27 @@
+
+
+integer, parameter :: nbs = 4         !< Number of modelled shortwave radiation wavelength bands COMBAK Can be read in from the init file when I have the new snow albedo scheme fully implemented. Leave here for now.
+
+classGatherScatter.f90:    real, intent(out)    :: SALBROT(NL,NM,NBS) !< All-sky albedo  [  ]
+classGatherScatter.f90:    real, intent(out)    :: CSALROT(NL,NM,NBS) !< Clear-sky albedo  [  ]
+classGatherScatter.f90:    real, intent(in)     :: SALBGAT(ILG,NBS) !< All-sky albedo  [  ]
+classGatherScatter.f90:    real, intent(in)     :: CSALGAT(ILG,NBS) !< Clear-sky albedo  [  ]
+
+"energyBudgetPrepi" calculates:
+  real, intent(out)   :: TCSNOW(ILG)    !< Thermal conductivity of snow \f$[W m^{-1} K^{-1}]\f$
+it is called form "energyBudgetDriver"
+
+Add
+  real, intent(in) :: REFSNO(ILG)  !< Snow grain size (for ISNOALB=1 option)  [m]
+  real, intent(in) :: BCSNO(ILG)   !< Black carbon mixing ratio (for ISNOALB=1 option)  \f$[kg m^{-3}]\f$
+
+
+Ask Joe for climatology of:
+  real, intent(in)    :: BCSN  (ILG)  !< Black carbon mixing ratio \f$[kg m^{-3}]\f$
+
+!! The above calculations are performed if the flag IALS is set to
+!! zero. If IALS is set to one, indicating that assigned snow
+!! albedos are to be used instead of calculated values, \f$\alpha_{s, VIS}\f$ and
+!! \f$\alpha_{s, NIR}\f$ are set to the assigned values ASVDAT and ASIDAT
+!! respectively.
+

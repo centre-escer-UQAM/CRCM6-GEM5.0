@@ -82,7 +82,7 @@ subroutine itf_phy_output2 (stepno)
          end if
       endif
 
-      istat = fstopc('MSGLVL','SYSTEM',.false.)
+      istat = fstopc('MSGLVL','SYSTEM',0)
       out_type_S   = 'REGPHY'
 
       p_li0= Grd_lphy_i0 ; p_li1=Grd_lphy_in
@@ -312,7 +312,7 @@ subroutine itf_phy_output2 (stepno)
       deallocate(rff,irff,data4d,zero)
       deallocate(hybm,hybt); nullify(hybm,hybt)
 
-      istat = fstopc('MSGLVL','INFORM',.false.)
+      istat = fstopc('MSGLVL','WARNIN',0)
 
  7001 format(/,' OUT_PHY- WRITING PHYSICS OUTPUT FOR STEP (',I8,') in directory: ',a)
  8001 format(/,' OUT_PHY- WRITING CASCADE OUTPUT FOR STEP (',I8,') in directory: ',a)

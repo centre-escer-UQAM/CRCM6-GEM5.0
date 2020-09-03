@@ -85,7 +85,8 @@ End Interface
       endif
 
       modeip1= 1
-      if (kind == 2) modeip1= 3 !old ip1 style for pressure lvls output
+! Commented by KW
+!      if (kind == 2) modeip1= 3 !old ip1 style for pressure lvls output
 
       if ( lstep >= 0 ) then
          RP2%lo  = dble(lstep           ) * dble(Step_dt) / 3600.d0

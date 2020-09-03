@@ -42,8 +42,10 @@ integer, parameter :: RMN_CONV_TH = 6
 
 logical, parameter :: RMN_CONV_USEFORMAT_L = .true.
 
-logical, parameter :: RMN_OPT_GET = .true.
-logical, parameter :: RMN_OPT_SET = .false.
+!logical, parameter :: RMN_OPT_GET = .true.
+!logical, parameter :: RMN_OPT_SET = .false.
+integer, parameter :: RMN_OPT_GET = 2
+integer, parameter :: RMN_OPT_SET = 0
 
 !- newdate mode
 integer, parameter :: RMN_DATE_STAMP2TRUE = 1
@@ -68,7 +70,7 @@ interface
    integer function fstopc(F_option_S,F_value_S,F_get_L)
       character(len=*),intent(in) :: F_option_S
       character(len=*) :: F_value_S !I/O
-      logical,intent(in) :: F_get_L
+      integer,intent(in) :: F_get_L
    end function fstopc
 
    integer function exdb(F_title,F_version,F_ipcode)

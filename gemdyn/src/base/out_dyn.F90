@@ -48,7 +48,7 @@
 !----------------------------------------------------------------------
 !
       call timing_start2 ( 80, 'OUT_DYN', 1)
-      if (.not.Lun_debug_L) istat= fstopc('MSGLVL','SYSTEM',.false.)
+      if (.not.Lun_debug_L) istat= fstopc('MSGLVL','SYSTEM',0)
 
       Out_type_S   = 'REGDYN'
 !
@@ -147,7 +147,7 @@
 
       endif
 
-      istat = fstopc('MSGLVL','INFORM',.false.)
+      istat = fstopc('MSGLVL','WARNIN',0)
       call timing_stop ( 80 )
 
  7001 format(/,' OUT_DYN- WRITING DYNAMIC OUTPUT FOR STEP (',I8,') in directory: ',a)

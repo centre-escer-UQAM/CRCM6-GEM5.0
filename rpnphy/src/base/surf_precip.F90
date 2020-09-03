@@ -35,7 +35,7 @@ contains
       ! T        low-level air temperature
       ! tlc      total liquid "convective" precipitation rate
       ! tls      total liquid "stratiform" precipitation rate
-      ! tcs      total solid  "convective" precipitation rate
+      ! tsc      total solid  "convective" precipitation rate
       ! tss      total solid  "stratiform" precipitation rate
       !          - Output -
       ! rainrate rate of precipitation at the surface (liquid)

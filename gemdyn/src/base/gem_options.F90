@@ -427,6 +427,11 @@ module gem_options
    namelist /gem_cfgs  / Out3_lieb_conv
    namelist /gem_cfgs_p/ Out3_lieb_conv
 
+   !# Unit of output PILOT file name change
+   character(len=16) :: Out3_pilot_unit_S = 'day'
+   namelist /gem_cfgs  / Out3_pilot_unit_S
+   namelist /gem_cfgs_p/ Out3_pilot_unit_S
+
    !# Sortie jobs lauched every Out3_postproc_fact*Out3_close_interval_S
    integer :: Out3_postproc_fact = 0
    namelist /gem_cfgs  / Out3_postproc_fact

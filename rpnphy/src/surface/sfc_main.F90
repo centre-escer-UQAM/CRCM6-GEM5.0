@@ -85,6 +85,7 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    ! 020      L. Spacek   (Nov 2011)  - insert calculations of tve, za etc.
    !                                    call to calz, lin_kdif_sim1
    ! 021      K. Winger (ESCER/UQAM) (Oct 2019)  - Add call to lake models
+   ! 022      K. Winger (ESCER/UQAM) (Jun 2020)  - Add call CLASS
    !*@/
 #include <msg.h>
    include "sfcinput.cdk"
@@ -198,6 +199,8 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
       lemax = max(zmg(i),zglsea(i),zglacier(i),zurban(i), zlakefr(i))
       if (lemin.lt.0. .or. lemax.gt.1.) then
          call msg_toall(MSG_ERROR, '(sfc_main) INVALID WEIGHTS FOR SURFACE PROCESSES, MAKE SURE THAT LAND-SEA MASK, SEA ICE FRACTION, FRACTION OF GLACIERS, MASK OF URBAN AREAS, ARE BOUNDED BETWEEN 0 AND 1')
+print *,'sfc_main: i,zmg,zglsea,zglacier,zurban,zlakefr:', i,zmg(i),zglsea(i),zglacier(i),zurban(i),zlakefr(i)
+
          return
       endif
    end do
@@ -354,7 +357,7 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
          call class_main (bus_soil, siz_soil, &
               ptr_soil, nvarsurf, &
               dt, kount, trnch, &
-              ni_soil, ni_soil, nk-1)
+              ni_soil, nk-1, class_ig)
 
       endif
       if (phy_error_L) return

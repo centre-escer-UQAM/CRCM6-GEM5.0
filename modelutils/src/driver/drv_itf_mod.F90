@@ -145,7 +145,7 @@ contains
          call handle_error_setdebug(debug_L)
       case('p')
          tmp_S='plus'
-         istat = fstopc('MSGLVL','INFORM',RMN_OPT_SET)
+         istat = fstopc('MSGLVL','WARNIN',RMN_OPT_SET)
          istat = wb_verbosity(WB_MSG_WARN)
          istat = gmm_verbosity(GMM_MSG_ERROR)
          call msg_set_minMessageLevel(MSG_INFOPLUS)

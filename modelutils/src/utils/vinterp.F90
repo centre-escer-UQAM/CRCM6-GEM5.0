@@ -228,7 +228,7 @@ contains
          call msg(MSG_WARNING,'(vinterp) Cannot Interpolate, problem getting levels: '//trim(msg_S))
          return
       endif
-      call msg(MSG_INFO,'(vinterp) '//trim(tmp_S)//': '//trim(msg_S))
+! (KW)      call msg(MSG_INFO,'(vinterp) '//trim(tmp_S)//': '//trim(msg_S))
 
 
       if (samevert_L) then

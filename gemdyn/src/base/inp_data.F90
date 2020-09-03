@@ -75,7 +75,7 @@
 !
       if (Lun_out > 0) write(lun_out,9000) trim(F_datev)
 
-      if (.not.Lun_debug_L) istat= fstopc ('MSGLVL','SYSTEM',.false.)
+      if (.not.Lun_debug_L) istat= fstopc ('MSGLVL','SYSTEM',0)
 
       call inp_open ( F_datev, vgd_src )
 
@@ -383,7 +383,7 @@
 
       call inp_close ()
 
-      istat = fstopc ('MSGLVL','WARNIN',.false.)
+      istat = fstopc ('MSGLVL','WARNIN',0)
 
  9000 format(/,' TREATING INPUT DATA VALID AT: ',a,&
              /,' ===============================================')

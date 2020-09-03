@@ -42,7 +42,8 @@
          wk(k)= Cstv_hco0_8*Opr_zeval_8(k)
       enddo
 
-      sol_nk = trp_12sn-east*Lam_gbpil_T
+      ! Prevent sol_nk from becoming negative so the spectral nudging does not crash (KW)
+      sol_nk = max(0, trp_12sn-east*Lam_gbpil_T)
 
       if ( Sol_type_S(1:9) == 'ITERATIVE' ) then
 

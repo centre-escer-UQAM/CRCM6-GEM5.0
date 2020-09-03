@@ -354,7 +354,7 @@ contains
          endif
          vn1_S = fld%vn(1); istat = clib_toupper(vn1_S)
          fn1_S = files_S(ii); istat = clib_toupper(fn1_S)
-         if (ii == 1) call msg(MSG_INFO,'(input) Looking for '//trim(vn1_S)//' in file "'//trim(fn1_S)//'" (interpolation h/v/t: '//trim(fld%hint_S)//'/'//trim(fld%vint_S)//'/'//trim(fld%tint_S)//')')
+! (KW)         if (ii == 1) call msg(MSG_INFO,'(input) Looking for '//trim(vn1_S)//' in file "'//trim(fn1_S)//'" (interpolation h/v/t: '//trim(fld%hint_S)//'/'//trim(fld%vint_S)//'/'//trim(fld%tint_S)//')')
          if (ii > 1) then
             fn2_S = files_S(ii-1); istat = clib_toupper(fn2_S)
             call msg(MSG_INFO,'(input) '//trim(vn1_S)//' not found in "'//trim(fn2_S)//'"; looking in "'//trim(fn1_S)//'"')
@@ -554,7 +554,7 @@ contains
             istat = time_interp_status(F_fld%vn(1),F_fld%jdatev,t_int_type)
             if (istat > 0 .and. istat < nint(TIME_INTERP_WEIGHT_FACT)) then
                write(tmp_S,'(i6)') (istat*100)/nint(TIME_INTERP_WEIGHT_FACT)
-               call msg(MSG_INFO,'(input) Got time interpolated value for '//trim(F_fld%vn(1))//' (interpolation h/v/t: '//trim(F_fld%hint_S)//'/'//trim(F_fld%vint_S)//'/'//trim(tint_S)//') (t_int_weight='//trim(tmp_S)//'%)')
+! (KW)               call msg(MSG_INFO,'(input) Got time interpolated value for '//trim(F_fld%vn(1))//' (interpolation h/v/t: '//trim(F_fld%hint_S)//'/'//trim(F_fld%vint_S)//'/'//trim(tint_S)//') (t_int_weight='//trim(tmp_S)//'%)')
             endif
          else
             call msg(MSG_WARNING,'(input) Problem getting: '//trim(F_fld%vn(1))//' (interpolation h/v/t: '//trim(F_fld%hint_S)//'/'//trim(F_fld%vint_S)//'/'//trim(tint_S)//')')

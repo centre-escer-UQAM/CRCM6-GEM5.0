@@ -57,7 +57,7 @@ module phy_input_mod
    integer, external :: phyent2per, phyfillbus
 
    logical, parameter :: IS_DIR = .true.
-   logical, parameter :: FSTOPC_SET = .false.
+   integer, parameter :: FSTOPC_SET = 0
  
    character(len=32), parameter  :: VGRID_M_S = 'ref-m'
    character(len=32), parameter  :: VGRID_T_S = 'ref-t'

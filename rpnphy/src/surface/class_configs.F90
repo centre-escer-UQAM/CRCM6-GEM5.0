@@ -1,3 +1,4 @@
+#if defined(DOC)
 !-------------------------------------- LICENCE BEGIN ------------------------------------
 !Environment Canada - Atmospheric Science and Technology License/Disclaimer, 
 !                     version 3; Last Modified: May 7, 2008.
@@ -13,36 +14,29 @@
 !if not, you can write to: EC-RPN COMM Group, 2121 TransCanada, suite 500, Dorval (Quebec), 
 !CANADA, H9P 1J3; or send e-mail to service.rpn@ec.gc.ca
 !-------------------------------------- LICENCE END --------------------------------------
-
-!/@*
-module class_configs
-
-  implicit none
-
 !Revisions
 ! 001      L. Duarte   (Dec 2008) - CLASS_IG is now a user-defined option
 !                                   and is declared in options.cdk
+! 002      K. Winger   (Jun 2020) - Turned into module
+#endif
 
-!     Parameters of land scheme CLASS
-!     -------------------------------
-!     Number of vegetation classes that have a special treatment
-      integer, parameter :: CLASS_IC = 4
-
-!     Maximum number of CLASS soil layers
-      integer, parameter :: slevmax = 200
-
-!     Parameters for CTEM
-!     -------------------
+module class_configs
+!     parameters of land scheme CLASS
+!     integer CLASS_IC, CLASS_IG
+      integer CLASS_IC
+      integer CTEM_ICC
+!
+!     number of vegetation classes that have a special treatment
+      parameter (CLASS_IC=4)
+!
 !     number of vegetation classes (PFTs) in CTEM
-      integer, parameter :: CTEM_ICC = 9
-
-!     Other parameters used for the correspondence between CTEM and CLASS PFTs
-!     ------------------------------------------------------------------------
-!     Number of CTEM PFTs within each CLASS PFT
-      integer, parameter :: NOL2PFT(CLASS_IC)=(/2,3,2,2/)
+      parameter (CTEM_ICC=9)
+!
+!     other parameters used for the correspondence between CTEM and CLASS PFTs:
+!     number of CTEM PFTs within each CLASS PFT
+      INTEGER, PARAMETER :: NOL2PFT(CLASS_IC)=(/2,3,2,2/)
 
 !     index of the first CTEM PFT within each CLASS PFT
-      integer, parameter :: FIRSTPFT(CLASS_IC)=(/1,3,6,8/)
+      INTEGER, PARAMETER :: FIRSTPFT(CLASS_IC)=(/1,3,6,8/)
 
-
-end module class_configs
+end module

@@ -65,6 +65,9 @@ module sfclayer_mod
   public :: sl_prelim       !Preliminary surface layer diagnostics
   public :: sl_sfclayer     !Surface layer parameterization
   public :: sl_adjust       !Adjust diagnostic values
+  public :: set_class_const !Initialization of constants for CLASS
+                            !Added here because it requires access to some private parameters
+
 
   ! Generic procedures
   interface sl_put
@@ -1150,5 +1153,64 @@ contains
     !
     return
   end function sf_pblheight
+
+
+!**S/R SET_CLASS_CONST -  INITIALIZATION OF CONSTANTS
+!                         FOR THE CLASS PACKAGE
+  subroutine set_class_const (delt,vamin)
+!
+      IMPLICIT NONE
+!
+      real delt,vamin
+!
+!Author
+!          B. Bilodeau (June 2004)
+!
+!Revisions
+! 001      B. Dugas    (Aug   2007) - Use CLASSD to initialize constants
+! 002      B. Dugas    (Jan   2009) - Define VAMIN, correct DELT declaration
+! 003      K. Winger   (May   2020) - Rename to class_GEM_comm 
+!                                   - Adjust to CLASSIC
+!
+!Object
+!          To initialize constants from conshy.cdk and surfcon.cdk for
+!          the CLASS package through calls to the CLASS communication 
+!          subroutine CLASSD
+!
+!Arguments
+!          - Input -
+! delt     timestep in seconds
+!
+!*
+!
+!IMPLICITES
+!
+!#include "consphy.cdk"
+#include "thermoconsts.inc"
+!#include "surfcon.cdk"
+#include "clefcon.cdk"
+!
+      print *, 'set_class_const', delt,vamin
+!***********************************************************************
+      call class_GEM_comm ('DELT'   , delt   )
+      call class_GEM_comm ('VAMIN'  , vamin  )
+!
+      call class_GEM_comm ('SPHAIR' , CPD    )
+      call class_GEM_comm ('GRAV'   , GRAV   )
+      call class_GEM_comm ('VKC'    , KARMAN )
+      call class_GEM_comm ('RGAS'   , RGASD  )
+      call class_GEM_comm ('RGASV'  , RGASV  )
+      call class_GEM_comm ('SBC'    , STEFAN )
+      call class_GEM_comm ('TFREZ'  , TCDK   )
+!
+      call class_GEM_comm ('BETA'   , BETA   )
+      call class_GEM_comm ('FACTN'  , FACTN  )
+      call class_GEM_comm ('HMIN'   , HMIN   )
+!
+      call class_GEM_comm ('PI'     , PI     )
+!
+      return
+  end subroutine set_class_const
+
 
 end module sfclayer_mod

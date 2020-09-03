@@ -126,6 +126,9 @@
          return
       endif
       Out3_postproc_fact = max(0,Out3_postproc_fact)
+      call low2up  (Out3_pilot_unit_S ,dumc_S)
+      Out3_pilot_unit_S = trim(dumc_S)
+
 
       if(Out3_nbitg < 0) then
          if (lun_out>0) write (Lun_out, 9154)

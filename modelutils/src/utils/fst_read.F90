@@ -629,6 +629,7 @@ contains
            typvar_S, nomvar_S, etiket_S, &
            grtyp_S(1:1), ig1, ig2, ig3, ig4, swa, lng, dltf, &
            ubc, extra1, extra2, extra3)
+print *,'(fst_read) looking for nomvar_S,dateo,ip1:',trim(nomvar_S),dateo,ip1
       if (.not.RMN_IS_OK(istat) .or. ni1<1 .or. nj1<1 .or. nk1<1) then
          call msg(MSG_WARNING,'(fst) read - Cannot get field dims')
          return

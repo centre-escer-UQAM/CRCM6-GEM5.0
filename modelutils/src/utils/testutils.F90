@@ -252,14 +252,14 @@ contains
          case('w')
             call msg_set_minMessageLevel(MSG_WARNING)
             istat = wb_verbosity(WB_MSG_WARN)
-            istat= fstopc('MSGLVL','SYSTEM',.false.)
+            istat= fstopc('MSGLVL','SYSTEM',0)
         case('e')
             call msg_set_minMessageLevel(MSG_ERROR)
             istat = wb_verbosity(WB_MSG_ERROR)
-            istat= fstopc('MSGLVL','SYSTEM',.false.)
+            istat= fstopc('MSGLVL','SYSTEM',0)
          end select
       else
-         istat= fstopc('MSGLVL','SYSTEM',.false.)
+         istat= fstopc('MSGLVL','SYSTEM',0)
       endif
       !---------------------------------------------------------------------
       return

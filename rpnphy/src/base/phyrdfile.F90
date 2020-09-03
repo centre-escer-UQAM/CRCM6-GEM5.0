@@ -95,7 +95,7 @@
 
  9988 call handle_error(status,'itf_phy_rdfile','itf_phy_rdfile')
 
-      inbr = fstopc ('MSGLVL','WARNIN',.false.)
+      inbr = fstopc ('MSGLVL','WARNIN',0)
 
  1001 format (/'READING ',a,' FILE:'/a)
 !

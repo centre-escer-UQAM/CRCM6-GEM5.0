@@ -81,8 +81,7 @@ subroutine out_open_file ( F_prefix_S )
          ! Write pilot files always as DAY or subdaily files (KW)
          if ( trim(F_prefix_S) == 'nm' ) then
             interval = 1
-            if ( curr_unit_S(1:3) == 'MON' ) curr_unit_S = 'DAY'
-            unit_ext = ''   ! no extension for pilot files (KW)
+            curr_unit_S = Out3_pilot_unit_S(1:3)
          endif
 
 
@@ -122,6 +121,14 @@ subroutine out_open_file ( F_prefix_S )
 !print*,'out_open_file new date:',date_S
 !print *,'out_open_file next_out_step:', next_out_step
 !print *,'out_open_file date_S:',date_S
+
+         ! No unit extension for monthly or daily pilot files (KW)
+         if ( trim(F_prefix_S) == 'nm' ) then
+            if ( curr_unit_S(1:3) == "MON" .or. curr_unit_S(1:3) == "DAY" ) then
+               unit_ext = ''
+            end if
+         endif
+
 
          if ( lctl_step == 0 ) then
             prognum_S = '00000000'

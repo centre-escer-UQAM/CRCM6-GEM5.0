@@ -441,9 +441,9 @@ contains
          case('debug_l')
             istat = str_tobool(m_cfgs(F_id)%debug_L,val_S)
             if (m_cfgs(F_id)%debug_L) then
-               istat = fstopc('MSGLVL','WARNIN',.false.)
+               istat = fstopc('MSGLVL','WARNIN',0)
             else
-               istat = fstopc('MSGLVL','SYSTEM',.false.)
+               istat = fstopc('MSGLVL','SYSTEM',0)
             endif
             write(msg_S,'(l)') m_cfgs(F_id)%debug_L
             call msg(MSG_INFO,'(outcfg) '//trim(key_S)//': '//trim(msg_S))

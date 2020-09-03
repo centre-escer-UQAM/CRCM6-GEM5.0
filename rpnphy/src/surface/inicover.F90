@@ -18,15 +18,18 @@ subroutine inicover2(kount, ni, trnch)
    use mu_jdate_mod, only: jdate_day_of_year
    use sfc_options
    use sfcbus_mod
+   use class_configs
    implicit none
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
+   include "sfcinput.cdk"
 
    integer ni, kount, trnch
 
    !@Author Bernard Bilodeau and Stephane Belair (May 2000)
    !@Revision
    ! 001      see version 5.5.0 for previous history
+   ! 002      K. Winger (UQAM/ESCER) Jun 2020 - Section for CLASS added
    !@Object Initialize vegetation fields for the surface schemes
    !@Arguments
    !       - Input -
@@ -77,10 +80,12 @@ subroutine inicover2(kount, ni, trnch)
    real cvdat(nclass), rgldat(nclass), gammadat(nclass)
    real alvsdat(nclass), alnidat(nclass),rsmindat(nclass)
    real qa50dat(nclass),vpdadat(nclass),vpdbdat(nclass)
-   real psgadat(nclass),psgbdat(nclass),z0mdat(nclass)
+   real psgadat(nclass),psgbdat(nclass),z0mdat(nclass),ln_z0mdat(nclass)
    real laimxdat(nclass),laimndat(nclass),vgmasdat(nclass)
    real rootdat(nclass),fveg(4)
    integer vgclass(nclass),vg000(nclass)
+
+   integer :: nmos
    
    data aldat/ &
         0.13   , 0.70   , 0.13   , 0.14   , 0.12   , &
@@ -213,6 +218,14 @@ subroutine inicover2(kount, ni, trnch)
         1.35   , 0.01   , 0.05   , 0.05   , 1.5    , &
         0.05   /
 
+   DATA ln_z0mdat / &
+        -6.91  , -6.91  , -6.91  ,  0.405 ,  1.25  , &
+         0.0   ,  0.693 ,  1.10  , -0.223 , -3.0   , &
+        -1.9   , -1.9   , -3.91  , -2.53  , -2.53  , &
+        -2.53  , -1.05  , -1.39  , -2.30  , -2.53  , &
+         0.3   , -4.61  , -3.0   , -3.0   ,  0.405 , &
+        -3.0   /
+
    data laimxdat/ &
         0.0    , 0.0    , 0.0    , 2.0    , 10.    , &
         2.0    , 6.0    , 10.    , 4.0    , 2.0    , &
@@ -332,13 +345,15 @@ subroutine inicover2(kount, ni, trnch)
    integer(IDOUBLE), parameter :: MU_JDATE_HALFDAY = 43200 !#TODO: use value from my_jdate_mod
    real, external :: interpveg
 
-   integer :: i,j
+   integer :: i,j,k
    real :: julien, juliens
+   real :: fcansum
 
    real, dimension(nclass) :: aldatd, cvdatd, d2datd, gammadatd, &
         laidatdn, laidatds, rgldatd, rsmindatd, &
         vegdatdn, vegdatds
-   real, pointer, dimension (:,:) :: zfcanmx
+   real, pointer, dimension (:,:) :: zfcanmx, zfcancmx, zvegf
+
 
    IF_ISBA: if (schmsol == 'ISBA') then
 
@@ -428,6 +443,88 @@ subroutine inicover2(kount, ni, trnch)
            PTR1D(dlat), ni, nclass)
 
    endif IF_ISBA
+
+
+   IF_CLASS: if (schmsol == 'CLASS') then
+       nmos = 0
+       call agvgclas(PTR1D(vegf),ALVSDAT, VGCLASS,PTR1D(ALVSC), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),ALNIDAT, VGCLASS,PTR1D(ALIRC), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LAIMXDAT,VGCLASS,PTR1D(LAIMAX),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LAIMNDAT,VGCLASS,PTR1D(LAIMIN),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VGMASDAT,VGCLASS,PTR1D(VEGMA), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),ROOTDAT, VGCLASS,PTR1D(ROOTDP),NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),LN_Z0MDAT,VGCLASS,PTR1D(ZOLN), NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),RSMINDAT,VGCLASS,PTR1D(STOMR), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),QA50DAT, VGCLASS,PTR1D(QA50),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VPDADAT, VGCLASS,PTR1D(VPDA),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),VPDBDAT, VGCLASS,PTR1D(VPDB),  NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),PSGADAT, VGCLASS,PTR1D(PSIGA), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),PSGBDAT, VGCLASS,PTR1D(PSIGB), NI,class_ic  , &
+                     NCLASS,0,nmos,1)
+       call agvgclas(PTR1D(vegf),ROOTDAT, VG000  ,PTR1D(SDEPTH),NI,1         , &
+                     NCLASS,0,nmos,1)
+       call agvgmask(PTR1D(vegf),         VGCLASS,PTR1D(FCANMX),NI,class_ic+1, &
+                     NCLASS,0,nmos,1)
+       IF (ctem_mode.gt.0) &
+       call agvgmaskc(PTR1D(vegf), VGCLASS,PTR1D(FCANCMX), NI, class_ic, &
+                      ctem_ICC, NCLASS,0,nmos,1)
+
+#define MKPTR2D(NAME1,NAME2) nullify(NAME1); if (vd%NAME2%i > 0 .and.  associated(busptr(vd%NAME2%i)%ptr)) NAME1(1:ni,1:vd%NAME2%mul*vd%NAME2%niveaux) => busptr(vd%NAME2%i)%ptr(:,trnch)
+
+   MKPTR2D(zfcancmx,fcancmx)
+   MKPTR2D(zfcanmx,fcanmx)
+   MKPTR2D(zvegf,vegf)
+
+!
+!       Normalize FCANMX
+        DO i=1,ni
+!          IF (vege_fields.ne.'CTEM') then
+          IF (.not.any('fcancmx'==phyinread_list_s(1:phyinread_n))) then
+
+!         Sum up CLASS vegetation fractions
+          fcansum = 0.
+!         Do not count too small fractions - their other fields were not initialized!
+          DO J=1,class_ic+1
+            if (ZFCANMX(i,j).lt.critmask) then
+              IF (ctem_mode.gt.0.and.j.lt.class_ic+1) then
+                DO k=1,nol2pft(j)
+                  ZFCANCMX(i,(firstpft(j)+k-1))=0.
+                enddo
+              end if
+              ZFCANMX(i,j)=0.
+            end if
+            fcansum = fcansum + ZFCANMX(i,j)
+          ENDDO
+!         Add bare soil (desert, VF(24))
+!          fcansum = fcansum + zvegf(i,24)
+          fcansum = fcansum + max(0.,zvegf(i,24))
+!         Normalize
+          if ( fcansum .ge. critmask ) then
+            DO J=1,class_ic+1
+              ZFCANMX(i,j) = ZFCANMX(i,j) / fcansum
+            ENDDO
+            IF (ctem_mode.gt.0) then
+              DO J=1,ctem_icc
+                ZFCANCMX(i,j) = ZFCANCMX(i,j) / fcansum
+              ENDDO
+            end if
+          end if
+
+          end if
+        ENDDO
+   endif IF_CLASS
 
    return
 end subroutine inicover2

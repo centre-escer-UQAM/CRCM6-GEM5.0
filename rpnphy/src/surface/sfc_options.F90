@@ -15,7 +15,7 @@
 !-------------------------------------- LICENCE END ---------------------------
 
 module sfc_options
-   use class_configs
+
    implicit none
    public
    save
@@ -384,15 +384,8 @@ module sfc_options
    namelist /surface_cfgs/ class_ig
 
    !# Soil layer thickness in CLASS
-   real              :: schmsol_lev(slevmax+3) = 0.0
+   real              :: schmsol_lev(200) = 0.0
    namelist /surface_cfgs/ schmsol_lev
-
-   !# Ground water scheme
-   !# 1: Old scheme
-   !# 2: New scheme with simplified base flow calculations
-   !# 3: New scheme with full base flow calculations
-   integer           :: igwscheme = 1
-   namelist /surface_cfgs/ igwscheme
 
    !# Dynamic vegetation (competition between plant types) within CTEM
    logical           :: ctem_compete = .false.

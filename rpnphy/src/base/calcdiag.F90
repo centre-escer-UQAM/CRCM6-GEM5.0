@@ -1017,6 +1017,11 @@ contains
             zfsaf(:) = 0.
             zivaf(:) = 0.
             zntaf(:) = 0.
+            zeccaf(:) = 0.
+            zecchaf(:) = 0.
+            zecclaf(:) = 0.
+            zeccmaf(:) = 0.
+            ztccaf(:) = 0.
             zflusolaf(:) = 0.
          endif
          if (radia(1:8) == 'CCCMARAD') then
@@ -1057,6 +1062,11 @@ contains
                zfsaf    (i) = zfsaf (i) + zfdss(i) * dt
                zivaf    (i) = zivaf (i) + ziv  (i) * dt
                zntaf    (i) = zntaf (i) + znt  (i) * dt
+               zeccaf   (i) = zeccaf   (i) + zecc     (i) * dt
+               zecchaf  (i) = zecchaf  (i) + zecch    (i) * dt
+               zecclaf  (i) = zecclaf  (i) + zeccl    (i) * dt
+               zeccmaf  (i) = zeccmaf  (i) + zeccm    (i) * dt
+               ztccaf   (i) = ztccaf   (i) + ztcc     (i) * dt
                zflusolaf(i) = zflusolaf(i) + zflusolis(i) * dt
             endif
 

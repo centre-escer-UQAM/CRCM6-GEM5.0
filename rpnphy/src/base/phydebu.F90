@@ -95,6 +95,7 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
    ! 041      A-M. Leduc  (Feb 2009) - add TRIGLAT
    ! 042      A. Plante (Sept. 2011) - allocate standard Pressure profil std_p_prof for non_oro gwd.
    ! 043      J. Milbrandt (Mar 2015) - add call to P3_INIT, for initialization for P3 microphysics
+   ! 044      K. Winger (Apr 2020)   - Read GHGs for current year
    !@Notes
    !          phy_debu does the following :
    !          1) it initializes a few constants necessary
@@ -237,6 +238,14 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
          return
       endif
    endif
+
+
+   ! CLASS (reading in of namelist)   Now done in surface!
+   ! - - - - - - - - - - - - - - - 
+!   if (schmsol == 'CLASS') then
+!      call class_init
+!   endif
+
 
    ! CONSTRUCTION OF THE 4 MAIN BUSES DICTIONARIES:
    ! BUSENT, BUSDYN, BUSPER and BUSVOL

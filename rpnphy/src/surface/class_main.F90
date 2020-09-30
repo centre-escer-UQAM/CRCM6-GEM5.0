@@ -282,7 +282,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: ZHEVS, ZHEVG, ZHMFC, ZHTCC, ZHTCS, ZPCFC, ZPCLC
   real,pointer,dimension(:)   :: ZPCPG, ZQFCF, ZQFCL, ZQFG, ZQFN
   real,pointer,dimension(:)   :: ZTBASFL, ZTOVRFL, ZTRUNOFF, ZTSUBFL, ZWSNOW
-  real,pointer,dimension(:)   :: ZWTRC, ZWTRS, ZWTRG, ZROFC, ZROFN, ZROVG
+  real,pointer,dimension(:)   :: ZWTRC, ZWTRS, ZWTRG, ZROFC, ZROFN, ZMELTS, ZROVG
   real,pointer,dimension(:)   :: ZOVRFLW, ZSUBFLW, ZBASFLW, ZTCAN, ZRCAN
   real,pointer,dimension(:)   :: ZCFLUX, ZPCPN, ZHMFN, ZALGWN, ZALGWV, ZALGDN, ZALGDV
   real,pointer,dimension(:)   :: FFC, FCS, FG, FGS, ZFL, ZRAINRATE, ZSNOWRATE
@@ -821,6 +821,7 @@ subroutine class_main (BUS, BUSSIZ, &
     ZRHOSNO   (1:N) => bus( x( SNODEN ,1,1 ) : )         !  inout Density of snow pack [kg/m^3]
     ZROFC     (1:N) => bus( x( ROFC   ,1,1 ) : )         ! output Liquid/frozen water runoff from vegetation [kg/m^2/s]
     ZROFN     (1:N) => bus( x( ROFN   ,1,1 ) : )         ! output Liquid water runoff from snow pack [kg/m^2/s]
+    ZMELTS    (1:N) => bus( x( MELTS  ,1,1 ) : )         ! output Liquid water runoff from snow pack, accumulation [kg/m^2]
     ZROVG     (1:N) => bus( x( ROVG   ,1,1 ) : )         ! output Liquid/frozen water runoff from vegetation to ground surface [kg/m^2/s]
     ZRUNOFF   (1:N) => bus( x( RUNOFF ,1,1 ) : )         ! output Total runoff from soil column [m]
     ZSCAN     (1:N) => bus( x( IVEG   ,1,1 ) : )         !  inout Intercepted frozen water stored on canopy [kg/m^2]
@@ -1627,6 +1628,8 @@ endif ! prints
           FIRUACC(I)   = FIRUACC(I) +QLWAVG(I) * DT
           ZFL(I)       = FFC(I)*GZEROC(I)+FG(I)*GZEROG(I)+FCS(I)*GZROCS(I)+ &
                          FGS(I)*GZROGS(I)
+
+          ZMELTS(I)    = ZMELTS(I) + ZROFN(I)*DT  ! Accumulation of liquid water runoff from snow pack
 !
     end do FINAL_CALC
 !

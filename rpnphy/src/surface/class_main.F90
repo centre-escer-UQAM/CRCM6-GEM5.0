@@ -43,8 +43,6 @@ subroutine class_main (BUS, BUSSIZ, &
   integer :: LONCLEF, VSIZ
   integer :: SURFLEN
 
-  integer, parameter :: NBS = RAD_NUVBRANDS
-
 !
 !
 !Author
@@ -159,6 +157,7 @@ subroutine class_main (BUS, BUSSIZ, &
 #include "thermoconsts.inc"
 #include "dintern.inc"
 #include "fintern.inc"
+#include "nbsnbl.cdk"
 !
 !
 !******************************************************
@@ -196,6 +195,7 @@ subroutine class_main (BUS, BUSSIZ, &
       integer :: isnoalb       ! 0: original two-band snow albedo algorithms are used. 
                                ! 1: the new four-band routines are used. 
                                ! At present, the four band algorithm should NOT be used offline.
+      real :: FSSB(N,NBS)      ! total   SW flux for 4 main bands
       real :: BCSNO(N)         ! Black carbon mixing ratio [kg/m^3]
       real :: TRSNOWC(N)       ! Transmissivity of snow under vegetation to shortwave radiation
       real :: TRSNOWG(N,NBS)   ! Transmissivity of snow in bare areas to shortwave radiation
@@ -309,9 +309,9 @@ subroutine class_main (BUS, BUSSIZ, &
 
 ! New fields for CLASSIC (KW)
   real,pointer,dimension(:)   :: REFSNO, groundHeatFlux
-  real,pointer,dimension(:,:) :: ZFSSB     !  input Total   solar radiation in each modelled wavelength band [W/m^2]
-  real,pointer,dimension(:,:) :: ZFSDB     !  input Direct  solar radiation in each modelled wavelength band [W/m^2]
-  real,pointer,dimension(:,:) :: ZFSFB     !  input Diffuse solar radiation in each modelled wavelength band [W/m^2]
+  real,pointer,dimension(:,:) :: ZSW4TOTL  !  input Total   solar radiation in each modelled wavelength band [W/m^2]
+  real,pointer,dimension(:,:) :: ZSW4DRCT  !  input Direct  solar radiation in each modelled wavelength band [W/m^2]
+  real,pointer,dimension(:,:) :: ZSW4DIFF  !  input Diffuse solar radiation in each modelled wavelength band [W/m^2]
 
 
 ! New arrays for coupling CLASS and CTEM
@@ -654,9 +654,9 @@ subroutine class_main (BUS, BUSSIZ, &
   ZRAINRATE (1:N)      => bus( x(RAINRATE,1,1) : ) !  input liquid precip. rate
   ZSNOWRATE (1:N)      => bus( x(SNOWRATE,1,1) : ) !  input solid  precip. rate
   ! New CLASSIC fields (KW)
-  ZFSSB     (1:N,1:NBS) => bus( x(FATB,1,1) : )    !  input Total   solar radiation in each modelled wavelength band [W/m^2]
-  ZFSDB     (1:N,1:NBS) => bus( x(FADB,1,1) : )    !  input Direct  solar radiation in each modelled wavelength band [W/m^2]
-  ZFSFB     (1:N,1:NBS) => bus( x(FAFB,1,1) : )    !  input Diffuse solar radiation in each modelled wavelength band [W/m^2]
+  ZSW4TOTL  (1:N,1:NBS) => bus( x(SW4TOTL,1,1) : )    !  input Total   solar radiation in each modelled wavelength band [W/m^2]
+  ZSW4DRCT  (1:N,1:NBS) => bus( x(SW4DRCT,1,1) : )    !  input Direct  solar radiation in each modelled wavelength band [W/m^2]
+  ZSW4DIFF  (1:N,1:NBS) => bus( x(SW4DIFF,1,1) : )    !  input Diffuse solar radiation in each modelled wavelength band [W/m^2]
   ! Mosaic fields
   Z0H       (1:N) => bus( x( Z0T    ,1,indx_sfc ) : )  !  input thermal  roughness length
   Z0ORO     (1:N) => bus( x( Z0     ,1,indx_sfc ) : )  !  input momentum roughness length
@@ -741,11 +741,23 @@ subroutine class_main (BUS, BUSSIZ, &
      ILAND(I)  = I
      ZUN(I)    = ZU
      ZTN(I)    = ZT
-     QSWINV(I) = 0.5*FLUSOL(I)
-     QSWINI(I) = 0.5*FLUSOL(I)
+     if (RADSLOPE) then
+       QSWINV(I) = 0.5*FLUSOL(I)
+       QSWINI(I) = 0.5*FLUSOL(I)
+     else
+       QSWINV(I) = ZSW4TOTL(I,1)
+       QSWINI(I) = ZSW4TOTL(I,2) + ZSW4TOTL(I,3) + ZSW4TOTL(I,4)
+     endif
      if (ISNOALB == 0) then ! Use the existing snow albedo and transmission
-       ZFSSB(I,1) = 0.5*FLUSOL(I)
-       ZFSSB(I,2) = 0.5*FLUSOL(I)
+       FSSB(I,1) = QSWINV(I)
+       FSSB(I,2) = QSWINI(I)
+       do j = 3,nbs
+         FSSB(I,j) = 0.
+       enddo
+     else                   ! Use new 4 band albedo
+       do j = 1,nbs
+         FSSB(I,j) = ZSW4TOTL(I,j)
+       enddo
      endif
      RRATE(I)  = ZRAINRATE(I)*1000.
      SRATE(I)  = ZSNOWRATE(I)*1000.
@@ -1074,9 +1086,9 @@ print*,'class_main QLWIN          :',minval(QLWIN),maxval(QLWIN),sum(QLWIN)/(N)
 print*,'class_main ZRAINRATE      :',minval(ZRAINRATE),maxval(ZRAINRATE),sum(ZRAINRATE)/(N)
 print*,'class_main ZSNOWRATE      :',minval(ZSNOWRATE),maxval(ZSNOWRATE),sum(ZSNOWRATE)/(N)
 do j=1,NBS
-  print*,'class_main ZFSSB:',j,minval(ZFSSB(:,j)),maxval(ZFSSB(:,j)),sum(ZFSSB(:,j))/(N)
-  print*,'class_main ZFSDB:',j,minval(ZFSDB(:,j)),maxval(ZFSDB(:,j)),sum(ZFSDB(:,j))/(N)
-  print*,'class_main ZFSFB:',j,minval(ZFSFB(:,j)),maxval(ZFSFB(:,j)),sum(ZFSFB(:,j))/(N)
+  print*,'class_main ZSW4TOTL:',j,minval(ZSW4TOTL(:,j)),maxval(ZSW4TOTL(:,j)),sum(ZSW4TOTL(:,j))/(N)
+  print*,'class_main ZSW4DRCT:',j,minval(ZSW4DRCT(:,j)),maxval(ZSW4DRCT(:,j)),sum(ZSW4DRCT(:,j))/(N)
+  print*,'class_main ZSW4DIFF:',j,minval(ZSW4DIFF(:,j)),maxval(ZSW4DIFF(:,j)),sum(ZSW4DIFF(:,j))/(N)
 enddo
 !print*,'class_main ZGRKFAC        :',minval(ZGRKFAC),maxval(ZGRKFAC),sum(ZGRKFAC)/(N)
 !print*,'class_main ZWFSURF        :',minval(ZWFSURF),maxval(ZWFSURF),sum(ZWFSURF)/(N)
@@ -1470,7 +1482,7 @@ endif ! prints
                                ZGROWTH,XSNO,   ZTSNOW, ZRHOSNO,ZALBSNO,ZBLEND, &
                                Z0ORO,  SNOLIM, ZPLMG0, ZPLMS0, &
                                FCLOUD, TA,     VPD,    RHOAIR, COSZS, &
-                               ZFSDB, ZFSFB, REFSNO, BCSNO, &
+                               ZSW4DRCT, ZSW4DIFF, REFSNO, BCSNO, &
                                QSWINV, ZDLAT,  ZDLON,  RHOSNI, DELZ,   ZDELZW, &
                                ZZBOTW, ZTHPOR, ZTHLMIN,ZPSISAT,ZBI,    ZPSIWLT, &
                                ZHCPS,  ISAND, &
@@ -1510,7 +1522,7 @@ endif ! prints
                                  ZOMLNC, ZOELNC, ZOMLNG, ZOELNG, ZOMLCS, ZOELCS, ZOMLNS, ZOELNS, &
                                  TS,     THLIQ,  THICE,  ZTPOND, ZZPOND, ZTBASE, ZTCAN,  ZTSNOW, &
                                  ZSNOW,  ZRHOSNO,ZWSNOW, ZTHPOR, ZTHLRET,ZTHLMIN,ZTHFC,  ZTHLW, &
-                                 TRSNOWC,TRSNOWG,ALSNO,  ZFSSB,  FROOT,  FROOTS, &
+                                 TRSNOWC,TRSNOWG,ALSNO,  FSSB,   FROOT,  FROOTS, &
                                  ZDLAT,  PCPR,   ZHCPS,  ZTCS,   ZTSFS,  DELZ,   ZDELZW, ZZBOTW, &
                                  ZFTEMP, ZFVAP,  ZRIB, &
                                  ISAND, &

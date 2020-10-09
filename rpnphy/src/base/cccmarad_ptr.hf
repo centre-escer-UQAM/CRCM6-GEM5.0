@@ -59,6 +59,10 @@
       MKPTR2D(zfluxds0, fluxds0, f)
       MKPTR2D(zfluxul, fluxul, f)
       MKPTR2D(zfluxus0, fluxus0, f)
+
+      MKPTR2DN(zsw4drct0, sw4drct0, ni, nbs, f)
+      MKPTR2DN(zsw4totl0, sw4totl0, ni, nbs, f)
+
       MKPTR2D(zt2, t2, f)
       MKPTR2D(zt20, t20, f)
       MKPTR1D(ztcc, tcc, f)
@@ -94,6 +98,10 @@
       MKPTR1D(zfcor, fcor, v)
       MKPTR1D(zzusl, zusl, v)
       MKPTR1D(zztsl, ztsl, v)
+
+      MKPTR2DN(zsw4diff, sw4diff, ni, nbs, v)
+      MKPTR2DN(zsw4drct, sw4drct, ni, nbs, v)
+      MKPTR2DN(zsw4totl, sw4totl, ni, nbs, v)
  
       MKPTR2D(zch4c, ch4c, f)
       MKPTR2D(zn2oc, n2oc, f)

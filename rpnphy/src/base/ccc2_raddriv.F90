@@ -27,6 +27,7 @@
                           omcs, gcs, taucl, omcl, gcl, &
                           cldfrac, tauae, exta, exoma, exomga, &
                           fa, absa, lcsw, lclw, &
+                          sw4totl, sw4drct, &               ! added by KW for CLASS
                           il1, il2, ilg, lay, lev)
 !
       use phy_options, only: RAD_NUVBRANDS,rad_atmpath
@@ -54,6 +55,8 @@
 !
       logical lcsw, lclw
       real flxds(ilg,lev),flxus(ilg,lev),flxdl(ilg,lev),flxul(ilg,lev)
+!
+      real, dimension(ilg,nbs) ::  sw4totl, sw4drct
 !
 !Authors
 !        J. Li, M. Lazare, CCCMA, rt code for gcm4
@@ -381,6 +384,9 @@
       fcdb(IL1:IL2,1:RAD_NUVBRANDS) = 0.0
       fcfb(IL1:IL2,1:RAD_NUVBRANDS) = 0.0
 !
+      sw4totl(IL1:IL2,1:NBS) = 0.0
+      sw4drct(IL1:IL2,1:NBS) = 0.0
+!
       do 30 k = 1, lay
        kp1 = k + 1
        do 30 i = il1, il2
@@ -650,6 +656,8 @@
 !     fctb:  CLEAR SKY ,DOWNWARD AT THE SURFACE DIR+DIF FLUX, for 6 VIS-UV bands
 !     fcdb:  CLEAR SKY ,DOWNWARD AT THE SURFACE DIRECT FLUX, for 6 VIS-UV bands
 !     fcfb:  CLEAR SKY ,DOWNWARD AT THE SURFACE DIFFUSE FLUX, for 6 VIS-UV bands
+!     sw4totl: total  SW flux for 4 main bands
+!     sw4drct: direct SW flux for 4 main bands
 !----------------------------------------------------------------------
 !
       do 480 ib = 1, nbs
@@ -864,6 +872,10 @@
             fcdb(J,IG)          =   CUMDTR(I,1,LEV) * BS(I) * A1(I,2)
             fcfb(J,IG)          =   fctb(J,IG) - fcdb(J,IG)
           endif
+!
+! Save 4 main SW fluxes for CLASS
+          sw4totl(J,ib)         =   sw4totl(J,ib) + TRAN(I,2,LEV)* A1(I,2)
+          sw4drct(J,ib)         =   sw4drct(J,ib) + X * BS(I)    * A1(I,2)
 
   350     continue
 

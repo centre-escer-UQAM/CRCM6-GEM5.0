@@ -130,7 +130,7 @@ contains
       real*8 :: hz_8
       real :: hz, hzp, ptopoz, alwcap, fwcap, albrmu
 !!$      real :: ptop
-      integer :: i, k, l, iuv, yy, mo, dd, hh, mn, ss, step
+      integer :: i, k, l, iuv, ib, yy, mo, dd, hh, mn, ss, step
       logical :: lcsw, lclw, aerosolback,thisstepisrad,nextstepisrad
       integer :: il1, il2
       character(len=1) :: niuv
@@ -250,6 +250,9 @@ contains
       zfctb = 0.0
       zfcdb = 0.0
       zfcfb = 0.0
+      zsw4totl = 0.0
+      zsw4drct = 0.0
+      zsw4diff = 0.0
 
       ! calculate cloud optical properties and dependent diagnostic
       ! cloud variables
@@ -508,6 +511,7 @@ contains
               omcs, gcs, taucl, omcl, gcl, &
               cldfrac, tauae, exta, exoma, exomga, &
               fa, absa, lcsw, lclw, &
+              zsw4totl0, zsw4drct0, &            ! added by KW for CLASS
               il1, il2, ni, nkm1, nk)
 
          ! ti (t2): infrared (solar) cooling (heating) rate
@@ -549,8 +553,23 @@ contains
                  zfcdb(i,iuv)= zfcdb0(i,iuv) * v1(i)
                  zfcfb(i,iuv)= zfcfb0(i,iuv) * v1(i)
                enddo
+               do ib = 1, nbs
+                 zsw4totl(i,ib) = zsw4totl0(i,ib) * v1(i)
+                 zsw4drct(i,ib) = zsw4drct0(i,ib) * v1(i)
+                 zsw4diff(i,ib) = zsw4totl(i,ib) - zsw4drct(i,ib)
+               enddo
+!zsw4totl(i,1) = zsw4totl(i,1) + zsw4totl(i,2) + zsw4totl(i,3) + zsw4totl(i,4)
             endif
          enddo
+
+!if ( trnch == 1 ) then
+!  print *,'FB  :',zflusolis
+!  print *,'SW4T:',zsw4totl(:,1)
+!  print *,'rad step FB  :',zflusolis(1)
+!  print *,'rad step SW4T:',zsw4totl(1,1)+zsw4totl(1,2)+zsw4totl(1,3)+zsw4totl(1,4)
+!  print *,'rad step SW4T:',zsw4totl(1,1)
+!endif
+
 
          do k=1, nkm1
             do i=1, ni
@@ -593,8 +612,21 @@ contains
                  zfcdb(i,iuv)= zfcdb0(i,iuv) * v1(i)
                  zfcfb(i,iuv)= zfcfb0(i,iuv) * v1(i)
                enddo
+               do ib = 1, nbs
+                 zsw4totl(i,ib) = zsw4totl0(i,ib) * v1(i)
+                 zsw4drct(i,ib) = zsw4drct0(i,ib) * v1(i)
+                 zsw4diff(i,ib) = zsw4totl(i,ib) - zsw4drct(i,ib)
+               enddo
+!zsw4totl(i,1) = zsw4totl(i,1) + zsw4totl(i,2) + zsw4totl(i,3) + zsw4totl(i,4)
             endif
          enddo
+!if ( trnch == 1 ) then
+!  print *,'FB  :',zflusolis
+!  print *,'SW4T:',zsw4totl(:,1)
+!  print *,'no rad FB  :',zflusolis(1)
+!  print *,'no rad SW4T:',zsw4totl(1,1)+zsw4totl(1,2)+zsw4totl(1,3)+zsw4totl(1,4)
+!  print *,'no rad SW4T:',zsw4totl(1,1)
+!endif
 
          do k=1, nkm1
             do i=1, ni

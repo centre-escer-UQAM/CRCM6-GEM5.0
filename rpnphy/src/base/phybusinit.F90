@@ -40,8 +40,9 @@ subroutine phybusinit(ni,nk)
    include "mcica.cdk"
    include "clefcon.cdk"
    include "buses.cdk"
+   include "nbsnbl.cdk"
 
-   character(len=6)  :: nag, ntp, nmar, wwz, nuv, isss
+   character(len=6)  :: nag, ntp, nmar, wwz, nuv, isss, nbs_s
    integer :: ier, iverb, nsurf, i
    logical :: lcn_mpx, lcn_my2, lcn_p3i1, lcn_p3i2, lcn_p3i3, lcn_p3i4, lcn_none
    logical :: lbourg3d, lbourg
@@ -74,6 +75,9 @@ subroutine phybusinit(ni,nk)
    !# nipt is the number of tau/cloud top pressure bins in ISCCP histograms
    write(ntp,'(a,i2)') 'A*', ntau*nptop
    write(nuv,'(a,i2)') 'A*', RAD_NUVBRANDS
+
+   !# nbs_s is the number of main SW bands
+   write(nbs_s,'(a,i2)') 'A*', nbs
 
    !# nmar is the number of 2d Markov fields
    write(nmar,'(a,i2)') 'A*', imrkv2

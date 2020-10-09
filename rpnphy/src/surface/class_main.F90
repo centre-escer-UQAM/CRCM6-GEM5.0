@@ -590,6 +590,15 @@ subroutine class_main (BUS, BUSSIZ, &
   dofire=.false.
   LNDUSEON=.false.
 
+! Peatland field for bog and fen peatlands
+! Joe is till working on this so for now this field does not get read in but set to 0
+  ipeatland = 0
+  isnoalb = 0    ! New in CLASSIC (KW)
+                 ! 0: original two-band snow albedo algorithms are used. 
+                 ! 1: the new four-band routines are used.
+                 ! At present, the four band algorithm should NOT be used offline.
+
+
 !
   ALLOCATE( PAIDAT(N,IC),HGTDAT(N,IC),ACVDAT(N,IC),ACIDAT(N,IC), &
             TBARC (N,IG),TBARG (N,IG),TBARCS(N,IG),TBARGS(N,IG), &
@@ -706,6 +715,7 @@ subroutine class_main (BUS, BUSSIZ, &
   ! New CLASSIC fields (KW)
   ! Fields for ISNOALB==1 for now ISNOALB=0
   REFSNO    (1:N)      => bus( x(SNOWSIZE,1,1) : ) !  inout Snow grain size [m]
+  REFSNO = 0.001 ! Only for now!!! Later it needs to get read in!!! ToDo
   ! Output fields
   groundHeatFlux(1:N)  => bus( x(grdhflx,1,1) : )  ! output Heat flux at soil surface [W/m^2]
 
@@ -723,9 +733,7 @@ subroutine class_main (BUS, BUSSIZ, &
   ENDDO
 !print *,'class_main 999: ISAND(1,:):', ISAND(1,:)
 
-! Peatland field for bog and fen peatlands
-! Joe is till working on this so for now this field does not get read in but set to 0
-  ipeatland = 0
+
 
 
   DO I=1,N
@@ -735,6 +743,10 @@ subroutine class_main (BUS, BUSSIZ, &
      ZTN(I)    = ZT
      QSWINV(I) = 0.5*FLUSOL(I)
      QSWINI(I) = 0.5*FLUSOL(I)
+     if (ISNOALB == 0) then ! Use the existing snow albedo and transmission
+       ZFSSB(I,1) = 0.5*FLUSOL(I)
+       ZFSSB(I,2) = 0.5*FLUSOL(I)
+     endif
      RRATE(I)  = ZRAINRATE(I)*1000.
      SRATE(I)  = ZSNOWRATE(I)*1000.
      PCPR(I)   = SRATE(I)+RRATE(I)
@@ -1290,12 +1302,6 @@ endif ! prints
     IALS  = 0
     IALG  = 0
     IPCP  = 4
-
-    isnoalb = 0    ! New in CLASSIC (KW)
-                   ! 0: original two-band snow albedo algorithms are used. 
-                   ! 1: the new four-band routines are used.
-                   ! At present, the four band algorithm should NOT be used offline.
-    REFSNO = 0.001 ! Only for now!!! Later it needs to get read in!!! ToDo
 
 
 ! Convert soil color index to integer. New in CLASSIC (KW)

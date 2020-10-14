@@ -893,7 +893,7 @@ subroutine class_main (BUS, BUSSIZ, &
     ZTSUBFL   (1:N) => bus( x( TSUBFL ,1,1 ) : )         ! output Temperature of interflow from sides of soil column [K]
     ZTRUNOFF  (1:N) => bus( x( TRUNOFF,1,1 ) : )         ! output Temperature of total runoff from soil column [K]
     ZTSFS     (1:N,1:4) => bus( x( TSURFSA,1,1 ) : )     !  inout Ground surface temperature over subarea [K]
-    ztt2m     (1:n) => bus( x(tdiagtyp,1,indx_sfc)  : )  ! ourput screen level temperature for each sfc type
+    ztt2m     (1:n) => bus( x(tdiagtyp,1,indx_sfc)  : )  ! output screen level temperature for each sfc type
 !
     ZRIB      (1:N) => bus( x( RIB    ,1,1 ) : )         ! output Bulk Richardson number [-10,5]
     ZCDH      (1:N) => bus( x( CDH    ,1,1 ) : )         ! output Surface drag coefficient for heat []
@@ -1655,8 +1655,19 @@ endif ! prints
 !
 
 
+      ZBASFLW(1:N) => bus( x(DRAIN  ,  1,1 ) : ) !permanent
+      ZOVRFLW(1:N) => bus( x(OVERFL ,  1,1 ) : ) !volatile, WPREP
+      ztsurf   (1:n) => bus( x(tsurf,1,1) : )
+      st       (1:n) => bus( x(tdiag,1,1) : )
+      zdrainfr (1:n) => bus( x(drainfr,1,indx_sfc) : )
+      zrunoff  (1:n) => bus( x(overflfr,1,indx_sfc) : )
+      ztskin   (1:n) => bus( x(tskin,1,indx_sfc) : )
+      ztt2m    (1:n) => bus( x(tt2m,1,indx_sfc)  : )
 
-  zTT2m(:)    = st(:)                     ! instantaneos
+      zdrainfr(:) = zdrainfr(:) + zbasflw(:)  ! accumulator
+      zrunoff(:)  = zrunoff(:)  + zovrflw(:)  ! accumulator
+      zTskin(:)   = ztsurf(:)                 ! instantaneos
+      zTT2m(:)    = st(:)                     ! instantaneos
 
 if (kount==0 .and. trnch==1) then
 

@@ -656,8 +656,8 @@
 !     fctb:  CLEAR SKY ,DOWNWARD AT THE SURFACE DIR+DIF FLUX, for 6 VIS-UV bands
 !     fcdb:  CLEAR SKY ,DOWNWARD AT THE SURFACE DIRECT FLUX, for 6 VIS-UV bands
 !     fcfb:  CLEAR SKY ,DOWNWARD AT THE SURFACE DIFFUSE FLUX, for 6 VIS-UV bands
-!     sw4totl: total  SW flux for 4 main bands
-!     sw4drct: direct SW flux for 4 main bands
+!     sw4totl: total  SW downward flux at the surface for 4 main bands
+!     sw4drct: direct SW downward flux at the surface for 4 main bands
 !----------------------------------------------------------------------
 !
       do 480 ib = 1, nbs
@@ -874,8 +874,8 @@
           endif
 !
 ! Save 4 main SW fluxes for CLASS
-          sw4totl(J,ib)         =   sw4totl(J,ib) + TRAN(I,2,LEV)* A1(I,2)
-          sw4drct(J,ib)         =   sw4drct(J,ib) + X * BS(I)    * A1(I,2)
+          sw4totl(j,ib)         =   sw4totl(j,ib) + TRAN(I,2,LEV)* A1(I,2)
+          sw4drct(j,ib)         =   sw4drct(j,ib) + X * BS(I)    * A1(I,2)
 
   350     continue
 
@@ -1011,6 +1011,11 @@
 
   440       continue
   445     continue
+!
+          do i = ilg1, ilg2
+            j = isun(i)
+            sw4totl(j,ib)         =   sw4totl(j,ib) + TRAN(I,2,LEV)* A1(I,2)
+          enddo
 !
   450   continue
 !

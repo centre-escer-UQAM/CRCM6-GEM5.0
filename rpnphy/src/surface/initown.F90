@@ -30,7 +30,7 @@ subroutine initown2(ni, nk, trnch)
    ! nk       vertical dimension
    !
 
-   real, parameter :: undef = 999
+   real, parameter :: undef = 0.
    integer i, k
 
    include "initown_ptr.cdk"

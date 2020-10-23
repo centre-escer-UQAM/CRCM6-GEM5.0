@@ -630,7 +630,7 @@ INTEGER :: IROOF           ! number of roof layers
 !-------------------------------------------------------------------------------
 INTEGER :: JJ           
       REAL UNDEF
-      PARAMETER (UNDEF = -999)
+      PARAMETER (UNDEF = 0.)
 !-------------------------------------------------------------------------------
 !
 !*      1.     initializations

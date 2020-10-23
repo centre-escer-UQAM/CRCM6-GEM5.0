@@ -115,7 +115,7 @@ subroutine sfc_businit(moyhr,ni,nk)
         htc, htcc, htcs, huaircan, iveg, laimax, laimin, &
         mosfract, orgm, pcfc, pcpn, pclc, pcpg, psiga, &
         psigb, psiwlt, qa50, qfc, qfcf, qfcl, qfg, qfn, rib, &
-        rofacc, rofc, rofn, rovg, runoff, sdepth, &
+        rofc, rofn, rovg, sdepth, &
         subflw, taircan, tbase, &
         tbasfl, tcs, thfc, thlmin, thlrat, thlret, thpor, tovrfl, &
         tpond, trunoff, tsno, tsubfl, tsurfsa, tveg, &
@@ -538,12 +538,10 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(qfg,          'VN=qfg          ;ON=E3  ;VD=evapo. rate from soil surface                                     ;VB=v0')
       PHYVAR2D1(qfn,          'VN=qfn          ;ON=S2  ;VD=subl. rate from snow cover                                        ;VB=v0')
       PHYVAR2D1(rib,          'VN=rib          ;ON=RIB ;VD=Bulk Richardson number [-10,5]                                    ;VB=v0')
-      PHYVAR2D1(rofacc,       'VN=rofacc       ;ON=RFAC;VD=acc. of total (surf. + base) runoff                               ;VB=p0')
       PHYVAR2D1(rofc,         'VN=rofc         ;ON=DC  ;VD=dripping from canopy                                              ;VB=v0')
       PHYVAR2D1(rofn,         'VN=rofn         ;ON=MS  ;VD=melting snow from snowpack                                        ;VB=v0')
       PHYVAR3D1(rootdp,       'VN=rootdp       ;ON=D2  ;VD=rooting soil depth                             ;VS=A*'//ncv//'    ;VB=p0')
       PHYVAR2D1(rovg,         'VN=rovg         ;ON=M7  ;VD=to be determined (rovg)                                           ;VB=v0')
-      PHYVAR2D1(runoff,       'VN=runoff       ;ON=N8  ;VD=total (surf. + base) runoff                                       ;VB=v0')
       PHYVAR3D1(sand,         'VN=sand         ;ON=SAND;VD=percentage of sand in soil                     ;VS=A*'//ncg//'    ;VB=p1')
       PHYVAR2D1(snoden,       'VN=snoden       ;ON=DN  ;VD=snow density in kg/m3                                             ;VB=p1  ;MIN=0')
       PHYVAR2D1(soilcol,      'VN=soilcol      ;ON=SCOL;VD=soil color for albedo lookup table                                ;VB=p1')

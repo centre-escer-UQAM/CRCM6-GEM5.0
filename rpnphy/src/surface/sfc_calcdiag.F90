@@ -60,23 +60,14 @@ contains
       call msg_toall(MSG_DEBUG, 'sfc_calcdiag [BEGIN]')
       if (timings_L) call timing_start_omp(480, 'sfc_alcdiag', 46)
 
-      IF_ISBA: if (schmsol == 'ISBA') then
+
+      IF_ISBA_CLASS: if (schmsol == 'ISBA' .or. schmsol == 'CLASS') then
 
 #define MKPTR1D(PTR1,NAME2,BUS) nullify(PTR1); if (NAME2 > 0) PTR1(1:ni) => BUS(NAME2:)
 
          MKPTR1D(zdrain, drain, f)
          MKPTR1D(zdrainaf, drainaf, f)
          MKPTR1D(zisoil, isoil, f)
-         MKPTR1D(zleg, leg, v)
-         MKPTR1D(zlegaf, legaf, f)
-         MKPTR1D(zler, ler, v)
-         MKPTR1D(zleraf, leraf, f)
-         MKPTR1D(zles, les, v)
-         MKPTR1D(zlesaf, lesaf, f)
-         MKPTR1D(zletr, letr, v)
-         MKPTR1D(zletraf, letraf, f)
-         MKPTR1D(zlev, lev, v)
-         MKPTR1D(zlevaf, levaf, f)
          MKPTR1D(zoverfl, overfl, v)
          MKPTR1D(zoverflaf, overflaf, f)
          MKPTR1D(zrootdp, rootdp, f)
@@ -93,23 +84,18 @@ contains
             endif
          endif
 
-         IF_RESET: if (kount == 0 .or. &
+         if (kount == 0 .or. &
               (acchr > 0 .and. mod(step_driver-1, acchr) == 0) .or. &
               (acchr == 0 .and. step_driver-1 == 0)) then
-            zlegaf(:) = 0.
-            zleraf(:) = 0.
-            zletraf(:) = 0.
-            zlevaf(:) = 0.
-            zlesaf(:) = 0.
             zdrainaf(:) = 0.
             zoverflaf(:) = 0.
             zwfluxaf(:) = 0.
-         endif IF_RESET
+         endif 
 
-         IF_KOUNT0: if (kount /= 0) then
+         if (kount /= 0) then
 
             !#Take care of integrated soil moisture in kg/m**2
-            IF_MOYHR: if (moyhr > 0) then
+            if (moyhr > 0) then
                do i = 1, ni
                   zinsmavg(i) = zinsmavg(i) + &
                        1000. * (zisoil(i) + zwsoil(i)) * zrootdp(i)
@@ -121,19 +107,9 @@ contains
                   moyhri = 1./float(moyhr_steps)
                   zinsmavg(:) = zinsmavg(:) * moyhri
                endif
-            endif IF_MOYHR
+            endif
 
-            !VDIR NODEP
             do i = 1, ni
-
-               !# Accumulation of evaporation (in kg/m2)
-               tmp_r = dt / CHLC
-               zlegaf(i)  = zlegaf(i)  + zleg(i)  * tmp_r
-               zleraf(i)  = zleraf(i)  + zler(i)  * tmp_r
-               zletraf(i) = zletraf(i) + zletr(i) * tmp_r
-               zlevaf(i)  = zlevaf(i)  + zlev(i)  * tmp_r
-               zlesaf(i)  = zlesaf(i)  + zles(i)  * dt / (CHLC+CHLF)
-
                !# Accumulation of drained water
                !#  (soil base water flux, in kg/m2 or mm);
                !#  factor 1000 is for density of water.
@@ -147,9 +123,55 @@ contains
 
             enddo
 
+         endif
+
+      endif IF_ISBA_CLASS
+
+
+      IF_ISBA: if (schmsol == 'ISBA') then
+
+#define MKPTR1D(PTR1,NAME2,BUS) nullify(PTR1); if (NAME2 > 0) PTR1(1:ni) => BUS(NAME2:)
+
+         MKPTR1D(zleg, leg, v)
+         MKPTR1D(zlegaf, legaf, f)
+         MKPTR1D(zler, ler, v)
+         MKPTR1D(zleraf, leraf, f)
+         MKPTR1D(zles, les, v)
+         MKPTR1D(zlesaf, lesaf, f)
+         MKPTR1D(zletr, letr, v)
+         MKPTR1D(zletraf, letraf, f)
+         MKPTR1D(zlev, lev, v)
+         MKPTR1D(zlevaf, levaf, f)
+
+         IF_RESET: if (kount == 0 .or. &
+              (acchr > 0 .and. mod(step_driver-1, acchr) == 0) .or. &
+              (acchr == 0 .and. step_driver-1 == 0)) then
+            zlegaf(:) = 0.
+            zleraf(:) = 0.
+            zletraf(:) = 0.
+            zlevaf(:) = 0.
+            zlesaf(:) = 0.
+         endif IF_RESET
+
+         IF_KOUNT0: if (kount /= 0) then
+
+            !VDIR NODEP
+            do i = 1, ni
+
+               !# Accumulation of evaporation (in kg/m2)
+               tmp_r = dt / CHLC
+               zlegaf(i)  = zlegaf(i)  + zleg(i)  * tmp_r
+               zleraf(i)  = zleraf(i)  + zler(i)  * tmp_r
+               zletraf(i) = zletraf(i) + zletr(i) * tmp_r
+               zlevaf(i)  = zlevaf(i)  + zlev(i)  * tmp_r
+               zlesaf(i)  = zlesaf(i)  + zles(i)  * dt / (CHLC+CHLF)
+
+            enddo
+
          endif IF_KOUNT0
 
       endif IF_ISBA
+
 
       if (timings_L) call timing_stop_omp(480)
       call msg_toall(MSG_DEBUG, 'sfc_calcdiag [END]')

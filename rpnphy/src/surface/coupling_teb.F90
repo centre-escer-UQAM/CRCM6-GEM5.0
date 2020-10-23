@@ -92,7 +92,7 @@ implicit none
 !
 !
 REAL    :: XUNDEF    ! undefined value
-PARAMETER( XUNDEF = 999. )  
+PARAMETER( XUNDEF = 0. )  
 !
 
 !*      0.1    declarations of arguments

@@ -113,7 +113,7 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    integer(IDOUBLE), parameter :: MU_JDATE_HALFDAY = 43200 !#TODO: use value from mu_jdate_mod
 
    integer, parameter :: indx_sfc = indx_urb
-   real,    parameter :: xundef   = 999.
+   real,    parameter :: xundef   = 0.
 
    integer :: n, m, nk, i, j, k, hh, mn, ss
 

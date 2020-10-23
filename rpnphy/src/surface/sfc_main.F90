@@ -578,7 +578,7 @@ print *,'sfc_main: i,zmg,zglsea,zglacier,zurban,zlakefr:', i,zmg(i),zglsea(i),zg
         rangs, poids, ni, trnch, &
         do_glaciers, do_ice, do_urb, do_lake)
 
-   !       ACCUMULATE RUNNOFF FOR EACH SURFACE TYPE
+   !       ACCUMULATE RUNOFF FOR EACH SURFACE TYPE
    do k=1,nsurf+1
       do i=1,ni
          zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)

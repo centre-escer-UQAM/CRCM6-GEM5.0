@@ -158,12 +158,15 @@ subroutine groundAlbedo (ALVSG, ALIRG, ALVSGC, ALIRGC, & ! Formerly GRALB
       if (ISAND(I,1) >= 0) then
         FURB = FCMXU(I) * (1.0 - FSNOW(I))
 
-        if (THLIQ(I,1) >= 0.26) then
-          ALVSG(I) = ALGWV(I)
-          ALIRG(I) = ALGWN(I)
+        ! Wet soil
+        if (THLIQ(I,1) >= 0.26) then    
+          ALVSG(I) = ALGWV(I)      ! Visible albedo of wet soil
+          ALIRG(I) = ALGWN(I)      ! Near-IR albedo of wet soil
+        ! Dry soil
         else if (THLIQ(I,1) <= 0.22) then
-          ALVSG(I) = ALGDV(I)
-          ALIRG(I) = ALGDN(I)
+          ALVSG(I) = ALGDV(I)      ! Visible albedo of dry soil
+          ALIRG(I) = ALGDN(I)      ! Near-IR albedo of dry soil
+        ! Humid soil
         else
           ALVSG(I) = THLIQ(I,1) * (ALGWV(I) - ALGDV(I)) / 0.04 + &
                      ALGDV(I) - 5.50 * (ALGWV(I) - ALGDV(I))

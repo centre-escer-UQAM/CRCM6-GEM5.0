@@ -189,7 +189,7 @@ subroutine class_main (BUS, BUSSIZ, &
 !     N     Z0ORO (N),   SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N),
            Z0M(N),       SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N), &
            PCPR  (N),   ZGGEO (N),   VMOD  (N), &
-           SRATE (N),   RRATE (N),   COSZS (N)
+           SRATE (N),   RRATE (N),   COSZS (N), RUNOFF(N)
 
 ! New local fields added for CLASSIC (KW)
       integer :: isnoalb       ! 0: original two-band snow albedo algorithms are used. 
@@ -256,7 +256,6 @@ subroutine class_main (BUS, BUSSIZ, &
 !
   integer, DIMENSION(:,:,:), ALLOCATABLE :: ITERCT
   integer, DIMENSION(:,:),   ALLOCATABLE :: ISAND,IORG
-  integer, DIMENSION(:),     ALLOCATABLE :: SOCI
   REAL, DIMENSION(:,:), ALLOCATABLE :: PAIDAT,HGTDAT,ACVDAT,ACIDAT
   REAL, DIMENSION(:,:), ALLOCATABLE :: TBARC ,TBARG ,TBARCS,TBARGS, &
                                        THLIQC,THLIQG,THICEC,THICEG, &
@@ -274,7 +273,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: TFLUX, QFLUX, ZCANG, FLUSOL, ZHUAIRCAN
   real,pointer,dimension(:)   :: ZDLAT, ZDLON, ZSDEPTH, ZZTSL, ZZUSL, QLWIN
   real,pointer,dimension(:)   :: ZTAIRCAN, ZTSNOW, ZTBASE, ZTPOND, ZZPOND
-  real,pointer,dimension(:)   :: ZRHOSNO, ZRUNOFF
+  real,pointer,dimension(:)   :: ZRHOSNO, ZRUNOFFTOT
   real,pointer,dimension(:)   :: ZSCAN, ZINISOIL, XSNO, ZALBSNO, ZGROWTH
   real,pointer,dimension(:)   :: ZXDRAIN, ZXSLOPE, ZGRKFAC, ZWFSURF, ZWFCINT
   real,pointer,dimension(:)   :: ZCMAI, ZFSGV, ZFSGS, ZFSGG, ZFSNOW, ZFLGV
@@ -605,7 +604,7 @@ subroutine class_main (BUS, BUSSIZ, &
             THLIQC(N,IG),THLIQG(N,IG),THICEC(N,IG),THICEG(N,IG), &
             HCPC  (N,IG),HCPG  (N,IG),FROOT (N,IG),FROOTS(N,IG), GFLUX (N,IG), &
             TCTOPC(N,IG),TCBOTC(N,IG),TCTOPG(N,IG),TCBOTG(N,IG), &
-            ISAND (N,IG),IORG  (N,IG),ITERCT(N,6,50), SOCI(N) )
+            ISAND (N,IG),IORG  (N,IG),ITERCT(N,6,50) )
 !
   SURFLEN = N
 !  IDAY = JULIAND( DT , KOUNT, DATE )
@@ -847,7 +846,7 @@ subroutine class_main (BUS, BUSSIZ, &
     ZROFN     (1:N) => bus( x( ROFN   ,1,1 ) : )         ! output Liquid water runoff from snow pack [kg/m^2/s]
     ZMELTS    (1:N) => bus( x( MELTS  ,1,1 ) : )         ! output Liquid water runoff from snow pack, accumulation [kg/m^2]
     ZROVG     (1:N) => bus( x( ROVG   ,1,1 ) : )         ! output Liquid/frozen water runoff from vegetation to ground surface [kg/m^2/s]
-    ZRUNOFF   (1:N) => bus( x( RUNOFF ,1,1 ) : )         ! output Total runoff from soil column [m]
+    ZRUNOFFTOT(1:N) => bus( x(RUNOFFTOT, 1,indx_sfc) : ) ! output Surface runoff for all fractions [m]
     ZSCAN     (1:N) => bus( x( IVEG   ,1,1 ) : )         !  inout Intercepted frozen water stored on canopy [kg/m^2]
     ZSUBFLW   (1:N) => bus( x( SUBFLW ,1,1 ) : )         ! output Interflow from sides of soil column [m]
     ZTBASE    (1:N) => bus( x( TBASE  ,1,1 ) : )         !  inout Temperature of bedrock in third soil layer (if only three layers are being modelled) [K]
@@ -1170,7 +1169,6 @@ enddo
 !print*,'class_main ZROFC          :',minval(ZROFC),maxval(ZROFC),sum(ZROFC)/(N)
 !print*,'class_main ZROFN          :',minval(ZROFN),maxval(ZROFN),sum(ZROFN)/(N)
 !print*,'class_main ZROVG          :',minval(ZROVG),maxval(ZROVG),sum(ZROVG)/(N)
-!print*,'class_main ZRUNOFF        :',minval(ZRUNOFF),maxval(ZRUNOFF),sum(ZRUNOFF)/(N)
 !print*,'class_main ZSCAN          :',minval(ZSCAN),maxval(ZSCAN),sum(ZSCAN)/(N)
 !print*,'class_main ZSUBFLW        :',minval(ZSUBFLW),maxval(ZSUBFLW),sum(ZSUBFLW)/(N)
 !print*,'class_main ZTBASE         :',minval(ZTBASE),maxval(ZTBASE),sum(ZTBASE)/(N)
@@ -1316,12 +1314,6 @@ endif ! prints
     IPCP  = 4
 
 
-! Convert soil color index to integer. New in CLASSIC (KW)
-  DO I=1,N
-     SOCI(I) = NINT(ZSOILCOL(I))
-  ENDDO
-
-
 
 !*************************************************************
 !
@@ -1359,7 +1351,7 @@ endif ! prints
         call soilProperties(ZTHPOR, ZTHLRET, ZTHLMIN, ZBI, ZPSISAT, ZGRKSAT, & ! Formerly CLASSB
                             ZTHLRAT, ZHCPS, ZTCS, ZTHFC, ZTHLW, ZPSIWLT,     &
                             ZDELZW, ZZBOTW, ZALGWV, ZALGWN, ZALGDV, ZALGDN,  &
-                            ZSAND, ZCLAY, ZORGM, SOCI, DELZ, ZBOT, ZSDEPTH,  &
+                            ZSAND, ZCLAY, ZORGM, ZSOILCOL, DELZ, ZBOT, ZSDEPTH,  &
                             ISAND, igdr, N, NMIM, 1, N, NMIM, IG, ipeatland)
 
         ! Save negative ISAND indo ZSAND for following time steps.
@@ -1547,8 +1539,8 @@ endif ! prints
 !print *,'class_main QMELTG(1:N):',QMELTG(1:N)
 !print *,'class_main TBARGS(1:N,1):',TBARGS(1:N,1)
 
-         call waterBudgetDriver(THLIQ, THICE, TS, ZTCAN, ZRCAN, ZSCAN, & ! Formerly CLASSW
-                                ZRUNOFF,ZTRUNOFF,XSNO,  ZTSNOW, ZRHOSNO,ZALBSNO, &
+         call waterBudgetDriver(THLIQ,  THICE, TS, ZTCAN, ZRCAN, ZSCAN, & ! Formerly CLASSW
+                                RUNOFF, ZTRUNOFF,XSNO,  ZTSNOW, ZRHOSNO,ZALBSNO, &
                                 ZWSNOW, ZZPOND, ZTPOND, ZGROWTH,ZTBASE, GFLUX, &
                                 ZPCFC,  ZPCLC,  ZPCPN,  ZPCPG,  ZQFCF,  ZQFCL, &
                                 ZQFN,   ZQFG,   ZQFC,   ZHMFC,  ZHMFG,  ZHMFN, &
@@ -1641,7 +1633,13 @@ endif ! prints
                  + FFC(I)*EXP(ZOELNC(I)) +  FG(I)*EXP(ZOELNG(I))
 !
 !
-          ALVIS_SOL(I) = 0.5*(ZALVS(I)+ZALIR(I))
+          if (QSWINV(I)+QSWINI(I) .le. 10.) then
+            ALVIS_SOL(I) = 0.5*(ZALVS(I)+ZALIR(I))
+          else
+            ALVIS_SOL(I) = (ZALVS(I)*QSWINV(I) + ZALIR(I)*QSWINI(I)) &
+                         / (QSWINV(I)+QSWINI(I))
+          end if
+
           FSOLUACC(I)  = FSOLUACC(I)+FLUSOL(I)*ALVIS_SOL(I)*DT
           FIRUACC(I)   = FIRUACC(I) +QLWAVG(I) * DT
           ZFL(I)       = FFC(I)*GZEROC(I)+FG(I)*GZEROG(I)+FCS(I)*GZROCS(I)+ &
@@ -1654,20 +1652,8 @@ endif ! prints
 !  end do DO_MOSAIC
 !
 
-
-      ZBASFLW(1:N) => bus( x(DRAIN  ,  1,1 ) : ) !permanent
-      ZOVRFLW(1:N) => bus( x(OVERFL ,  1,1 ) : ) !volatile, WPREP
-      ztsurf   (1:n) => bus( x(tsurf,1,1) : )
-      st       (1:n) => bus( x(tdiag,1,1) : )
-      zdrainfr (1:n) => bus( x(drainfr,1,indx_sfc) : )
-      zrunoff  (1:n) => bus( x(overflfr,1,indx_sfc) : )
-      ztskin   (1:n) => bus( x(tskin,1,indx_sfc) : )
-      ztt2m    (1:n) => bus( x(tt2m,1,indx_sfc)  : )
-
-      zdrainfr(:) = zdrainfr(:) + zbasflw(:)  ! accumulator
-      zrunoff(:)  = zrunoff(:)  + zovrflw(:)  ! accumulator
-      zTskin(:)   = ztsurf(:)                 ! instantaneos
-      zTT2m(:)    = st(:)                     ! instantaneos
+      zRUNOFFTOT(:) = ZOVRFLW(:)
+      zTT2m(:)      = st(:)
 
 if (kount==0 .and. trnch==1) then
 

@@ -3,7 +3,7 @@
 !! FLXSURFZ is a variant of FLXSURF3 that permits to input
 !! wind and temperature (humidity) at different levels
 !! @author Y. Delage, G. Pellerin, B. Bilodeau, M. Desgagne, R. Sarrazin, C. Girard, D. Verseghy, V. Fortin, J. P. Paquin, R. Harvey, J. Melton
-subroutine FLXSURFZ (CDM, CDH, CTU, RIB, FTEMP, FVAP, ILMO, &
+subroutine FLXSURFZ (CDM, CDH, CMU, CTU, RIB, FTEMP, FVAP, ILMO, &
                      UE, FCOR, TA, QA, ZU, ZT, VA, &
                      TG, QG, H, Z0, Z0T, &
                      LZZ0, LZZ0T, FM, FH, N, IL1, IL2, FI, ITER, JL)
@@ -66,6 +66,7 @@ subroutine FLXSURFZ (CDM, CDH, CTU, RIB, FTEMP, FVAP, ILMO, &
   !
   !          - Output -
   real, intent(out) :: CDM(N) !< transfer coefficient of momentum squared
+  real, intent(out) :: CMU(N) !< homog. term for U,V diffu. - added by K.  Winger
   real, intent(inout) :: CTU(N) !< transfer coefficient of temperature times UE
   real, intent(inout) :: RIB(N) !< bulk Richardson number
   real, intent(out) :: FTEMP(N) !< temperature flux
@@ -243,6 +244,7 @@ subroutine FLXSURFZ (CDM, CDH, CTU, RIB, FTEMP, FVAP, ILMO, &
       CT = VKC / FH(J)
       UE(J) = u * CM
       CDM(J) = CM ** 2
+      CMU(J) = CM * UE(J)
       CTU(J) = CT * UE(J)
       CDH(J) = CM * CT
       if (rib(j) > 0.0) then

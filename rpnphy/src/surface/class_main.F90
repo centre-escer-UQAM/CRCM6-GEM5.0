@@ -187,7 +187,7 @@ subroutine class_main (BUS, BUSSIZ, &
            ALVSGC(N),   ALIRGC(N),   ALVSSC(N),   ALIRSC(N), &
 ! roughness modif 1
 !     N     Z0ORO (N),   SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N),
-           Z0M(N),       SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N), &
+           Z0M   (N),   SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N), &
            PCPR  (N),   ZGGEO (N),   VMOD  (N), &
            SRATE (N),   RRATE (N),   COSZS (N), RUNOFF(N)
 
@@ -269,7 +269,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: ZALVS, ZALIR
   real,pointer,dimension(:)   :: FSOLUACC, FIRUACC, SU, SV, ST, SQ, ALVIS_SOL
   real,pointer,dimension(:)   :: EVAPO, QSENS, QEVAP, HBL, ZILMO, ZFRV, PS, QS
-  real,pointer,dimension(:)   :: Z0H, Z0ORO, ZTSURF, ZTSRAD, UA, VA, TA, QA
+  real,pointer,dimension(:)   :: Z0H, Z0ORO, ZTSURF, ZTSRAD, UA, VA, TA, TH, QA
   real,pointer,dimension(:)   :: TFLUX, QFLUX, ZCANG, FLUSOL, ZHUAIRCAN
   real,pointer,dimension(:)   :: ZDLAT, ZDLON, ZSDEPTH, ZZTSL, ZZUSL, QLWIN
   real,pointer,dimension(:)   :: ZTAIRCAN, ZTSNOW, ZTBASE, ZTPOND, ZZPOND
@@ -283,7 +283,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: ZTBASFL, ZTOVRFL, ZTRUNOFF, ZTSUBFL, ZWSNOW
   real,pointer,dimension(:)   :: ZWTRC, ZWTRS, ZWTRG, ZROFC, ZROFN, ZMELTS, ZROVG
   real,pointer,dimension(:)   :: ZOVRFLW, ZSUBFLW, ZBASFLW, ZTCAN, ZRCAN
-  real,pointer,dimension(:)   :: ZCFLUX, ZPCPN, ZHMFN, ZALGWN, ZALGWV, ZALGDN, ZALGDV
+  real,pointer,dimension(:)   :: CMU, CTU, ZPCPN, ZHMFN, ZALGWN, ZALGWV, ZALGDN, ZALGDV
   real,pointer,dimension(:)   :: FFC, FCS, FG, FGS, ZFL, ZRAINRATE, ZSNOWRATE
   real,pointer,dimension(:)   :: ZSNOW, ZSOILCOL
 
@@ -629,12 +629,14 @@ subroutine class_main (BUS, BUSSIZ, &
   if (atm_tplus) then
      QA     (1:n) => bus( x(huplus, 1,nk)      : ) ! Input specific humidity at t+dt
      PS     (1:n) => bus( x(pplus,  1,1)       : ) ! Input surface pressure at t+dt
+     TH     (1:n) => bus( x(thetaap,1,1)       : ) ! Input potential temperature at t+dt
      TA     (1:n) => bus( x(tplus,  1,nk)      : ) ! Input temperature at t+dt
      UA     (1:n) => bus( x(uplus,  1,nk)      : ) ! Input wind speed along-x at t+dt
      VA     (1:n) => bus( x(vplus,  1,nk)      : ) ! Input wind speed along-y at t+dt
   else
      QA     (1:n) => bus( x(humoins,1,nk)      : ) ! Input specific humidity at t-dt
      PS     (1:n) => bus( x(pmoins, 1,1)       : ) ! Input surface pressure at t-dt
+     TH     (1:n) => bus( x(thetaa, 1,1)       : ) ! Input potential temperature at t-dt
      TA     (1:n) => bus( x(tmoins, 1,nk)      : ) ! Input temperature at t-dt
      UA     (1:n) => bus( x(umoins, 1,nk)      : ) ! Input wind speed along-x at t-dt
      VA     (1:n) => bus( x(vmoins, 1,nk)      : ) ! Input wind speed along-y at t-dt
@@ -670,7 +672,8 @@ subroutine class_main (BUS, BUSSIZ, &
                                                        ! (inhomog. term for Q diff.)
   TFLUX     (1:N) => bus( x( ALFAT  ,1,1 ) : )         ! output Product of surface drag coefficient, wind speed and 
                                                        ! surface-air (inhomog. term for T diff.)
-  ZCFLUX    (1:N) => bus( x( BT     ,1,indx_sfc ) : )  ! output Diagnosed product of drag coefficient and wind speed
+  CMU       (1:N) => bus( x( BM     ,1,1 ) : )         ! homog. term for U,V diffu.
+  CTU       (1:N) => bus( x( BT     ,1,indx_sfc ) : )  ! output Diagnosed product of drag coefficient and wind speed
                                                        ! over modelled area [m/s] (homog. term for T,Q diffu.)
   ZBM       (1:N) => bus( x( BM     ,1,1 ) : )         ! output homog. term for U,V diffu.
   QSENS     (1:N) => bus( x( FC     ,1,indx_sfc ) : )  ! output surface sensible heat flux
@@ -1100,7 +1103,8 @@ enddo
 !print*,'class_main Z0ORO          :',minval(Z0ORO),maxval(Z0ORO),sum(Z0ORO)/(N)
 !print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
 !print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
-!print*,'class_main ZCFLUX         :',minval(ZCFLUX),maxval(ZCFLUX),sum(ZCFLUX)/(N)
+!print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
+!print*,'class_main CTU            :',minval(CTU),maxval(CTU),sum(CTU)/(N)
 !print*,'class_main ZBM            :',minval(ZBM),maxval(ZBM),sum(ZBM)/(N)
 !print*,'class_main EVAPO          :',minval(EVAPO),maxval(EVAPO),sum(EVAPO)/(N)
 !print*,'class_main FFC            :',minval(FFC),maxval(FFC),sum(FFC)/(N)
@@ -1498,7 +1502,7 @@ endif ! prints
                                  RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP,  CHCAPS, TPONDC, TPONDG, &
                                  TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
                                  ITERCT, ZCDH,   ZCDM,   QSENS,  TFLUX,  QEVAP,  EVAPO, &
-                                 EVPPOT, ZCFLUX, EVAPB,  ZTSRAD, QS, ZTSURF, &
+                                 EVPPOT, CMU,    CTU,    EVAPB,  ZTSRAD, QS, ZTSURF, &
                                  ST,     SU,     SV,     SQ,     srh, &
                                  GTBS, SFCUBS, SFCVBS, USTARBS, &
                                  ZFSGV,  ZFSGS,  ZFSGG,  ZFLGV,  ZFLGS,  ZFLGG, &
@@ -1506,7 +1510,7 @@ endif ! prints
                                  ZHTCC,  ZHTCS,  ZHTC,   ZQFCF,  ZQFCL,  CDRAG,  WTABLE, ZILMO, &
                                  ZFRV,   HBL, ZTAIRCAN, ZHUAIRCAN, ZZUSL, ZZTSL, ZUN,    ZTN, &
                                  VPD,    TADP,   RHOAIR, QSWINV, QSWINI, QLWIN,  UA,     VA, &
-                                 TA,     QA,     PADRY,  FFC,    FG,     FCS,    FGS,    RBCOEF, &
+                                 TA,     QA,     TH,     PADRY,  FFC,    FG,     FCS,    FGS,    RBCOEF, &
                                  FSVF,   FSVFS,  PS,     vmod,   ALVSCN, ALIRCN, ALVSG,  ALIRG, &
                                  ALVSCS, ALIRCS, ALVSSN, ALIRSN, ALVSGC, ALIRGC, ALVSSC, ALIRSC, &
                                  TRVSCN, TRIRCN, TRVSCS, TRIRCS, RC,     RCS,    ZWTRG,  groundHeatFlux, qlwavg, &
@@ -1599,18 +1603,18 @@ endif ! prints
 !
 !     ADJUST TERMS DEPENDING ON THE VERTICAL DIFFUSION SOLVING OPTION
 !     (NECESSARY MODIFICATION TO USE COUPLED WITH GEM)
-!     TFLUX = TFLUX - ZCFLUX * "TPOTA" = TFLUX - ZCFLUX * [Ta + Z*g/Cp]
-!     QFLUX = QFLUX - ZCFLUX * QA
+!     TFLUX = TFLUX - CTU * "TPOTA" = TFLUX - CTU * [Ta + Z*g/Cp]
+!     QFLUX = QFLUX - CTU * QA
 !
           IF (IMPFLX) THEN
-             TFLUX(I) = TFLUX(I) - ZCFLUX(I)*(TA(I)             &
+             TFLUX(I) = TFLUX(I) - CTU(I)*(TA(I)             &
                       + GRAV/CPD * ( FCS(I)*(ZZUSL(I)-DISPS(I)) &
                       +              FFC(I)*(ZZUSL(I)-DISP (I)) &
                       + ( FGS(I) + FG(I) )*ZZUSL(I)))
-             QFLUX(I) = QFLUX(I) - ZCFLUX(I)*QA(I)
+             QFLUX(I) = QFLUX(I) - CTU(I)*QA(I)
 !     OFFLINE PREVIOUS OPTION
           ELSE
-             ZCFLUX(I) = 0.
+             CTU(I) = 0.
           ENDIF
 !
 !   BM CALCULATIONS
@@ -1662,7 +1666,8 @@ print*,'class_main Physics output'
 print*,'class_main ALVIS_SOL      :',minval(ALVIS_SOL),maxval(ALVIS_SOL),sum(ALVIS_SOL)/(N)
 print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
 print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
-print*,'class_main ZCFLUX         :',minval(ZCFLUX),maxval(ZCFLUX),sum(ZCFLUX)/(N)
+print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
+print*,'class_main CTU            :',minval(CTU),maxval(CTU),sum(CTU)/(N)
 print*,'class_main ZBM            :',minval(ZBM),maxval(ZBM),sum(ZBM)/(N)
 print*,'class_main QSENS          :',minval(QSENS),maxval(QSENS),sum(QSENS)/(N)
 print*,'class_main QEVAP          :',minval(QEVAP),maxval(QEVAP),sum(QEVAP)/(N)

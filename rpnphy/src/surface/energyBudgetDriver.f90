@@ -11,7 +11,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
                                RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP, CHCAPS, TPONDC, TPONDG, &
                                TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
                                ITERCT, CDH, CDM, QSENS, TFLUX, QEVAP, EVAP, &
-                               EVPPOT, ACOND, EVAPB, GT, QG, TSURF, &
+                               EVPPOT, CMU, ACOND, EVAPB, GT, QG, TSURF, &
                                ST, SU, SV, SQ, SRH, &
                                GTBS, SFCUBS, SFCVBS, USTARBS, &
                                FSGV, FSGS, FSGG, FLGV, FLGS, FLGG, &
@@ -19,7 +19,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
                                HTCC, HTCS, HTC, QFCF, QFCL, DRAG, WTABLE, ILMO, &
                                UE, HBL, TAC, QAC, ZREFM, ZREFH, ZDIAGM, ZDIAGH, &
                                VPD, TADP, RHOAIR, QSWINV, QSWINI, QLWIN, UWIND, VWIND, &
-                               TA, QA, PADRY, FC, FG, FCS, FGS, RBCOEF, &
+                               TA, QA, TH, PADRY, FC, FG, FCS, FGS, RBCOEF, &
                                FSVF, FSVFS, PRESSG, VMOD, ALVSCN, ALIRCN, ALVSG, ALIRG, &
                                ALVSCS, ALIRCS, ALVSSN, ALIRSN, ALVSGC, ALIRGC, ALVSSC, ALIRSC, &
                                TRVSCN, TRIRCN, TRVSCS, TRIRCS, RC, RCS, WTRG, groundHeatFlux, QLWAVG, &
@@ -218,6 +218,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   !
   !     * OUTPUT FIELDS.
   !
+  real, intent(out) :: CMU   (ILG) !< homog. term for U,V diffu. - added by K. Winger
   real, intent(out) :: ACOND (ILG) !< Diagnosed product of drag coefficient and wind speed over modelled area \f$[m s^{-1} ]\f$
   real, intent(out) :: CDH   (ILG) !< Surface drag coefficient for heat \f$[ ] (C_{DH} )\f$
   real, intent(out) :: CDM   (ILG) !< Surface drag coefficient for momentum \f$[ ] (C_{DM} )\f$
@@ -360,6 +361,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   real, intent(in) :: VWIND (ILG) !< Meridional component of wind speed \f$[m s^{-1} ] (V_a)\f$
   real, intent(in) :: TA    (ILG) !< Air temperature at reference height \f$[K] (T_a)\f$
   real, intent(in) :: QA    (ILG) !< Specific humidity at reference height \f$[kg kg^{-1} ]\f$
+  real, intent(in) :: TH    (ILG) !< Potential temperature at reference height \f$[K] (T_a)\f$
   real, intent(in) :: PADRY (ILG) !< Partial pressure of dry air \f$[Pa] (p_{dry} )\f$
   real, intent(in) :: FC    (ILG) !< Subarea fractional coverage of modelled area [ ]
   real, intent(in) :: FG    (ILG) !< Subarea fractional coverage of modelled area [ ]
@@ -492,7 +494,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
           TACCS (ILG), QACCS (ILG), TACCO (ILG), QACCO (ILG), &
           ILMOX (ILG), UEX   (ILG), HBLX  (ILG), ZERO  (ILG), &
           STT   (ILG), SQT   (ILG), SUT   (ILG), SVT   (ILG), &
-          SHT   (ILG)
+          SHT   (ILG), CMUF  (ILG)
   !
   integer             :: IEVAP (ILG), IWATER(ILG)
   !
@@ -784,7 +786,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
                          CDH, CDM, QSENS, QEVAP, QLWAVG, &
                          FSGV, FSGS, FSGG, FLGV, FLGS, FLGG, &
                          HFSC, HFSS, HFSG, HEVC, HEVS, HEVG, &
-                         HMFC, HMFN, QFCF, QFCL, EVPPOT, ACOND, &
+                         HMFC, HMFN, QFCF, QFCL, EVPPOT, CMUF, ACOND, &
                          DRAG, THLIQ, THICE, TBAR, ZPOND, TPOND, &
                          THPOR, THLMIN, THLRET, THFC, HCPS, TCS, &
                          TA, RHOSNO, TSNOW, ZSNOW, WSNOW, TCAN, &
@@ -834,7 +836,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
           ZRSLFH(I) = ZREFH(I) - DISPS(I)
           ZDSLM(I) = ZDIAGM(I)
           ZDSLH(I) = ZDIAGH(I)
-          TPOTA(I) = TA(I)
+          TPOTA(I) = TH(I)     ! KW
         end if
         ZOSCLM(I) = ZOM(I) / ZRSLDM(I)
         ZOSCLH(I) = ZOH(I) / ZRSLDH(I)
@@ -866,7 +868,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
                           QSENSX, QSENSC, QSENSG, QEVAPX, QEVAPC, QEVAPG, EVAPCS, &
                           EVPCSG, EVAP, TCANS, QCANX, TSURX, QSURX, GSNOWC, QPHCHC, &
                           QMELTC, RAICNS, SNOCNS, CDHX, CDMX, RIBX, TACCS, QACCS, &
-                          CFLUX, FTEMPX, FVAPX, ILMOX, UEX, HBLX, QFCF, QFCL, HTCC, &
+                          CMUF, CFLUX, FTEMPX, FVAPX, ILMOX, UEX, HBLX, QFCF, QFCL, HTCC, &
                           QSWINV, QSWINI, QLWIN, TPOTA, TA, QA, VA, VAC, PADRY, &
                           RHOAIR, ALVSCS, ALIRCS, ALVSSC, ALIRSC, TRVSCS, TRIRCS, &
                           FSVFS, CRIB, CPHCHC, CPHCHG, CEVAP, TADP, TVIRTA, RCS, &
@@ -970,6 +972,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
         QACSAT = WACSAT / (1.0 + WACSAT)
         EVPPOT(I) = EVPPOT(I) + FCS(I) * RHOAIR(I) * CFLUX(I) * &
                     (QACSAT - QA(I))
+        CMU(I)   = CMU(I)   + FCS(I) * CMUF(I)
         ACOND(I) = ACOND(I) + FCS(I) * CFLUX(I)
         ILMO(I) = ILMO(I) + FCS(I) * ILMOX(I)
         UE(I)   = UE(I) + FCS(I) * UEX(I)
@@ -1056,7 +1059,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
     ISNOW = 1
     call energBalNoVegSolve(ISNOW, FGS, & ! Formerly TSOLVE
                             QSWX, QLWX, QTRANS, QSENSX, QEVAPX, EVAPGS, &
-                            TSURX, QSURX, GSNOWG, QMELTG, CDHX, CDMX, RIBX, CFLUX, &
+                            TSURX, QSURX, GSNOWG, QMELTG, CDHX, CDMX, RIBX, CMUF, CFLUX, &
                             FTEMPX, FVAPX, ILMOX, UEX, HBLX, &
                             QLWIN, TPOTA, QA, VA, PADRY, RHOAIR, &
                             ALVSSN, ALIRSN, CRIB, CPHCHG, CEVAP, TVIRTA, &
@@ -1143,6 +1146,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
       if (FGS(I) > 0.) then
         EVPPOT(I) = EVPPOT(I) + FGS(I) * RHOAIR(I) * CFLUX(I) * &
                     (Q0SAT(I) - QA(I))
+        CMU(I)   = CMU(I)   + FGS(I) * CMUF(I)
         ACOND(I) = ACOND(I) + FGS(I) * CFLUX(I)
         ILMO(I) = ILMO(I) + FGS(I) * ILMOX(I)
         UE(I)   = UE(I) + FGS(I) * UEX(I)
@@ -1225,7 +1229,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
                           QSENSX, QSENSC, QSENSG, QEVAPX, QEVAPC, QEVAPG, EVAPC, &
                           EVAPCG, EVAP, TCANO, QCANX, TSURX, QSURX, GZEROC, QPHCHC, &
                           QFREZC, RAICAN, SNOCAN, CDHX, CDMX, RIBX, TACCO, QACCO, &
-                          CFLUX, FTEMPX, FVAPX, ILMOX, UEX, HBLX, QFCF, QFCL, HTCC, &
+                          CMUF, CFLUX, FTEMPX, FVAPX, ILMOX, UEX, HBLX, QFCF, QFCL, HTCC, &
                           QSWINV, QSWINI, QLWIN, TPOTA, TA, QA, VA, VAC, PADRY, &
                           RHOAIR, ALVSCN, ALIRCN, ALVSGC, ALIRGC, TRVSCN, TRIRCN, &
                           FSVF, CRIB, CPHCHC, CPHCHG, CEVAP, TADP, TVIRTA, RC, &
@@ -1324,6 +1328,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
         QACSAT = WACSAT / (1.0 + WACSAT)
         EVPPOT(I) = EVPPOT(I) + FC(I) * RHOAIR(I) * CFLUX(I) * &
                     (QACSAT - QA(I))
+        CMU(I)   = CMU(I)   + FC(I) * CMUF(I)
         ACOND(I) = ACOND(I) + FC(I) * CFLUX(I)
         ILMO(I) = ILMO(I) + FC(I) * ILMOX(I)
         UE(I)   = UE(I) + FC(I) * UEX(I)
@@ -1402,7 +1407,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
     ISNOW = 0
     call energBalNoVegSolve(ISNOW, FG, & ! Formerly TSOLVE
                             QSWX, QLWX, QTRANS, QSENSX, QEVAPX, EVAPG, &
-                            TSURX, QSURX, GZEROG, QFREZG, CDHX, CDMX, RIBX, CFLUX, &
+                            TSURX, QSURX, GZEROG, QFREZG, CDHX, CDMX, RIBX, CMUF, CFLUX, &
                             FTEMPX, FVAPX, ILMOX, UEX, HBLX, &
                             QLWIN, TPOTA, QA, VA, PADRY, RHOAIR, &
                             ALVSG, ALIRG, CRIB, CPHCHG, CEVAP, TVIRTA, &
@@ -1489,6 +1494,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
       if (FG(I) > 0.) then
         EVPPOT(I) = EVPPOT(I) + FG(I) * RHOAIR(I) * CFLUX(I) * &
                     (Q0SAT(I) - QA(I))
+        CMU(I)   = CMU(I)   + FG(I) * CMUF(I)
         ACOND(I) = ACOND(I) + FG(I) * CFLUX(I)
         ILMO(I) = ILMO(I) + FG(I) * ILMOX(I)
         UE(I)   = UE(I) + FG(I) * UEX(I)

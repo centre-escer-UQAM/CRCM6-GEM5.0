@@ -5,7 +5,7 @@
 !
 subroutine energBalNoVegSolve (ISNOW, FI, & ! Formerly TSOLVE
                                QSWNET, QLWOUT, QTRANS, QSENS, QEVAP, EVAP, &
-                               TZERO, QZERO, GZERO, QMELT, CDH, CDM, RIB, CFLUX, &
+                               TZERO, QZERO, GZERO, QMELT, CDH, CDM, RIB, CMU, CFLUX, &
                                FTEMP, FVAP, ILMO, UE, H, &
                                QLWIN, TPOTA, QA, VA, PADRY, RHOAIR, &
                                ALVISG, ALNIRG, CRIB, CPHCH, CEVAP, TVIRTA, &
@@ -139,6 +139,7 @@ subroutine energBalNoVegSolve (ISNOW, FI, & ! Formerly TSOLVE
   real, intent(in) :: CDH   (ILG)  !< Surface drag coefficient for heat \f$[ ] (C_{DH}) \f$
   real, intent(in) :: CDM   (ILG)  !< Surface drag coefficient for momentum [ ]
   real, intent(in) :: RIB   (ILG)  !< Bulk Richardson number at surface [ ]
+  real, intent(out)   :: CMU   (ILG)  !< homog. term for U,V diffu. - added by K.  Winger
   real, intent(inout) :: CFLUX (ILG)  !< Product of surface drag coefficient and wind speed \f$[m s^{-1}]\f$
   real, intent(in) :: FTEMP (ILG)  !< Product of surface-air temperature gradient,
   !< drag coefficient and wind speed \f$[K m s^{-1}]\f$
@@ -505,7 +506,7 @@ if (minval(ipeatland) > 0) &   ! KW
                   CRIB, TVIRTS, TVIRTA, VA, FI, ITER, &
                   ILG, IL1, IL2)
     else
-      call FLXSURFZ(CDM, CDH, CFLUX, RIB, FTEMP, FVAP, ILMO, &
+      call FLXSURFZ(CDM, CDH, CMU, CFLUX, RIB, FTEMP, FVAP, ILMO, &
                     UE, FCOR, TPOTA, QA, ZRSLFM, ZRSLFH, VA, &
                     TZERO, QZERO, H, ZOM, ZOH, &
                     LZZ0, LZZ0T, FM, FH, ILG, IL1, IL2, FI, ITER, JL)
@@ -770,7 +771,7 @@ if (minval(ipeatland) > 0) &   ! KW
                     CRIB, TVIRTS, TVIRTA, VA, FI, JEVAP, &
                     ILG, IL1, IL2)
       else
-        call FLXSURFZ(CDM, CDH, CFLUX, RIB, FTEMP, FVAP, ILMO, &
+        call FLXSURFZ(CDM, CDH, CMU, CFLUX, RIB, FTEMP, FVAP, ILMO, &
                       UE, FCOR, TPOTA, QA, ZRSLFM, ZRSLFH, VA, &
                       TZERO, QZERO, H, ZOM, ZOH, &
                       LZZ0, LZZ0T, FM, FH, ILG, IL1, IL2, FI, JEVAP, JL)
@@ -850,7 +851,7 @@ if (minval(ipeatland) > 0) &   ! KW
                   CRIB, TVIRTS, TVIRTA, VA, FI, ITER, &
                   ILG, IL1, IL2)
     else
-      call FLXSURFZ(CDM, CDH, CFLUX, RIB, FTEMP, FVAP, ILMO, &
+      call FLXSURFZ(CDM, CDH, CMU, CFLUX, RIB, FTEMP, FVAP, ILMO, &
                     UE, FCOR, TPOTA, QA, ZRSLFM, ZRSLFH, VA, &
                     TZERO, QZERO, H, ZOM, ZOH, &
                     LZZ0, LZZ0T, FM, FH, ILG, IL1, IL2, FI, ITER, JL)

@@ -7,7 +7,7 @@ subroutine energBalVegSolve (ISNOW, FI, & ! Formerly TSOLVC
                              QSENS, QSENSC, QSENSG, QEVAP, QEVAPC, QEVAPG, EVAPC, &
                              EVAPG, EVAP, TCAN, QCAN, TZERO, QZERO, GZERO, QMELTC, &
                              QMELTG, RAICAN, SNOCAN, CDH, CDM, RIB, TAC, QAC, &
-                             CFLUX, FTEMP, FVAP, ILMO, UE, H, QFCF, QFCL, HTCC, &
+                             CMU, CFLUX, FTEMP, FVAP, ILMO, UE, H, QFCF, QFCL, HTCC, &
                              QSWINV, QSWINI, QLWIN, TPOTA, TA, QA, VA, VAC, PADRY, &
                              RHOAIR, ALVISC, ALNIRC, ALVISG, ALNIRG, TRVISC, TRNIRC, &
                              FSVF, CRIB, CPHCHC, CPHCHG, CEVAP, TADP, TVIRTA, RC, &
@@ -196,7 +196,8 @@ subroutine energBalVegSolve (ISNOW, FI, & ! Formerly TSOLVC
   real, intent(in)    :: RIB   (ILG) !< Bulk Richardson number at surface [ ]
   real, intent(inout) :: TAC   (ILG) !< Temperature of air within vegetation canopy \f$[K] (T_{ac} )\f$
   real, intent(inout) :: QAC   (ILG) !< Specific humidity of air within vegetation canopy space \f$[kg kg^{-1} ] (q_{ac} )\f$
-  real, intent(in)    :: CFLUX (ILG) !< Product of surface drag coefficient and wind speed \f$[m s^{-1} ]\f$
+  real, intent(out)   :: CMU   (ILG) !< homog. term for U,V diffu. - added by K.  Winger
+  real, intent(out)   :: CFLUX (ILG) !< Product of surface drag coefficient and wind speed \f$[m s^{-1} ]\f$
   real, intent(in)    :: FTEMP (ILG) !< Product of surface-air temperature gradient,
   !< drag coefficient and wind speed \f$[K m s^{-1} ]\f$
   real, intent(in)    :: FVAP  (ILG) !< Product of surface-air humidity gradient, drag coefficient
@@ -1101,7 +1102,7 @@ if (minval(ipeatland) > 0) &   ! KW
                   CRIB, TVRTAC, TVIRTA, VA, FI, ITER, &
                   ILG, IL1, IL2)
     else
-      call FLXSURFZ(CDM, CDH, CFLUX, RIB, FTEMP, FVAP, ILMO, &
+      call FLXSURFZ(CDM, CDH, CMU, CFLUX, RIB, FTEMP, FVAP, ILMO, &
                     UE, FCOR, TPOTA, QA, ZRSLFM, ZRSLFH, VA, &
                     TAC, QAC, H, ZOM, ZOH, &
                     LZZ0, LZZ0T, FM, FH, ILG, IL1, IL2, FI, ITER, JL)
@@ -1496,7 +1497,7 @@ if (minval(ipeatland) > 0) &   ! KW
                     CRIB, TVIRTC, TVIRTA, VA, FI, IEVAPC, &
                     ILG, IL1, IL2)
       else
-        call FLXSURFZ(CDM, CDH, CFLUX, RIB, FTEMP, FVAP, ILMO, &
+        call FLXSURFZ(CDM, CDH, CMU, CFLUX, RIB, FTEMP, FVAP, ILMO, &
                       UE, FCOR, TPOTA, QA, ZRSLFM, ZRSLFH, VA, &
                       TCAN, QCAN, H, ZOM, ZOH, &
                       LZZ0, LZZ0T, FM, FH, ILG, IL1, IL2, FI, IEVAPC, JL)
@@ -1654,7 +1655,7 @@ if (minval(ipeatland) > 0) &   ! KW
                   CRIB, TVRTAC, TVIRTA, VA, FI, ITER, &
                   ILG, IL1, IL2)
     else
-      call FLXSURFZ(CDM, CDH, CFLUX, RIB, FTEMP, FVAP, ILMO, &
+      call FLXSURFZ(CDM, CDH, CMU, CFLUX, RIB, FTEMP, FVAP, ILMO, &
                     UE, FCOR, TPOTA, QA, ZRSLFM, ZRSLFH, VA, &
                     TAC, QAC, H, ZOM, ZOH, &
                     LZZ0, LZZ0T, FM, FH, ILG, IL1, IL2, FI, ITER, JL)

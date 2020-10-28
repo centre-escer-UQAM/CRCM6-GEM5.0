@@ -20,7 +20,7 @@ subroutine energyBudgetPrep (THLIQC, THLIQG, THICEC, THICEG, TBARC, TBARG, & ! F
                              CDH, CDM, QSENS, QEVAP, QLWAVG, &
                              FSGV, FSGS, FSGG, FLGV, FLGS, FLGG, &
                              HFSC, HFSS, HFSG, HEVC, HEVS, HEVG, &
-                             HMFC, HMFN, QFCF, QFCL, EVPPOT, ACOND, &
+                             HMFC, HMFN, QFCF, QFCL, EVPPOT, CMU, ACOND, &
                              DRAG, THLIQ, THICE, TBAR, ZPOND, TPOND, &
                              THPOR, THLMIN, THLRET, THFC, HCPS, TCS, &
                              TA, RHOSNO, TSNOW, ZSNOW, WSNOW, TCAN, &
@@ -244,6 +244,7 @@ subroutine energyBudgetPrep (THLIQC, THLIQG, THICEC, THICEG, TBARC, TBARG, & ! F
   real, intent(out) :: HMFN  (ILG)  !< Diagnosed energy associated with phase change
   !< of water in snow pack \f$[W m^{-2}]\f$
   real, intent(out) :: EVPPOT(ILG)  !< Diagnosed potential evapotranspiration \f$[kg m^{-2} s^{-1}]\f$
+  real, intent(out) :: CMU   (ILG)  !< homog. term for U,V diffu. - added by K.  Winger
   real, intent(out) :: ACOND (ILG)  !< Diagnosed product of drag coefficient and wind
   !< speed over modelled area \f$[m s^{-1}]\f$
   real, intent(out) :: DRAG  (ILG)  !< Surface drag coefficient under neutral stability [ ]
@@ -399,6 +400,7 @@ subroutine energyBudgetPrep (THLIQC, THLIQG, THICEC, THICEG, TBARC, TBARG, & ! F
     QFCF  (I) = 0.
     QFCL  (I) = 0.
     EVPPOT(I) = 0.
+    CMU   (I) = 0.
     ACOND (I) = 0.
     DRAG  (I) = 0.
     ILMO  (I) = 0.

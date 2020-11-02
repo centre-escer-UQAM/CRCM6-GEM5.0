@@ -554,10 +554,12 @@ print *,'sfc_main: i,zmg,zglsea,zglacier,zurban,zlakefr:', i,zmg(i),zglsea(i),zg
       lcl_indx(1,1:ni_lake) = rg_lake(1:ni_lake)
       lcl_indx(2,1:ni_lake) = trnch
 
+!$omp critical
       call flake_main( bus_lake, siz_lake   ,  &
            ptr_lake, nvarsurf    ,  &
            dt , trnch, kount,  &
            ni_lake , ni_lake, nk-1 )
+!$omp end critical
 
       call copybus3(bus_lake, siz_lake, &
            ptr_lake, nvarsurf, &

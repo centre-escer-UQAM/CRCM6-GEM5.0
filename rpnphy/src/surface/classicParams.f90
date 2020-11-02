@@ -177,6 +177,22 @@ module classicParams
   integer, dimension(:), allocatable      :: modelpft  !< Separation of pfts into level 1 (for class) and level 2 (for ctem) pfts.
   character(8), dimension(:), allocatable :: ctempfts  !< List of CTEM-level PFTs
 
+  ! Parameters added by K. Winger
+  integer :: IDISP ! = 0
+  integer :: IZREF ! = 2
+  integer :: ISLFD ! = 2
+  integer :: ITC   ! = 1
+  integer :: ITCG  ! = 1
+  integer :: ITG   ! = 1
+  integer :: NMIM  ! = 1
+  integer :: IPAI  ! = 0
+  integer :: IHGT  ! = 0
+  integer :: IALC  ! = 0
+  integer :: IALS  ! = 0
+  integer :: IALG  ! = 0
+  integer :: IPCP  ! = 4
+
+
   ! Physics (CLASS) parameters:
 
   real :: CT     !< Drag Coefficient for water (-)
@@ -797,6 +813,19 @@ contains
     integer :: isumc, k1c, k2c
 
     namelist /classicparams/ &
+        IDISP, &
+        IZREF, &
+        ISLFD, &
+        ITC  , &
+        ITCG , &
+        ITG  , &
+        NMIM , &
+        IPAI , &
+        IHGT , &
+        IALC , &
+        IALS , &
+        IALG , &
+        IPCP , &
         CT   , &
         VMIN , &
         TCW  , &

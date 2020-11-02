@@ -27,7 +27,9 @@ subroutine class_main (BUS, BUSSIZ, &
   use phy_options, only: MU_JDATE_HALFDAY, RAD_NUVBRANDS
 !  use ctem_params, only : initpftpars, nlat, ilg, ican, ignd
   use class_configs, only : CLASS_IC, CTEM_ICC
-  use classicParams, only : nlat, ilg, ignd
+  use classicParams, only : nlat, ilg, ignd, &
+                            IDISP,IZREF,ITC,ITCG,ITG,ISLFD,NMIM, &
+                            IPAI,IHGT,IALC,IALS,IALG,IPCP
 
   implicit none
 
@@ -131,8 +133,8 @@ subroutine class_main (BUS, BUSSIZ, &
   logical, parameter :: INTERFLOW_L = .false.
 
   integer :: I
-  integer :: IC,ICP1,IPAI,IHGT,IALC,IALS,IALG,IPCP, ICC,ICCP1
-  integer :: IDISP,IZREF,ITC,ITCG,ITG,ISLFD,NMIM       !,ILW
+  integer :: IC,ICP1,ICC,ICCP1
+!  integer :: IPAI,IHGT,IALC,IALS,IALG,IPCP,IDISP,IZREF,ITC,ITCG,ITG,ISLFD,NMIM       !,ILW
   integer :: NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI
   logical :: DOTILE, DOPREC
   logical :: kount0  !to determine if we should run the initializations
@@ -1301,21 +1303,20 @@ endif ! prints
 !       a polynomial curve between 0 c and 6 c.
 ! If ipcp=4, ONLY IN GEM. Calculates PCPR
 !
-    IDISP = 0
-    IZREF = 2
-    ISLFD = 2
-    ITC   = 1
-    ITCG  = 1
-    ITG   = 1
-!   ILW   = 1
-    NMIM  = 1
+!    IDISP = 0
+!    IZREF = 2
+!    ISLFD = 2
+!    ITC   = 1
+!    ITCG  = 1
+!    ITG   = 1
+!    NMIM  = 1
 
-    IPAI  = 0
-    IHGT  = 0
-    IALC  = 0
-    IALS  = 0
-    IALG  = 0
-    IPCP  = 4
+!    IPAI  = 0
+!    IHGT  = 0
+!    IALC  = 0
+!    IALS  = 0
+!    IALG  = 0
+!    IPCP  = 4
 
 
 

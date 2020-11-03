@@ -69,6 +69,7 @@ subroutine phyexe(e, d, f, v, esiz, dsiz, fsiz, vsiz, trnch, kount, ni, nk)
 #include <rmnlib_basics.hf>
    include "tables.cdk"
    include "physteps.cdk"
+   include "dbg_vars.cdk"
 
    integer :: iverb, nkm1
    character(len=64) :: tmp_S
@@ -77,6 +78,11 @@ subroutine phyexe(e, d, f, v, esiz, dsiz, fsiz, vsiz, trnch, kount, ni, nk)
    real, dimension(ni,nk) :: seloc, ficebl
    !----------------------------------------------------------------
    write(tmp_S, '(i6,i6,a)') kount, trnch, ' (phyexe)'
+
+   ! Set main variables needed for debugging (K. Winger)
+   dbg_kount  = kount
+   dbg_trnch  = trnch
+
    call msg_verbosity_get(iverb)
    if (debug_trace_L) call msg_verbosity(MSG_DEBUG)
    call msg_toall(MSG_DEBUG, trim(tmp_S)//' [BEGIN]')

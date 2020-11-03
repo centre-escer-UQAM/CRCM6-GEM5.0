@@ -1,0 +1,11 @@
+!
+! Author: K. Winger, UQAM (Nov 2020)
+! Purpose:
+!   Collection of main variable needed for debugging.
+!   Variables set in phyexe; used anywhere in the physics
+
+      integer :: dbg_myproc  ! number of current process, set phydebu.F90
+      integer :: dbg_kount   ! current time step
+      integer :: dbg_trnch   ! current physics slice / tranche
+
+      common /dbg_fields/ dbg_myproc, dbg_kount, dbg_trnch

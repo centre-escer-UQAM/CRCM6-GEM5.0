@@ -108,6 +108,7 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
    include "rpn_comm.inc"
    include "clefcon.cdk"
    include "machcon.cdk"
+   include "dbg_vars.cdk"
 
    logical, save :: okinit = .false.
 
@@ -123,6 +124,9 @@ function phydebu2(p_ni, p_nj, p_nk, F_path_S) result(F_istat)
       call msg(MSG_ERROR,'(phydebu) VARIABLES: jdateo,delt NOT INITIALIZED')
       return
    endif
+
+   ! Set main variables needed for debugging (K. Winger)
+   call rpn_comm_rank(RPN_COMM_GRID, dbg_myproc, ier)
 
    ! INITIALISATION DE VARIABLES POUR CLEF
    ! - - - - - - - - - - - - - - - - - - -

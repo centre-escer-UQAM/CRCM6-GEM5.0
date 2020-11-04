@@ -435,7 +435,7 @@ subroutine energyBudgetPrep (THLIQC, THLIQG, THICEC, THICEG, TBARC, TBARG, & ! F
   !! typically symbolized in the literature) is calculated using a
   !! relation presented by Merlin et al. (2011) \cite Merlin2011-xy:
   !!
-  !! \f$\beta = 0.25 [1 – cos(\theta_l \pi / \theta_{p})]^2\f$
+  !! \f$\beta = 0.25 [1 ? cos(\theta_l \pi / \theta_{p})]^2\f$
   !!
   !! where \f$\theta_l\f$ is the liquid water content of the first soil layer
   !! and \f$\theta_{p}\f$ is its porosity. We follow Merlin et al. in using a
@@ -499,7 +499,7 @@ subroutine energyBudgetPrep (THLIQC, THLIQG, THICEC, THICEG, TBARC, TBARG, & ! F
   !! snow density using an empirical relationship derived by Sturm et
   !! al. (1997):
   !!
-  !! \f$\lambda_s = 3.233 x 10^{-6} \rho_s^2 – 1.01 x 10^{-3} \rho_s + 0.138      \rho_s \geq 156.0 \f$
+  !! \f$\lambda_s = 3.233 x 10^{-6} \rho_s^2 ? 1.01 x 10^{-3} \rho_s + 0.138      \rho_s \geq 156.0 \f$
   !!
   !! \f$\lambda_s = 0.234 x 10^{-3} \rho_s + 0.023                                \rho_s < 156.0 \f$
   !!
@@ -570,12 +570,12 @@ subroutine energyBudgetPrep (THLIQC, THLIQG, THICEC, THICEG, TBARC, TBARG, & ! F
   !! where \f$\Delta z_w\f$ is the permeable thickness of the soil layer.
   !!
   !! The thermal conductivities of organic and mineral soils are
-  !! calculated following the analysis of Côté and Konrad (2005).
+  !! calculated following the analysis of C�t� and Konrad (2005).
   !! They model the soil thermal conductivity \f$\lambda\f$ using the concept of a
   !! relative thermal conductivity \f$\lambda_r\f$ which has a value of 0 for
   !! dry soils and 1 at saturation:
   !!
-  !! \f$\lambda = [ \lambda_{sat} – \lambda_{dry} ] \lambda_r + \lambda_{dry}\f$
+  !! \f$\lambda = [ \lambda_{sat} ? \lambda_{dry} ] \lambda_r + \lambda_{dry}\f$
   !!
   !! The relative thermal conductivity is obtained from the degree of
   !! saturation (the water content divided by the pore volume) \f$S_r\f$,
@@ -650,11 +650,6 @@ subroutine energyBudgetPrep (THLIQC, THLIQG, THICEC, THICEG, TBARC, TBARG, & ! F
   !! if the pond depth ZPOND is zero, to the thermal conductivity of
   !! water if ZPOND \f$\geq 10^{-2} m\f$.
   !!
-
-!print *,'energyBudgetPrep: i,j,ISAND(1,:):',ISAND(1,:)
-!print *,'energyBudgetPrep: i,j,THPOR(1,:):',THPOR(1,:)
-
-
   do J = IG,1, - 1 ! loop 500
     do I = IL1,IL2
       if    (ISAND(I,1) == - 4) then

@@ -16,7 +16,7 @@ module ctemDriver
 contains
   !> \ingroup ctemdriver_ctem
   !! @{
-  subroutine ctem (fsnow, sand, & ! In
+  subroutine ctem (fsnow, sand, ilmos, & ! In
                    ilg, il1, il2, iday, radj, & ! In
                    ta, delzw, ancgveg, rmlcgveg, & ! In
                    zbotw, doMethane, & ! In
@@ -47,7 +47,7 @@ contains
                    surmncur, defmncur, srplscur, defctcur, &! In/ Out
                    aridity, srplsmon, defctmon, anndefct, &! In/ Out
                    annsrpls, annpcp, dry_season_length, &! In/ Out
-                   pftexist, twarmm, tcoldm, gdd5, &! In/ Out
+                   pftexist, twarmm, tcoldm, gdd5, nppveg,&! In/ Out
                    tracerStemMass, tracerRootMass, tracerGLeafMass, tracerBLeafMass, & ! In/Out
                    tracerSoilCMass, tracerLitrMass, tracerMossCMass, tracerMossLitrMass, & ! In/Out
                    npp, nep, hetrores, autores, & ! Out (Primary)
@@ -67,7 +67,7 @@ contains
                    emit_h2, emit_nox, emit_n2o, emit_pm25, & ! Out (Secondary)
                    emit_tpm, emit_tc, emit_oc, emit_bc, & ! Out (Secondary)
                    bterm_veg, lterm, mterm_veg, burnvegf, & ! Out (Secondary)
-                   litrfallveg, humtrsvg, ltstatus, nppveg, & ! Out (Secondary)
+                   litrfallveg, humtrsvg, ltstatus, & ! Out (Secondary)
                    afrleaf, afrstem, afrroot, wtstatus, & ! Out (Secondary)
                    rmlveg, rmsveg, rmrveg, rgveg, & ! Out (Secondary)
                    vgbiomas_veg, gppveg, nepveg, nbpveg, & ! Out (Secondary)
@@ -182,6 +182,7 @@ contains
     integer, intent(in) :: ilg                              !< ilg=no. of grid cells in latitude circle
     integer, intent(in) :: il1                              !< il1=1
     integer, intent(in) :: il2                              !< il2=ilg (no. of grid cells in latitude circle)
+    integer, intent(in), dimension(:) :: ilmos              !< Index of gridcell corresponding to current element of gathered vector of land surface variables [ ]
     integer, dimension(ilg,ignd), intent(in) :: isand       !<
     integer, dimension(ilg), intent(in) :: ipeatland        !< Peatland flag: 0 = not a peatland, 1 = bog, 2 = fen
     real, dimension(ilg), intent(in) :: fsnow               !< fraction of snow simulated by class
@@ -313,6 +314,7 @@ contains
     real, intent(inout) :: tracerMossCMass(:)      !< Tracer mass in moss biomass, \f$kg C/m^2\f$
     real, intent(inout) :: tracerMossLitrMass(:)   !< Tracer mass in moss litter, \f$kg C/m^2\f$
     real, dimension(ilg,icc), intent(inout) :: slai           !< storage/imaginary lai for phenology purposes
+    real, dimension(ilg,icc), intent(inout) :: nppveg         !< NPP for individual pfts, (\f$\mu mol CO_2 m^{-2} s^{-1}\f$)
     real, dimension(ilg,icc), intent(inout) :: lambda         !< Fraction of npp that is to be used for
     !! horizontal expansion (lambda) during the next
     !! day (i.e. this will be determining
@@ -352,7 +354,6 @@ contains
     real, dimension(ilg,icc), intent(out) :: rmrveg         !< Maintenance respiration for root for the CTEM pfts in u mol co2/m2. sec
     real, dimension(ilg,icc), intent(out) :: rmlveg         !< Leaf maintenance respiration per PFT (\f$\mu mol CO_2 m^{-2} s^{-1}\f$)
     real, dimension(ilg,icc), intent(out) :: gppveg         !< Gross primary productivity per PFT (\f$\mu mol CO_2 m^{-2} s^{-1}\f$)
-    real, dimension(ilg,icc), intent(out) :: nppveg         !< NPP for individual pfts, (\f$\mu mol CO_2 m^{-2} s^{-1}\f$)
     real, dimension(ilg,icc), intent(out) :: rgveg          !< PFT level growth respiration (\f$\mu mol CO_2 m^{-2} s^{-1}\f$)
     real, dimension(ilg,iccp1), intent(out) :: nepveg       !<
     real, dimension(ilg,iccp1), intent(out) :: nbpveg       !<
@@ -688,7 +689,7 @@ contains
                           ch4WetSpec, wetfdyn, ch4WetDyn) ! Out
 
       !> Calculate the methane that is oxidized by the soil sink
-      call soil_ch4uptake(il1, il2, ilg, tbar, & ! In
+      call soil_ch4uptake(il1, il2, ilmos, ilg, tbar, & ! In
                         bi, thliq, thice, psisat, & ! In
                         fcanmx, wetfdyn, wetfrac, & ! In
                         isand, ch4conc, thpor, & ! In
@@ -914,7 +915,7 @@ contains
 
     use classicParams, only : icc, iccp1, kn, zero, grescoefmoss, deltat, &
                               grescoef
-    use autotrophicRespiration, only : GrowthRespiration
+    use autotrophicRespiration, only : growthRespiration
 
     implicit none
 
@@ -1002,7 +1003,7 @@ contains
 
           pheanveg(i,j) = ancgveg(i,j) ! to be used for phenology purposes
 
-          if (lfstatus(i,j) /= 4) then ! real :: leaves so use values
+          if (lfstatus(i,j) /= 4) then ! real leaves so use values
 
             anveg(i,j) = ancgveg(i,j)
             rmlveg(i,j) = rmlcgveg(i,j)
@@ -1037,13 +1038,9 @@ contains
 
         !> Now that we know maintenance respiration from leaf, stem, and root
         !! and gpp, we can find growth respiration for each vegetation type
-        call GrowthRespiration(il1,il2,ilg,sort,useTracer,nppveg,tracerNPP,&
+        call growthRespiration(il1,il2,ilg,sort,useTracer,nppveg,tracerNPP,&
                               rgveg,tracerRG)
-        ! if (nppveg(i,j) > zero) then
-        !   rgveg(i,j) = grescoef(sort(j)) * nppveg(i,j)
-        ! else
-        !   rgveg(i,j) = 0.0
-        ! end if
+
         nppveg(i,j) = nppveg(i,j) - rgveg(i,j)
         
         if (useTracer > 0) then

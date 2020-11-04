@@ -185,7 +185,8 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   !
   use classicParams,      only : DELT, TFREZ, GRAV, SBC, VKC, VMIN, HCPICE, &
                                  HCPW, SPHAIR, RHOW, RHOICE
-
+  use generalutils,  only : calcEsat
+  
   implicit none
   !
   !     * INTEGER CONSTANTS.
@@ -539,10 +540,10 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   !     * VARIABLES SUPPLIED BY GCM.
   !
   !> First, two parameters are calculated for later use in the energyBudgetDriver subroutines: the corrected wind speed \f$v_a\f$ ,
-  !! and the Coriolis parameter \f$f_{cor}\f$ (describing the effect of the earth’s rotation on the movement of air
-  !! according to the reference frame of the earth’s surface). The wind speed correction is applied because it
+  !! and the Coriolis parameter \f$f_{cor}\f$ (describing the effect of the earth?s rotation on the movement of air
+  !! according to the reference frame of the earth?s surface). The wind speed correction is applied because it
   !! is assumed that air is never completely still, so \f$v_a\f$ is specified as the maximum of VMOD and a limiting
-  !! lower value of \f$0.1 m s^{-1}\f$ . The Coriolis parameter is calculated from the angular velocity \f$\Omega\f$ of the earth’s
+  !! lower value of \f$0.1 m s^{-1}\f$ . The Coriolis parameter is calculated from the angular velocity \f$\Omega\f$ of the earth?s
   !! rotation (7.29 x 10 -5 radians/s), and the latitude \f$\varphi\f$:
   !! \f$f_{cor} = 2 \Omega sin \varphi\f$
   !!
@@ -611,21 +612,21 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   !!
   !! The bulk Richardson number \f$Ri_B\f$ , used in the calculations of the atmospheric stability functions in
   !! subroutine DRCOEF, is formulated as:
-  !! \f$Ri_B = [T_0 – T_{a, v} ] (-g z_{ref} )/(T_{a, v} v_a^2)\f$
-  !! where \f$T_0\f$ is the surface temperature. For ease of calculation later on, the factor multiplying \f$[T_0 – T_{a, v} ]\f$ on
+  !! \f$Ri_B = [T_0 ? T_{a, v} ] (-g z_{ref} )/(T_{a, v} v_a^2)\f$
+  !! where \f$T_0\f$ is the surface temperature. For ease of calculation later on, the factor multiplying \f$[T_0 ? T_{a, v} ]\f$ on
   !! the right-hand side of the above equation is evaluated and assigned to a coefficient CRIB, using ZRSLDM
   !! for \f$z_{ref}\f$ . The drag coefficient under neutral stability, \f$C_{DN}\f$ , is expressed using basic flux-gradient analysis as:
-  !! \f$C_{DN} = k^2 /[ln(z_{ref} ) – ln(z_0)]^2\f$
+  !! \f$C_{DN} = k^2 /[ln(z_{ref} ) ? ln(z_0)]^2\f$
   !! where k is the von Karman constant and \f$z_0\f$ is the roughness length. ZRSLDM is used for \f$z_{ref}\f$ and the
   !! logarithm of the local roughness length for \f$ln(z_0)\f$, and the neutral drag coefficient DRAG over the
   !! modelled area is obtained as a weighted average over the four subareas.
   !!
   !! For the two subareas with canopy cover, the wind speed of the air at the canopy top, \f$v_{a, c}\f$ , is obtained by
   !! applying the classic logarithmic wind law for the wind speed v(z) at a height z:
-  !! \f$kv(z)/v_* = ln[(z – d)/z_0 ]\f$
+  !! \f$kv(z)/v_* = ln[(z ? d)/z_0 ]\f$
   !! where \f$v_*\f$ is the friction velocity and d is the displacement height. Thus, \f$v_{a, c}\f$ at the canopy height H can be
   !! related to v a at the reference height \f$z_{ref}\f$ as:
-  !! \f$v_{a, c} = v_a [ln(H – d) – ln(z_0)]/[ln(z_{ref} ) – ln(z_0)]\f$
+  !! \f$v_{a, c} = v_a [ln(H ? d) ? ln(z_0)]/[ln(z_{ref} ) ? ln(z_0)]\f$
   !!
   !! The vegetation height is calculated as \f$10z_0\f$ . Local values of the temperature of the canopy air TAC and
   !! the humidity of the canopy air QAC are assigned to variables TACCS/TACCO and QACCS/QACCO
@@ -682,7 +683,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   !! evapotranspiration \f$E_p\f$ (EVPPOT) involves some complexity. \f$E_p\f$ is defined as the evapotranspiration that
   !! would occur under ambient atmospheric conditions if the soil were completely saturated and the
   !! vegetation canopy were completely water-covered, i.e. if there were no surface resistances to evaporation:
-  !! \f$E_p = \rho_a C_{DH} v_a [q_{0, sat} – q_a ]\f$
+  !! \f$E_p = \rho_a C_{DH} v_a [q_{0, sat} ? q_a ]\f$
   !! where \f$\rho_a\f$ is the density of air and \f$q_{0, sat}\f$ is the saturated specific humidity at the surface. For the ground or
   !! snow surface \f$q_{0, sat}\f$ was calculated in subroutine energBalNoVegSolve. For the canopy, the saturated specific humidity
   !! at the canopy air temperature, \f$q_{ac, sat}\f$ , is used. This is obtained from the mixing ratio at saturation, \f$w_{ac, sat}\f$ :
@@ -691,11 +692,13 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   !! The mixing ratio is a function of the saturation vapour pressure \f$e_{ac, sat}\f$ at the canopy air temperature:
   !! \f$w_{ac, sat} = 0.622 e_{ac, sat} /(p_{dry} )\f$
   !!
-  !! A standard empirical equation for the saturation vapour pressure dependence on the temperature T is
-  !! used:
-  !! \f[e_{sat} = 611.0 exp[17.269(T – T_f)/(T – 35.86)]      T \geq T_f \f]
-  !! \f[e_{sat} = 611.0 exp[21.874(T – T_f)/(T – 7.66)]       T < T_f \f]
-  !! where \f$T_f\f$ is the freezing point.
+  !! For the saturated vapour pressure, following Emanuel (1994) \cite Emanuel1994-dt
+  !! \f$e_{sat}\f$ is from the temperature \f$T_a\f$ and the freezing
+  !! point \f$T_f\f$:
+  !!
+  !! \f$e_{sat} = exp[53.67957 - 6743.769 / T - 4.8451 * ln(T)]       T \geq T_f\f$
+  !!
+  !! \f$e_{sat} = exp[23.33086 - 6111.72784 / T + 0.15215 * log(T)]    T < T_f\f$
   !!
   !! At the end of the blocks of code dealing with the four subareas, several more diagnostic variables are evaluated.
   !! Again, these calculations are generally straightforward. The effective black-body surface temperature \f$T_{0, eff}\f$
@@ -960,15 +963,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
     !
     do I = IL1,IL2 ! loop 175
       if (FCS(I) > 0.) then
-        if (TACCS(I) >= TFREZ) then
-          CA = 17.269
-          CB = 35.86
-        else
-          CA = 21.874
-          CB = 7.66
-        end if
-        WACSAT = 0.622 * 611.0 * EXP(CA * (TACCS(I) - TFREZ) / &
-                 (TACCS(I) - CB)) / PADRY(I)
+        WACSAT = 0.622 * calcEsat(TACCS(I)) / PADRY(I)
         QACSAT = WACSAT / (1.0 + WACSAT)
         EVPPOT(I) = EVPPOT(I) + FCS(I) * RHOAIR(I) * CFLUX(I) * &
                     (QACSAT - QA(I))
@@ -1316,15 +1311,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
     !
     do I = IL1,IL2 ! loop 375
       if (FC(I) > 0.) then
-        if (TACCO(I) >= TFREZ) then
-          CA = 17.269
-          CB = 35.86
-        else
-          CA = 21.874
-          CB = 7.66
-        end if
-        WACSAT = 0.622 * 611.0 * EXP(CA * (TACCO(I) - TFREZ) / &
-                 (TACCO(I) - CB)) / PADRY(I)
+        WACSAT = 0.622 * calcEsat(TACCO(I)) / PADRY(I)
         QACSAT = WACSAT / (1.0 + WACSAT)
         EVPPOT(I) = EVPPOT(I) + FC(I) * RHOAIR(I) * CFLUX(I) * &
                     (QACSAT - QA(I))

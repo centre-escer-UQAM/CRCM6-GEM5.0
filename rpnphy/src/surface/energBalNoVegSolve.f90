@@ -111,6 +111,7 @@ subroutine energBalNoVegSolve (ISNOW, FI, & ! Formerly TSOLVE
   !
   use classicParams, only : DELT, TFREZ, SBC, SPHAIR, RHOW, BETA
   use peatlandsMod,  only : mossPht
+  use generalutils,  only : calcEsat
 
   implicit none
 
@@ -412,7 +413,7 @@ if (minval(ipeatland) > 0) &   ! KW
   !! from the saturated specific humidity \f$q(0)_{sat}\f$ by making use of the
   !! definition of the surface evaporation efficiency \f$\beta\f$:
   !!
-  !! \f$\beta = [q(0) – q_a]/[q(0)_{sat} - q_a]\f$
+  !! \f$\beta = [q(0) ? q_a]/[q(0)_{sat} - q_a]\f$
   !!
   !! where \f$q_a\f$ is the specific humidity of the air at the reference
   !! height. This expression is inverted to obtain an expression for
@@ -426,12 +427,14 @@ if (minval(ipeatland) > 0) &   ! KW
   !!
   !! \f$w(0)_{sat} = 0.622 e(0)_{sat}/(p_{dry})\f$
   !!
-  !! where \f$p_{dry}\f$ is the partial pressure of dry air. A standard
-  !! empirical equation for the saturation vapour pressure dependence
-  !! on the temperature T is used:
+  !! where \f$p_{dry}\f$ is the partial pressure of dry air. For the
+  !! saturated vapour pressure, following Emanuel (1994) \cite Emanuel1994-dt
+  !! \f$e_{sat}\f$ is from the temperature \f$T_a\f$ and the freezing
+  !! point \f$T_f\f$:
   !!
-  !! \f$e_{sat} = 611.0 exp[17.269 (T – T_f)/(T – 35.86)]    T \geq T_f\f$
-  !! \f$e_{sat} = 611.0 exp[21.874 (T – T_f)/(T – 7.66)]     T < T_f\f$
+  !! \f$e_{sat} = exp[53.67957 - 6743.769 / T - 4.8451 * ln(T)]       T \geq T_f\f$
+  !!
+  !! \f$e_{sat} = exp[23.33086 - 6111.72784 / T + 0.15215 * log(T)]    T < T_f\f$
   !!
   !! where \f$T_f\f$ is the freezing point. If there is a snow cover or
   !! ponded water present on the surface (IWATER > 0), the surface
@@ -455,15 +458,7 @@ if (minval(ipeatland) > 0) &   ! KW
     if (FI(I) > 0. .and. ITER(I) == 1) then
       NIT = NIT + 1
       CFLUXM(I) = CFLUX(I)
-      if (TZERO(I) >= TFREZ) then
-        A(I) = 17.269
-        B(I) = 35.86
-      else
-        A(I) = 21.874
-        B(I) = 7.66
-      end if
-      WZERO(I) = 0.622 * 611.0 * EXP(A(I) * (TZERO(I) - TFREZ) / &
-                 (TZERO(I) - B(I))) / PADRY(I)
+      WZERO(I) = 0.622 * calcEsat(TZERO(I)) / PADRY(I)
       Q0SAT(I) = WZERO(I) / (1.0 + WZERO(I))
       if (IWATER(I) > 0) then
         EVBETA(I) = 1.0
@@ -518,7 +513,7 @@ if (minval(ipeatland) > 0) &   ! KW
     !! In loop 175, the terms of the surface energy balance are
     !! evaluated. The energy balance equation is written as:
     !!
-    !! \f$K_* + L_* - Q_H – Q_E – G(0) = 0\f$
+    !! \f$K_* + L_* - Q_H ? Q_E ? G(0) = 0\f$
     !!
     !! where \f$K_*\f$ is the net shortwave radiation, \f$L_*\f$ is the net longwave
     !! radiation, \f$Q_H\f$ is the sensible heat flux, \f$Q_E\f$ is the latent
@@ -535,7 +530,7 @@ if (minval(ipeatland) > 0) &   ! KW
     !! effective black bodies, so that their emissivity can be taken
     !! to be 1.) The sensible heat flux is given by
     !!
-    !! \f$Q_H = [\rho_a c_p C_{DH} v_a + \epsilon_0] [T(0) – T_{a, pot}]\f$
+    !! \f$Q_H = [\rho_a c_p C_{DH} v_a + \epsilon_0] [T(0) ? T_{a, pot}]\f$
     !!
     !! where \f$\rho_a\f$ is the density of the air, \f$c_p\f$ is its specific
     !! heat, \f$C_{DH}\f$ is the surface drag coefficient for heat, and \f$v_a\f$ and
@@ -547,7 +542,7 @@ if (minval(ipeatland) > 0) &   ! KW
     !! used only under stable conditions, i.e. if \f$T(0) < T_{a, pot}\f$. The
     !! evaporation rate at the surface, E(0), is calculated as
     !!
-    !! \f$E(0) = \rho_a C_{DH} v_a [Q(0) – q_a]\f$
+    !! \f$E(0) = \rho_a C_{DH} v_a [Q(0) ? q_a]\f$
     !!
     !! The evaporation rate is constrained to be less than or equal to the
     !! maximum rate evaluated earlier in the subroutine.  \f$Q_E\f$ is
@@ -609,7 +604,7 @@ if (minval(ipeatland) > 0) &   ! KW
   !! each iteration step is obtained from the value \f$x_n\f$ at the previous
   !! step as follows:
   !!
-  !! \f$x_{n+1} = x_n – f(x_n)/f'(x_n)\f$
+  !! \f$x_{n+1} = x_n ? f(x_n)/f'(x_n)\f$
   !!
   !! Identifying \f$x_n\f$ with TZERO and \f$f(x_n)\f$ with the surface energy
   !! balance equation, it can be seen that the second term on the
@@ -620,9 +615,9 @@ if (minval(ipeatland) > 0) &   ! KW
   !!
   !! \f$d( L \uparrow)/dT = -4 \sigma T(0)^3\f$
   !!
-  !! \f$d(Q_H)/dT = \rho_a c_p {C_{DH} v_a + [T(0) – T_{a, pot}] d(C_{DH} v_a)/dT}\f$
+  !! \f$d(Q_H)/dT = \rho_a c_p {C_{DH} v_a + [T(0) ? T_{a, pot}] d(C_{DH} v_a)/dT}\f$
   !!
-  !! \f$d(Q_E)/dT = L_v \rho_a{C_{DH} v_a dq(0)/dT+ [q(0) – q_a] d(C_{DH} v_a)/dT}\f$
+  !! \f$d(Q_E)/dT = L_v \rho_a{C_{DH} v_a dq(0)/dT+ [q(0) ? q_a] d(C_{DH} v_a)/dT}\f$
   !!
   !! and dG(0)/dT is equal to the coefficient multiplying TZERO in the
   !! equation for G(0). (\f$L_v\f$ is the latent heat of vaporization at the
@@ -735,15 +730,7 @@ if (minval(ipeatland) > 0) &   ! KW
         TZEROT = TVIRTA(I) / (1.0 + 0.61 * QZERO(I))
         if (ABS(RESID(I)) > 50.) then
           TZERO(I) = TZEROT
-          if (TZERO(I) >= TFREZ) then
-            A(I) = 17.269
-            B(I) = 35.86
-          else
-            A(I) = 21.874
-            B(I) = 7.66
-          end if
-          WZERO(I) = 0.622 * 611.0 * EXP(A(I) * (TZERO(I) - TFREZ) / &
-                     (TZERO(I) - B(I))) / PADRY(I)
+          WZERO(I) = 0.622 * calcEsat(TZERO(I)) / PADRY(I)
           Q0SAT(I) = WZERO(I) / (1.0 + WZERO(I))
           QZERO(I) = EVBETA(I) * Q0SAT(I) + (1.0 - EVBETA(I)) * QA(I)
           QLWOUT(I) = SBC * TZERO(I) * TZERO(I) * TZERO(I) * TZERO(I)

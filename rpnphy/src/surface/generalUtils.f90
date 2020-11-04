@@ -7,6 +7,7 @@ module generalUtils
 
   public :: abandonCell
   public :: findDaylength
+  public :: calcEsat
   public :: findCloudiness
   public :: findLeapYears
   public :: findPermafrostVars
@@ -79,6 +80,29 @@ contains
     findDaylength = 24.0 - (24.0/pi) * acos(term)
 
   end function findDaylength
+  !! @}
+  !---------------------------------------------------------------------------------------
+  !> \ingroup generalutils_calcEsat
+  !! @{
+  !> Calculate the saturated vapour pressure in Pa. Based upon 
+  !! the parameterization of Emanuel, 1994 \cite Emanuel1994-dt. 
+  !! @author Joe Melton
+  !!
+  real function calcEsat(ta)
+
+    use classicParams, only : TFREZ
+
+    implicit none
+
+    real, intent(in) :: ta  ! air/canopy temperature (K)
+    
+    if (ta >= tfrez) then
+      calcEsat = exp(53.67957 - 6743.769/ta - 4.8451 * log(TA)) * 100. !100 converts from hPa to Pa.
+    else !
+      calcEsat = exp(23.33086 - 6111.72784/ta + 0.15215 * log(TA)) * 100. !100 converts from hPa to Pa.
+    end if
+      
+  end function calcEsat
   !! @}
   !---------------------------------------------------------------------------------------
   !> \ingroup generalutils_findLeapYears
@@ -235,7 +259,7 @@ contains
   !> Finds the active layer depth and depth to the frozen water table.
   !! @author Joe Melton
   !!
-  subroutine findPermafrostVars (nltest, nmtest, iday)
+  subroutine findPermafrostVars (nmtest, nltest, iday)
 
     use classicParams, only : ignd, tfrez, eftime, efoldfact
     use classStateVars, only : class_rot, class_gat
@@ -642,19 +666,19 @@ contains
   !! its representation, the number of same-length data items with the same checksum can
   !! be expressed through the binary coefficient
   !!
-  !! \f[ {n\choose b} \f]
+  !! \f[ \binom{n}{b} \f] 
   !!
   !! If we assume the worst case where \f$b=\frac{n}{2}\f$, then we are left with
   !!
-  !! \f[ {n\choose n/2} \f]
+  !! \f[ \binom{n}{n/2} \f]
   !!
   !! Dividing by the total number of possible values for an n-digit binary number,
   !! we find the probability of a false positive checksum to be, in the worst case:
   !!
-  !! \f[ \large \frac{{n\choose n/2}}{2^n} \f]
+  !! \f[ \frac{\binom{n}{n/2}}{2^n} \f]
   !!
   !! Due to the cascading effects of any logical changes to the model, all 7 groups
-  !! of variables (6 if peatlands is diabled) will be affected. The smallest of these
+  !! of variables (6 if peatlands are disabled) will be affected. The smallest of these
   !! groups consists of 3 arrays of numbers for which checksums are computed. With the
   !! conservative assumption that each array contains only a single 32-bit number, the
   !! probability of a false positive (in the absolute worst case) becomes:

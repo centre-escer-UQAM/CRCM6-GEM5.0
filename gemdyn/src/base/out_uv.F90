@@ -29,6 +29,7 @@
       use outp
       use outd
       use gmm_itf_mod
+      use rotate_fields, only: rotate_vectors
       implicit none
 #include <arch_specific.hf>
 
@@ -38,7 +39,7 @@
       type(vgrid_descriptor) :: vcoord
       logical :: write_diag_lev,near_sfc_L
       integer ii,i,j,k,istat,kind,nko
-      integer i0,in,j0,jn,pnuu,pnvv,pnuv,psum
+      integer i0,in,j0,jn,pnuu,pnvv,pnuv,psum,pnu,pnv
       integer, dimension(:), allocatable :: indo
       integer, dimension(:), pointer     :: ip1m
       real uu(l_minx:l_maxx,l_miny:l_maxy,G_nk+1),&
@@ -47,12 +48,13 @@
       real, dimension(:    ), pointer, save :: hybm  => null()
       real, dimension(:,:  ), pointer :: udiag,vdiag => null()
       real, dimension(:,:,:), allocatable:: uv_pres,uu_pres,vv_pres,cible
+      real, dimension(:,:,:), allocatable:: w1,w2
       real hybm_gnk2(1)
       integer ind0(1)
 !
 !-------------------------------------------------------------------
 !
-      pnuu=0 ; pnvv=0 ; pnuv=0
+      pnuu=0 ; pnvv=0 ; pnuv=0 ; pnu=0 ; pnv=0
 
       do ii=1,Outd_var_max(set)
          if (Outd_var_S(ii,set) == 'UU')then
@@ -64,9 +66,15 @@
          if (Outd_var_S(ii,set) == 'UV')then
             pnuv=ii
          endif
+         if (Outd_var_S(ii,set) == 'U' )then
+            pnu =ii
+         endif
+         if (Outd_var_S(ii,set) == 'V' )then
+            pnv =ii
+         endif
       enddo
 
-      psum=pnuu+pnuv+pnvv
+      psum=pnuu+pnuv+pnvv+pnu+pnv
       if (psum == 0)return
 
       i0 = 1 ; in = l_ni
@@ -77,6 +85,11 @@
       istat = gmm_get(gmmk_pw_vv_plus_s, pw_vv_plus)
       istat = gmm_get(gmmk_diag_uu_s   , udiag     )
       istat = gmm_get(gmmk_diag_vv_s   , vdiag     )
+
+      if (pnu+pnv > 0) then
+         allocate ( w1(l_minx:l_maxx,l_miny:l_maxy,G_nk+1) )
+         allocate ( w2(l_minx:l_maxx,l_miny:l_maxy,G_nk+1) )
+      endif
 
       if (Level_typ_S(levset) == 'M') then  ! Output on model levels
 
@@ -142,6 +155,38 @@
                        Level_kind_diag,-1,1,ind0,1,Outd_nbit(pnuv,set),.false. )
             endif
          endif
+
+         if (pnu+pnv > 0) then
+
+            w1(:,:,1:G_nk+1) = uu(:,:,1:G_nk+1)
+            w2(:,:,1:G_nk+1) = vv(:,:,1:G_nk+1)
+
+            call rotate_vectors( w1,w2, l_minx,l_maxx,l_miny,l_maxy,G_nk+1, .true. )
+
+            if (pnu > 0) then
+               call out_fstecr3(w1,l_minx,l_maxx,l_miny,l_maxy,hybm,      &
+                   'U   ',Outd_convmult(pnu,set),Outd_convadd(pnu,set),   &
+                   kind,-1,G_nk, indo, nko,Outd_nbit(pnu,set),.false. )
+               if (write_diag_lev)                                        &
+                  call out_fstecr3(w1(l_minx,l_miny,G_nk+1),              &
+                     l_minx,l_maxx,l_miny,l_maxy, hybm_gnk2,              &
+                    'U   ',Outd_convmult(pnu,set),Outd_convadd(pnu,set),  &
+                    Level_kind_diag,-1,1,ind0,1, Outd_nbit(pnu,set),.false. )
+            endif
+
+            if (pnv > 0) then
+               call out_fstecr3(w2,l_minx,l_maxx,l_miny,l_maxy,hybm,      &
+                  'V   ',Outd_convmult(pnv,set),Outd_convadd(pnv,set),    &
+                  kind,-1,G_nk, indo, nko,Outd_nbit(pnv,set),.false. )
+               if (write_diag_lev)                                        &
+                  call out_fstecr3(w2(l_minx,l_miny,G_nk+1),              &
+                     l_minx,l_maxx,l_miny,l_maxy, hybm(G_nk+2),           &
+                     'V   ',Outd_convmult(pnv,set),Outd_convadd(pnv,set), &
+                     Level_kind_diag,-1,1,ind0,1, Outd_nbit(pnv,set),.false. )
+            endif
+
+         endif
+
          deallocate(indo)
 
       else   ! Output on pressure levels
@@ -172,6 +217,12 @@
          else
             uu(:,:,G_nk+1) = pw_uu_plus(:,:,G_nk)
             vv(:,:,G_nk+1) = pw_vv_plus(:,:,G_nk)
+         endif
+
+         if (nko > G_nk+1 .and. pnu+pnv > 0)then
+            deallocate( w1,w2 )
+            allocate ( w1(l_minx:l_maxx,l_miny:l_maxy,nko) )
+            allocate ( w2(l_minx:l_maxx,l_miny:l_maxy,nko) )
          endif
 
 !        Vertical interpolation
@@ -220,7 +271,37 @@
                  kind,-1,nko, indo, nko, Outd_nbit(pnvv,set),.false. )
          endif
 
+         if (pnu+pnv > 0) then
+
+            w1(:,:,1:nko) = uu_pres(:,:,1:nko)
+            w2(:,:,1:nko) = vv_pres(:,:,1:nko)
+
+            call rotate_vectors( w1,w2, l_minx,l_maxx,l_miny,l_maxy,nko, .true. )
+
+            if (pnu > 0) then
+               if (Outd_filtpass(pnu,set) > 0)                           &
+                  call filter2( w1,Outd_filtpass(pnu,set),               &
+                                Outd_filtcoef(pnu,set),                  &
+                                l_minx,l_maxx,l_miny,l_maxy,nko )
+                  call out_fstecr3( w1,l_minx,l_maxx,l_miny,l_maxy,rf,   &
+                    'U   ',Outd_convmult(pnu,set),Outd_convadd(pnu,set), &
+                    kind,-1,nko, indo, nko, Outd_nbit(pnu,set),.false. )
+            endif
+
+            if (pnv > 0) then
+               if (Outd_filtpass(pnv,set) > 0)                           &
+                  call filter2( w2,Outd_filtpass(pnv,set),               &
+                               Outd_filtcoef(pnv,set),                   &
+                               l_minx,l_maxx,l_miny,l_maxy,nko )
+                  call out_fstecr3( w2,l_minx,l_maxx,l_miny,l_maxy,rf,   &
+                    'V   ',Outd_convmult(pnv,set),Outd_convadd(pnv,set), &
+                    kind,-1,nko, indo, nko, Outd_nbit(pnv,set),.false. )
+            endif
+
+         endif
+
          deallocate(indo,rf,prprlvl,uu_pres,vv_pres,cible)
+         if (pnu+pnv > 0) deallocate( w1,w2 )
 
       endif
 !

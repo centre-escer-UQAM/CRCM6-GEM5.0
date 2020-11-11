@@ -487,6 +487,14 @@ subroutine energBalVegSolve (ISNOW, FI, & ! Formerly TSOLVC
       QSWNC(I) = QSWNVC(I) + QSWNIC
       if (ABS(TCAN(I)) < 1.0E-3)        TCAN(I) = TPOTA(I)
       QLWOC(I) = SBC * TCAN(I) * TCAN(I) * TCAN(I) * TCAN(I)
+      !
+      if (TCAN(I) >= TFREZ) then
+        A(I) = 17.269
+        B(I) = 35.86
+      else
+        A(I) = 21.874
+        B(I) = 7.66
+      end if
       WCAN = 0.622 * calcEsat(TCAN(I)) / PADRY(I)
       QCAN(I) = WCAN / (1.0 + WCAN)
       TVIRTC(I) = TCAN(I) * (1.0 + 0.61 * QCAN(I))
@@ -1053,6 +1061,13 @@ if (minval(ipeatland) > 0) &   ! KW
     if (FI(I) > 0. .and. ITER(I) == 1) then
       NIT = NIT + 1
       if (ITC == 1) then
+        if (TCAN(I) >= TFREZ) then
+          A(I) = 17.269
+          B(I) = 35.86
+        else
+          A(I) = 21.874
+          B(I) = 7.66
+        end if
         WCAN = 0.622 * calcEsat(TCAN(I)) / PADRY(I)
         QCAN(I) = WCAN / (1.0 + WCAN)
         TVIRTC(I) = TCAN(I) * (1.0 + 0.61 * QCAN(I))
@@ -1165,6 +1180,13 @@ if (minval(ipeatland) > 0) &   ! KW
             else
               XEVAP(I) = 1.0 / RA(I)
             end if
+          end if
+          if (TCAN(I) >= TFREZ) then
+            A(I) = 17.269
+            B(I) = 35.86
+          else
+            A(I) = 21.874
+            B(I) = 7.66
           end if
           WCAN = 0.622 * calcEsat(TCAN(I)) / PADRY(I)
           WC(I) = WCAN
@@ -1393,6 +1415,13 @@ if (minval(ipeatland) > 0) &   ! KW
         TCANT = TVIRTA(I) / (1.0 + 0.61 * QCAN(I))
         if (ABS(RESID(I)) > 100.) then
           TCAN(I) = TCANT
+          if (TCAN(I) >= TFREZ) then
+            A(I) = 17.269
+            B(I) = 35.86
+          else
+            A(I) = 21.874
+            B(I) = 7.66
+          end if
           WCAN = 0.622 * calcEsat(TCAN(I)) / PADRY(I)
           QCAN(I) = WCAN / (1.0 + WCAN)
           if (FSNOWC(I) > 0.0) then
@@ -1514,6 +1543,8 @@ if (minval(ipeatland) > 0) &   ! KW
                       SNOCAN(I)) + TFREZ
           QMELTC(I) = - CLHMLT * RAICAN(I) / DELT
           RAICAN(I) = 0.0
+          A(I) = 21.874
+          B(I) = 7.66
           WCAN = 0.622 * calcEsat(TCAN(I)) / PADRY(I)
           QCAN(I) = WCAN / (1.0 + WCAN)
           TVIRTC(I) = TCAN(I) * (1.0 + 0.61 * QCAN(I))
@@ -1575,6 +1606,8 @@ if (minval(ipeatland) > 0) &   ! KW
                       RAICAN(I)) + TFREZ
           QMELTC(I) = CLHMLT * SNOCAN(I) / DELT
           SNOCAN(I) = 0.0
+          A(I) = 17.269
+          B(I) = 35.86
           WCAN = 0.622 * calcEsat(TCAN(I)) / PADRY(I)
           QCAN(I) = WCAN / (1.0 + WCAN)
           TVIRTC(I) = TCAN(I) * (1.0 + 0.61 * QCAN(I))

@@ -19,6 +19,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
    use sfc_options
    use sfcbus_mod
    use svs_configs
+   use class_configs
    implicit none
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
@@ -73,8 +74,8 @@ subroutine inisurf4(kount, ni, nk, trnch)
         zalvis, zclay, zclayen, zisoil, zrunofftotaf, zsand, zsanden, zsnodp, &
         ztglacier, ztmice, ztmoins, ztsoil, zvegf, zwsoil, zz0, zz0t
    ! pointers added for CLASS
-   real, pointer, dimension(:)   :: zxdrain
-   real, pointer, dimension(:,:) :: zorgm, zmcmai, zmexcw
+   real, pointer, dimension(:)   :: zsdepth, zxdrain
+   real, pointer, dimension(:,:) :: zrootdp, zorgm, zmcmai, zmexcw
 
    logical, save :: CLASS_nml_read  = .false.
 
@@ -146,7 +147,9 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR1D(zlaketransp,laketransp)
 
    ! for CLASS
+   MKPTR1D(zsdepth,sdepth)
    MKPTR1D(zxdrain,xdrain)
+   MKPTR2D(zrootdp,rootdp)
    MKPTR2D(zorgm,orgm)
    MKPTR2D(zmexcw,excw)
    MKPTR2D(zmcmai,cmai)
@@ -710,6 +713,15 @@ subroutine inisurf4(kount, ni, nk, trnch)
 
             ! Set drainage index for water flow at bottom of soil profile
             zxdrain(i) = 1.0 - zvegf(i,23)
+
+            ! Set minimum depth to bedrock to 0.1m
+            zsdepth(i) = max(0.1, zsdepth(i))
+
+            ! Make sure root depth does not go beyond depth to bedrock
+            do k=1,class_ic
+              zrootdp(i,k) = min(zrootdp(i,k), zsdepth(i))
+            enddo
+
          enddo
 
       endif ! if sand/clay got read

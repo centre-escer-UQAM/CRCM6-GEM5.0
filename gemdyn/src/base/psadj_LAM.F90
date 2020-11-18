@@ -166,11 +166,11 @@
 
             istat = gmm_get('TR/HU:M',tr)
 
-!$omp parallel do private(i,j,k) shared(sumq,tr)
+
             do k=F_k0,F_nk
                sumq(1:l_ni,1:l_nj,k) = sumq(1:l_ni,1:l_nj,k) + tr(1:l_ni,1:l_nj,k)
             end do
-!$omp end parallel do
+
 
          else
 
@@ -178,7 +178,7 @@
 
          endif
 
-!$omp parallel do private(i,j,k) shared(sumq,pr_fl_w_8,F_cub_i,F_cub_o)
+
          do j=1,l_nj
             pr_fl_w_8(:,j) = 0.0d0
             do k=F_k0,F_nk-1
@@ -192,7 +192,7 @@
                     (1.-sumq(i,j,F_nk))*(pr_p0_0_8(i,j) - pr_m_8(i,j,F_nk))*(F_cub_i(i,j,F_nk) - F_cub_o(i,j,F_nk))
             end do
          end do
-!$omp end parallel do
+
 
          !Estimate air mass on CORE
          !-------------------------

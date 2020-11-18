@@ -83,10 +83,10 @@
 ! Combination of governing equations *
 !*************************************
 
-!$omp parallel private(i,j,k,km,rdiv,w1,w2,w3,w4,w5,w_rt) &
-!$omp          shared(k0t)
 
-!$omp do
+
+
+
       do k=k0, l_nk
          km=max(k-1,1)
          w1= Ver_igt_8*Ver_wpA_8(k)
@@ -111,19 +111,19 @@
          end do
 
       end do
-!$omp enddo
+
 
       if (Schm_opentop_L) then
-!$omp do
+
          do j= j0, jn
          do i= i0, in
             F_rb(i,j) = F_rt(i,j,k0t)
          end do
          end do
-!$omp enddo
+
       endif
 
-!$omp do
+
       do k=k0t,l_nk
 
 !        Compute Rt" & Rf"
@@ -148,9 +148,9 @@
          end do
 
       enddo
-!$omp enddo
 
-!$omp do
+
+
       do j= j0, jn
       do i= i0, in
 !        Adjust Rt" at last level : Rt"'
@@ -159,7 +159,7 @@
                           /Ver_wpstar_8(l_nk)
       end do
       end do
-!$omp enddo
+
 
 !************************************************************
 ! The linear contributions to the RHS of Helmholtz equation *
@@ -168,7 +168,7 @@
 !     Finish computations of RP(in Rc), combining Rc", Rt", Rf"
 !     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-!$omp do
+
       do k=k0,l_nk
          km=max(k-1,1)
          w1= Ver_idz_8%m(k) + Ver_wp_8%m(k)
@@ -183,28 +183,28 @@
          end do
          end do
       end do
-!$omp enddo
+
 
       if (Schm_opentop_L) then
 
 !        Apply opentop boundary conditions
 
          w1=Cstv_invT_8/Ver_Tstar_8%t(k0t)
-!$omp do
+
          do j= j0, jn
          do i= i0, in
             F_rb(i,j) = F_rt(i,j,k0t) - Ver_ikt_8*(F_rb(i,j) - w1*(F_nest_t(i,j,k0t)-Ver_Tstar_8%t(k0t)))
             F_rc(i,j,k0  ) = F_rc(i,j,k0  ) - Ver_cstp_8 * F_rb(i,j)
          end do
          end do
-!$omp enddo
+
 
       endif
 
 !     Apply lower boundary conditions
 !
       w1 = Cstv_invT_8*Cstv_invT_m_8 / ( Rgasd_8 * Ver_Tstar_8%m(l_nk+1) )
-!$omp do
+
       do j= j0, jn
       do i= i0, in
          F_rt(i,j,l_nk) = F_rt(i,j,l_nk) - w1 * F_fis(i,j)
@@ -212,8 +212,8 @@
          F_rc(i,j,l_nk) = F_rc(i,j,l_nk) + Ver_cssp_8 * F_rt(i,j,l_nk)
       end do
       end do
-!$omp enddo
-!$omp end parallel
+
+
 
 1000  format(3X,'UPDATE  THE RIGHT-HAND-SIDES: (S/R PRE)')
 !

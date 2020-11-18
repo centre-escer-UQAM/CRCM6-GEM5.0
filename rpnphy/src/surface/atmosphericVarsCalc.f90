@@ -120,7 +120,6 @@ subroutine atmosphericVarsCalc (VPD, TADP, PADRY, RHOAIR, RHOSNI, RPCP, TRPCP, &
 !    EA = QA(I) * PRESSG(I) / (0.622 + 0.378 * QA(I))
 ! Use max of specific humidity and 1.e-6 because it can go down to zero (KW)
     EA = max(QA(I),1.e-6) * PRESSG(I) / (0.622 + 0.378 * max(QA(I),1.e-6))
-
     if (TA(I) >= TFREZ) then
       CA = 17.269                   ! BDCS P?
       CB = 35.86                    ! BDCS P?

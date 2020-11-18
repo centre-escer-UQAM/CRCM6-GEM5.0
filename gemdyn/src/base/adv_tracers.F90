@@ -22,6 +22,7 @@
       use gmm_itf_mod
       use adv
       use tracers
+      use gmm_tracers
       implicit none
 #include <arch_specific.hf>
 
@@ -35,7 +36,7 @@
 
 
       logical qw_L,tr_not_before_psadj_L,tr_not_after_psadj_L
-      integer  n,count,jext,err
+      integer  n,count,jext,erra,i,j,k,err
       integer nind, nind_s , num
       integer i0,j0,in,jn,k0        ! scope of advection operations
       integer i0_s,j0_s,in_s,jn_s   ! scope of advection operations on CORE
@@ -124,6 +125,26 @@
          endif
 
     end do
+
+    if (.NOT.F_before_psadj_L) then 
+
+       err = gmm_get (gmmk_pxto_s, pxto)
+       err = gmm_get (gmmk_pyto_s, pyto)
+       err = gmm_get (gmmk_pzto_s, pzto)
+
+       do k=1,l_nk
+       do j=1,l_nj
+       do i=1,l_ni
+          n = (k-1)*l_ni*l_nj + (j-1)*l_ni + i
+          pxto(n) = pxt(i,j,k)
+          pyto(n) = pyt(i,j,k)
+          pzto(n) = pzt(i,j,k)
+       end do
+       end do
+       end do
+
+    end if
+
     call timing_stop (27)
 
     deallocate(ii,ii_s)

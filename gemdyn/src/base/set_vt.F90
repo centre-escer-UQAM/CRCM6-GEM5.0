@@ -186,6 +186,21 @@
          call msg(MSG_ERROR,'set_vt ERROR at gmm_create(TR/*)')
       end if
 
+      gmmk_pxto_s = 'PXTO'
+      gmmk_pyto_s = 'PYTO'
+      gmmk_pzto_s = 'PZTO'
+
+      istat = GMM_OK
+
+      mymeta  = SET_GMMUSR_FLAG(meta1d, flag_m_t)
+      istat = min(gmm_create(gmmk_pxto_s ,pxto, mymeta, flag_r_n),istat)
+      istat = min(gmm_create(gmmk_pyto_s ,pyto, mymeta, flag_r_n),istat)
+      istat = min(gmm_create(gmmk_pzto_s ,pzto, mymeta, flag_r_n),istat)
+
+      if (GMM_IS_ERROR(istat)) then
+         call msg(MSG_ERROR,'set_vt ERROR at gmm_create(*to)')
+      end if
+
       !SETTLS
       !------
       gmmk_ut2_s   = 'UT2'

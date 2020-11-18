@@ -129,7 +129,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
   ! KHC (NL_SVS-1) soil hydraulic conductivity at soil boundaries (of layer) [m/s]
   ! PSI (NL_SVS-1) soil water potential at the soil boundaries (of layer) [m]
   ! GRKSAT(NL_SVS) horizontal hydraulic conductivity at saturation (per layer) [m/s]
-  ! WFCDP          volumetric water content at field capacity at the bottom of the permeable soil [m3/m3]
+  ! WFCDP          volumetric water content at field capacity at the bottom of the soil column [m3/m3]
   !
   !          ---  Soil water fluxes and Runoff ---
   !
@@ -322,20 +322,9 @@ SUBROUTINE HYDRO_SVS ( DT, &
 
         ASAT0 (I,K) = WD(I,K) / WSATC(I,K)
         ASATFC(I,K) = WFCINT(I,K)/ WSAT(I,K)
-     END DO
-  END DO
 
-  !            Horizontal soil hydraulic conductivity decays with depth 
-  !             down to KDP (last active layer) and then is fixed to KDP layer values.
-  DO I=1,N
-     DO K=1,KDP
-        ! Horizontal soil hydraulic conductivity decays with depth
-        GRKSAT (I,K) = GRKSAT_C1 * EXP( GRKSAT_C2 *(DL_SVS(KDP)-DL_SVS(K))/DL_SVS(KDP))*KSATC(I,K)
-        GRKEFL (I,K) = GRKEF(I)*GRKSAT(I,K)
-     END DO
-     DO K=KDP+1,NL_SVS
-        ! set Horizontal soil hydraulic conductivity for layers below KDP to the KDP$
-        GRKSAT (I,K) = GRKSAT(I,KDP)
+	! Horizontal soil hydraulic conductivity decays with depth
+	GRKSAT (I,K) = GRKSAT_C1 * EXP( GRKSAT_C2 *(DL_SVS(NL_SVS)-DL_SVS(K))/DL_SVS(NL_SVS))*KSATC(I,K)
         GRKEFL (I,K) = GRKEF(I)*GRKSAT(I,K)
      END DO
   END DO
@@ -359,55 +348,31 @@ SUBROUTINE HYDRO_SVS ( DT, &
   END DO
 
 
-  !        5.      CALCULATE BASEFLOW AT THE BOTTOM OF THE LAST ACTIVE AND LAST LAYERS
+  !        5.      CALCULATE BASEFLOW AT THE BOTTOM OF THE TOTAL SOIL PROFILE
   !              -----------------------------------------
 
-  ! BASE FLOW for the active layer KDP
-  ! Compute wfc as a function of thickness of the permeable depth based on Soulis et al. (2012)
+  ! BASE FLOW for last soil layer
+  ! Compute wfc as a function of thickness of the total depth DL_SVS(NL_SVS) depth based on Soulis et al. (2012)
 
   DO I=1,N
-     WFCDP(I) = WSATC(I,KDP)*FBCOF(I,KDP)*(PSISAT(I,KDP)/DL_SVS(KDP))**(1./BCOEF(I,KDP))
+     WFCDP(I) = WSATC(I,NL_SVS)*FBCOF(I,NL_SVS)*(PSISAT(I,NL_SVS)/DL_SVS(NL_SVS))**(1./BCOEF(I,NL_SVS))
   END DO
 
   !Call WATDRAIN to calculate baseflow
 
-  CALL WATDRN(DELZVEC(:,KDP),BCOEF(:,KDP),WSATC(:,KDP),KSATC(:,KDP), &
-       GRKEFL(:,KDP),ASATFC(:,KDP),ASAT0(:,KDP),ASAT1,SUBFLW,BASFLW,SATSFC,N,1,N,DT)
+  CALL WATDRN(DELZVEC(:,NL_SVS),BCOEF(:,NL_SVS),WSATC(:,NL_SVS),KSATC(:,NL_SVS), &
+       GRKEFL(:,NL_SVS),ASATFC(:,NL_SVS),ASAT0(:,NL_SVS),ASAT1,SUBFLW,BASFLW,SATSFC,N,1,N,DT)
 
   DO I=1,N
 
-     IF(WD(I,KDP).GT.WFCDP(I)) THEN  
+     IF(WD(I,NL_SVS).GT.WFCDP(I)) THEN  
         !baseflow only happens when soil water contant of last layer exceeds field capacity
-        F(I,KDP+1)=BASFLW(I)
+        F(I,NL_SVS+1)=BASFLW(I)
      ELSE 
-        F(I,KDP+1)=0.0
+        F(I,NL_SVS+1)=0.0
      END IF
 
   END DO
-
-  ! BASE FLOW FOR THE LAST LAYER NL_SVS IF KDP.NE.NL_SVS
-  ! Compute wfc as a function of thickness of the total depth DL_SVS(NL_SVS) base on Soulis et al. (2012)
-  IF(KDP.NE.NL_SVS) THEN 
-
-     DO I=1,N
-        WFCDP(I) = WSATC(I,NL_SVS)*FBCOF(I,NL_SVS)*(PSISAT(I,NL_SVS)/DL_SVS(NL_SVS))**(1./BCOEF(I,NL_SVS))
-     END DO
-
-     !Call WATDRAIN to calculate baseflow
-
-     CALL WATDRN(DELZVEC(:,NL_SVS),BCOEF(:,NL_SVS),WSATC(:,NL_SVS),KSATC(:,NL_SVS),&
-          GRKEFL(:,NL_SVS),ASATFC(:,NL_SVS),ASAT0(:,NL_SVS),ASAT1,SUBFLW,BASFLW,SATSFC,N,1,N,DT)
-
-     DO I=1,N
-        IF(WD(I,NL_SVS).GT.WFCDP(I)) THEN
-           !baseflow only happens when soil water contant of last layer exceeds field cap$
-           F(I,NL_SVS+1)=BASFLW(I)
-        ELSE
-           F(I,NL_SVS+1)=0.0
-        END IF
-     END DO
-
-  END IF
 
 
   !        6.      CALCULATE NEW SOIL WATER CONTENT FOR EACH LAYER
@@ -428,7 +393,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
   END DO
 
   !Compute water fluxes between soil layers, find K AND PSI at the boundaries     
-  ! do it for all layers except KDP and NL_SVS (water flux is computed above from watdrain).       
+  ! do it for all layers except NL_SVS (water flux is computed above from watdrain).       
 
   IF (hydro_svs_method.EQ.0) THEN
      ! First-order forward method       
@@ -504,7 +469,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
 
         ELSEIF (WDT(I,K).GT.WSATC(I,K))  THEN
 
-           IF (K.NE.KDP) THEN
+           IF (K.NE.KHYD) THEN
 	      ! excess water removal via a combination of a downward and a lateral flux
               ! fraction of excess water going into layer below
               W = KSATC(I,K)/(KSATC(I,K)+GRKEFL(I,K)*DELZ(K))
@@ -514,7 +479,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
               LATFLW(I,K)=(1.0-W)*(WDT(I,K)-WSATC(I,K))*DELZ(K)
               ! if we are in the last soil layer, soil water content of the layer below cannot be updated
               IF(K.NE.NL_SVS) WDT(I,K+1)=WDT(I,K+1)+W*(WDT(I,K)-WSATC(I,K))*DELZ(K)/DELZ(K+1)
-           ELSEIF (K.EQ.KDP) THEN
+           ELSEIF (K.EQ.KHYD) THEN
               ! excess water removal via lateral flow
               LATFLW(I,K)=(WDT(I,K)-WSATC(I,K))*DELZ(K)
            END IF
@@ -534,7 +499,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
      END DO
   END DO
 
-  !Call WATDRAIN to calculated SUBFLW from each layer 
+  !Call WATDRAIN to calculate SUBFLW from each layer 
 
   DO K=1,NL_SVS   
 
@@ -571,7 +536,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
   !---------------------------------------------------
   !
   !--------------------------------------------------
-  ! SET MINIMUM VALUES OF SOIL WATER AND MAKES SURE FROZEN SOIL WATER NON-NEGATIVE
+  ! SET MINIMUM VALUES OF SOIL WATER AND MAKE SURE FROZEN SOIL WATER NON-NEGATIVE
   DO I=1,N
      DO K=1,NL_SVS
         WDT(I,K) = MAX(WDT(I,K),CRITWATER)

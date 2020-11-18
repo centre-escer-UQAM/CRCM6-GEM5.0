@@ -75,9 +75,6 @@
       else
       !---
 
-         if ( Rstri_rstn_L ) call gem_error(-1,'psadj', &
-                        'PSADJ NOT AVAILABLE FOR LAMs in RESTART mode')
-
          if ( Cstv_dt_8*F_kount <= Iau_period ) goto 999
 
          if (.not.Init_mode_L) call adv_psadj_LAM_0

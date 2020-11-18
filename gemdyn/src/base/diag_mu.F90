@@ -50,8 +50,8 @@
 !
 !     ---------------------------------------------------------------
 !
-!$omp parallel private (km,w1,qbar)
-!$omp do
+
+
       do k=1,Nk
          km=max(1,k-1)
          do j= j0, jn
@@ -65,8 +65,8 @@
          enddo
          enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 !
 !     ---------------------------------------------------------------
 !

@@ -336,8 +336,8 @@
          enddo
          cc=0.D0
 
-!$omp parallel private(m,j)
-!$omp do
+
+
          do m=1,lmax+1
             do j=1,nlat/2
                cc(1,j,m)        = 0.d0
@@ -358,8 +358,8 @@
                                  ai_p(1:lmax-lmin+1,m,nc)*sig(1:lmax-lmin+1,m-1))
             enddo
          enddo
-!$omp enddo
-!$omp end parallel
+
+
 
 !  Fourier Transform (inverse)
 

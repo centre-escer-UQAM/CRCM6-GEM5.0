@@ -46,9 +46,9 @@
 !
       halox=1
       haloy=halox
-!$omp parallel private (i,j,jj,ii,di_8,stencil1,&
-!$omp        stencil2,stencil3,stencil4,stencil5,cst)
-!$omp do
+
+
+
       do k = 1, nk
          fdg1(:,:,k) = .0d0
          do j=1+sol_pil_s, njl-sol_pil_n
@@ -57,14 +57,14 @@
          enddo
          enddo
       enddo
-!$omp enddo
 
-!$omp single
+
+
       call rpn_comm_xch_halon (fdg1,minx1,maxx1,minx2,maxx2,nil,njl, &
                          Nk,halox,haloy,G_periodx,G_periody,nil,0,2)
-!$omp end single
 
-!$omp do
+
+
       do k=1, NK
          cst= (Cstv_hco1_8+Cstv_hco0_8*Opr_zeval_8(k))
          do j=1+sol_pil_s, njl-sol_pil_n
@@ -88,8 +88,8 @@
             enddo
          enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 !
 !     ---------------------------------------------------------------
 !

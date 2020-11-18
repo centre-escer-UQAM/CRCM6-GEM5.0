@@ -66,8 +66,8 @@
 !     __________________________________________________________________
 !
 
-!$omp parallel private(t1,t2,i,j,k)
-!$omp do
+
+
       do k=1,l_nk
          do j=1,l_nj
             do i=1,l_ni
@@ -82,8 +82,8 @@
             end do
          end do
       end do
-!$omp enddo
-!$omp end parallel
+
+
 !     __________________________________________________________________
 !
       return

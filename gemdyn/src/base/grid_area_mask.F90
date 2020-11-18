@@ -414,7 +414,7 @@
       !-------------------------------------------------
       call RPN_COMM_allreduce(sp_8,sf_8,2,"MPI_DOUBLE_PRECISION","MPI_SUM","GRID",err)
 
-      if (Adv_verbose==1.and.Lun_out>0) then
+      if (Lun_out>0) then
          write(Lun_out,*) ''
          write(Lun_out,*) 'NEW MASK AREA correction_0 = ',sf_8(1) + sf_8(2)
          write(Lun_out,*) 'NEW MASK AREA SF(1)        = ',sf_8(1)
@@ -452,7 +452,7 @@
       !-------------------------------------------------
       call RPN_COMM_allreduce(sp_8,sf_8,2,"MPI_DOUBLE_PRECISION","MPI_SUM","GRID",err)
 
-      if (Adv_verbose==1.and.Lun_out>0) then
+      if (Lun_out>0) then
          write(Lun_out,*) 'NEW MASK AREA correction_1 = ',sf_8(1) + sf_8(2)
          write(Lun_out,*) 'NEW MASK AREA SF(1)        = ',sf_8(1)
          write(Lun_out,*) 'NEW MASK AREA SF(2)        = ',sf_8(2)

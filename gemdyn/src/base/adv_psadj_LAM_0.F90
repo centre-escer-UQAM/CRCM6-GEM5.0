@@ -23,6 +23,8 @@
       use glb_ld
       use adv_grid
       use outgrid
+      use rstr
+      use adv
       implicit none
 
 #include <arch_specific.hf>
@@ -40,6 +42,7 @@
       real,                   dimension(l_ni*l_nj*l_nk) :: no_conserv, no_slice, no_advection ! TODO : wasting mem
       integer,                parameter :: no_indices_1=1
       integer,  dimension(1) :: no_indices_2
+      logical, save :: done_L=.FALSE.
 !
 !--------------------------------------------------------------------------------
 !
@@ -79,6 +82,14 @@
         l_ni, l_nj, l_nk, adv_halox, adv_haloy, G_periodx, G_periody , &
         adw_i, adv_lminx,adv_lmaxx,adv_lminy,adv_lmaxy, l_ni, 0)
 
+      if (.not.done_L.and.Rstri_rstn_L) then 
+
+         Adv_repair_restart_L = .true.
+
+         done_L = .true.
+
+      end if
+
       !Estimate FLUX_out/FLUX_in when LAM using Flux calculations based on Aranami et al. (2015)
       !-----------------------------------------------------------------------------------------
       call adv_tricub_lag3d (no_advection, no_conserv, no_conserv, no_conserv, no_conserv, no_advection, no_slice, 0, &
@@ -86,14 +97,10 @@
                              no_slice, no_slice, no_slice, no_slice, no_slice, no_slice, nbpts,                       &
                              no_indices_1, no_indices_2,  k0, l_nk, .false., .false., 't')
 
-!$omp parallel private(k) shared(i0_e,in_e,j0_e,jn_e)
-!$omp do
       do k = k0,l_nk
          cub_o(i0_e:in_e,j0_e:jn_e,k)= w_cub_o_c(i0_e:in_e,j0_e:jn_e,k)
          cub_i(i0_e:in_e,j0_e:jn_e,k)= w_cub_i_c(i0_e:in_e,j0_e:jn_e,k)
       enddo
-!$omp enddo
-!$omp end parallel
 
       call psadj_LAM (cub_o,cub_i,l_minx,l_maxx,l_miny,l_maxy,l_nk,k0)
 

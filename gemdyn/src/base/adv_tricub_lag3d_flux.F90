@@ -29,6 +29,8 @@
       use ptopo 
       use gem_options
       use ver 
+      use gmm_tracers
+      use gmm_itf_mod
       implicit none
 
 #include <arch_specific.hf>
@@ -36,7 +38,7 @@
       character(len=*), intent(in) :: F_lev_S ! m/t : Momemtum/thermo level
       integer, intent(in) :: F_num ! number points
       integer, intent(in) :: k0   ! scope of operator
-      real,dimension(F_num), intent(in)    :: F_x, F_y, F_z ! interpolation target x,y,z coordinates
+      real,dimension(F_num), intent(inout) :: F_x, F_y, F_z ! interpolation target x,y,z coordinates
       real,dimension(*),     intent(in)    :: F_in_o,F_in_i ! field to interpolate (F_in_o for FLUX_out;F_in_i for FLUX_in)
       real,dimension(F_num), intent(inout) :: F_cub_o       ! High-order SL solution FLUX_out
       real,dimension(F_num), intent(inout) :: F_cub_i       ! High-order SL solution FLUX_in
@@ -103,7 +105,9 @@
       real :: i_h(adv_lminx:adv_lmaxx,adv_lminy:adv_lmaxy,l_nk)
 
       real*8  :: rri,rrj,rrk
-!
+
+      real, dimension(F_num) :: px_k,py_k,pz_k
+
 !---------------------------------------------------------------------
 !
       call timing_start2 (77, 'ADV_FLUX_', 39)
@@ -361,6 +365,26 @@
       !-----------------------------------------------------
       if (.NOT.Adv_done_precompute_L) then
 
+         if (Adv_repair_restart_L) then
+
+            do n=1,F_num
+               px_k(n) = F_x(n)
+               py_k(n) = F_y(n)
+               pz_k(n) = F_z(n)
+            end do
+
+            err = gmm_get (gmmk_pxto_s, pxto)
+            err = gmm_get (gmmk_pyto_s, pyto)
+            err = gmm_get (gmmk_pzto_s, pzto)
+
+            do n=1,F_num
+               F_x(n) = pxto(n)
+               F_y(n) = pyto(n)
+               F_z(n) = pzto(n)
+            end do
+
+         end if
+
          !Exchange HALO_E for positions
          !-----------------------------
          if (narrow_L) then
@@ -441,6 +465,18 @@
                                   i0_n_i, in_n_i, j0_n_i, jn_n_i, k0 , l_nk, 't')
 
          endif
+
+         if (Adv_repair_restart_L) then
+
+            do n=1,F_num
+               F_x(n) = px_k(n)
+               F_y(n) = py_k(n)
+               F_z(n) = pz_k(n)
+            end do
+
+            Adv_repair_restart_L = .false.
+
+         end if
 
          Adv_done_precompute_L = .TRUE.
 

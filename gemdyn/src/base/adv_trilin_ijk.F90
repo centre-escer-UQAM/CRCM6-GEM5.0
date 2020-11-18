@@ -58,7 +58,7 @@ subroutine adv_trilin_ijk ( F_x, F_y, F_z, F_capz, F_ii, F_jj, F_kk,        &
 ! Vertical variable type:  Height--> sig <0 , Pressure --> sig >0
     sig=int((Ver_z_8%m(l_nk)-Ver_z_8%m(1))/(abs(  Ver_z_8%m(l_nk)-Ver_z_8%m(1) )))
 
-!$omp parallel do private(i,j,k,n,n0,ii,jj,kk,rri,rrj,rrk,capz)
+
     do k=k0,F_nk
        do j=j0,jn
 
@@ -95,7 +95,7 @@ subroutine adv_trilin_ijk ( F_x, F_y, F_z, F_capz, F_ii, F_jj, F_kk,        &
 
        enddo
     enddo
-!$omp end parallel do
+
 
    !---------------------------------------------------------------------
 

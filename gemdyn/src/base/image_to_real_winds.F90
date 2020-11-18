@@ -31,8 +31,8 @@
    integer :: i,j,k
    real :: c1
 
-!$omp parallel private(c1)
-!$omp do
+
+
    do k = 1, F_nk
       do j = 1, l_nj
          c1 = Dcst_rayt_8 / geomh_cy_8(j)
@@ -41,8 +41,8 @@
          enddo
       enddo
    enddo
-!$omp enddo
-!$omp do
+
+
    do k = 1, F_nk
       do j = 1, l_njv
          c1 = Dcst_rayt_8 / geomh_cyv_8(j)
@@ -51,8 +51,8 @@
          enddo
       enddo
    enddo
-!$omp enddo
-!$omp end parallel
+
+
 
    return
 

@@ -93,24 +93,30 @@
 
             allocate ( vor(l_minx:l_maxx,l_miny:l_maxy,G_nk),&
                         qr(l_minx:l_maxx,l_miny:l_maxy,G_nk) )
-            call cal_vor ( qr, vor, ut1, vt1 , Outd_filtpass(pnqq,set),&
-                           Outd_filtcoef(pnqq,set),(pnqq > 0)        ,&
-                           l_minx,l_maxx,l_miny,l_maxy, G_nk )
             gridset = Outd_grid(set)
             call out_href3 ( 'F_point', &
                     OutGrid_x0 (gridset), OutGrid_x1 (gridset), 1, &
                     OutGrid_y0 (gridset), OutGrid_y1 (gridset), 1 )
 
-            if (pnqq > 0) &
+            if (pnqq > 0) then
+                call cal_vor ( qr, vor, ut1, vt1 , Outd_filtpass(pnqq,set),&
+                           Outd_filtcoef(pnqq,set),(pnqq > 0)        ,&
+                           l_minx,l_maxx,l_miny,l_maxy, G_nk )
             call out_fstecr3( vor, l_minx,l_maxx,l_miny,l_maxy        ,&
                               Ver_hyb%m,'QQ  ',Outd_convmult(pnqq,set),&
                               Outd_convadd(pnqq,set),kind,-1          ,&
                               G_nk, indo,nko, Outd_nbit(pnqq,set),.false.)
-            if (pnqr > 0) &
+            endif
+
+            if (pnqr > 0) then
+                call cal_vor ( qr, vor, ut1, vt1 , Outd_filtpass(pnqr,set),&
+                           Outd_filtcoef(pnqr,set),(pnqr > 0)        ,&
+                           l_minx,l_maxx,l_miny,l_maxy, G_nk )
             call out_fstecr3( qr, l_minx,l_maxx,l_miny,l_maxy         ,&
                               Ver_hyb%m,'QR  ',Outd_convmult(pnqr,set),&
                               Outd_convadd(pnqr,set),kind,-1          ,&
                               G_nk, indo,nko, Outd_nbit(pnqr,set),.false.)
+            endif
             deallocate (vor, qr)
 
           endif
@@ -163,25 +169,31 @@
 
             allocate ( vor(l_minx:l_maxx,l_miny:l_maxy,nko),&
                         qr(l_minx:l_maxx,l_miny:l_maxy,nko) )
-            call cal_vor ( qr, vor, uu_pres, vv_pres          ,&
-                           Outd_filtpass(pnqq,set)            ,&
-                           Outd_filtcoef(pnqq,set),(pnqq > 0),&
-                           l_minx,l_maxx,l_miny,l_maxy, nko )
             gridset = Outd_grid(set)
             call out_href3 ( 'F_point', &
                     OutGrid_x0 (gridset), OutGrid_x1 (gridset), 1, &
                     OutGrid_y0 (gridset), OutGrid_y1 (gridset), 1 )
 
-            if (pnqq > 0) &
+            if (pnqq > 0) then
+            call cal_vor ( qr, vor, uu_pres, vv_pres          ,&
+                           Outd_filtpass(pnqq,set)            ,&
+                           Outd_filtcoef(pnqq,set),(pnqq > 0),&
+                           l_minx,l_maxx,l_miny,l_maxy, nko )
             call out_fstecr3( vor, l_minx,l_maxx,l_miny,l_maxy, &
                               rf,'QQ  ',Outd_convmult(pnqq,set),&
                               Outd_convadd(pnqq,set), kind,-1  ,&
                               nko, indo, nko, Outd_nbit(pnqq,set),.false.)
-            if (pnqr > 0) &
+            endif
+            if (pnqr > 0) then
+            call cal_vor ( qr, vor, uu_pres, vv_pres          ,&
+                           Outd_filtpass(pnqr,set)            ,&
+                           Outd_filtcoef(pnqr,set),(pnqr > 0),&
+                           l_minx,l_maxx,l_miny,l_maxy, nko )
             call out_fstecr3 ( qr, l_minx,l_maxx,l_miny,l_maxy, &
                               rf,'QR  ',Outd_convmult(pnqr,set),&
                               Outd_convadd(pnqr,set), kind,-1  ,&
                               nko, indo, nko, Outd_nbit(pnqr,set),.false.)
+            endif
             deallocate (vor, qr)
           endif
 

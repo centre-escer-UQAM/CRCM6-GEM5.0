@@ -137,11 +137,11 @@ contains
             beta = (rho / rho_old) * (alpha / omega)
          end if
 
-!$omp parallel private (i,j,k) &
-!$omp          shared(pp, residual, alpha, beta, omega, &
-!$omp                  vv, ss, tt, x, pp_prec, ss_prec)
 
-!$omp do
+
+
+
+
          do k=1,nk
             do j=j0,jl
                do i=i0,il
@@ -149,9 +149,9 @@ contains
                end do
             end do
          end do
-!$omp enddo
 
-!$omp single
+
+
          select case(precond_S)
             case ('JACOBI')
                call pre_jacobi3D (pp_prec(i0:il,j0:jl,:), pp(i0:il,j0:jl,:), Prec_xevec_8, &
@@ -173,9 +173,9 @@ contains
          else
             alpha = rho / tau
          end if
-!$omp end single
 
-!$omp do
+
+
          do k=1,nk
             do j=j0,jl
                do i=i0,il
@@ -183,9 +183,9 @@ contains
                end do
             end do
          end do
-!$omp enddo
 
-!$omp single
+
+
          select case(precond_S)
             case ('JACOBI')
                   call pre_jacobi3D (ss_prec(i0:il,j0:jl,:), ss(i0:il,j0:jl,:), Prec_xevec_8, &
@@ -209,9 +209,9 @@ contains
 
          rho_old = rho
          rho = -omega * (dist_dotproduct(hatr0, tt, minx, maxx, miny, maxy, i0, il, j0, jl, nk))
-!$omp end single
 
-!$omp do
+
+
          do k=1,nk
             do j=j0,jl
                do i=i0,il
@@ -221,8 +221,8 @@ contains
                end do
             end do
          end do
-!$omp enddo
-!$omp end parallel
+
+
          norm_residual = sqrt(dist_dotproduct(residual, residual, minx, maxx, miny, maxy, &
                                                i0, il, j0, jl, nk))
 
@@ -391,11 +391,11 @@ contains
 
             ! Modified Gram-Schmidt orthogonalisation
 
-!$omp parallel private(it,i,j,k,dotprod) &
-!$omp          shared(vv, nextit, initer, &
-!$omp                 dotprod_local, hessenberg)
 
-!$omp do
+
+
+
+
             do it=1,initer
                 dotprod = 0.0d0
                 do k=1,nk
@@ -407,13 +407,13 @@ contains
                 end do
                 dotprod_local(it) = dotprod
             end do
-!$omp enddo
 
-!$omp single
+
+
             call RPN_COMM_allreduce(dotprod_local(:), hessenberg(:,initer), initer, "MPI_double_precision", "MPI_sum", "grid", ierr)
-!$omp end single
 
-!$omp do
+
+
             do it=1,initer
                do k=1,nk
                   do j=j0,jl
@@ -423,16 +423,16 @@ contains
                   end do
                end do
             end do
-!$omp enddo
-!$omp end parallel
+
+
 
             hessenberg(nextit,initer) = sqrt(dist_dotproduct(vv(:,:,:,nextit), vv(:,:,:,nextit), minx, maxx, miny, maxy, i0, il, j0, jl, nk))
 
             ! Watch out for happy breakdown
             if (.not. almost_zero( hessenberg(nextit,initer) )) then
                nu = 1.d0 / hessenberg(nextit,initer)
-!$omp parallel private (i,j,k) shared(vv, nextit, nu)
-!$omp do
+
+
                do k=1,nk
                   do j=j0,jl
                      do i=i0,il
@@ -440,8 +440,8 @@ contains
                      end do
                   end do
                end do
-!$omp enddo
-!$omp end parallel
+
+
             end if
 
             ! Form and store the information for the new Givens rotation

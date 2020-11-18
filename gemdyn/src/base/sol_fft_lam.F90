@@ -100,25 +100,25 @@
                                 1, F_t1nks, F_gnk, F_dwfft, 1, 2 )
 
 !     projection ( wfft = x transposed * g )
-!$omp parallel private(i,j,k,jr,p0,pn,piece) &
-!$omp          shared(plon,ptotal,l_pil_w,l_pil_e,pri)
-!$omp do
+
+
+
       do i= 1,F_gni
          F_dwfft(F_t0nj+1-pil_n:F_t0njs,        1:F_t1nk ,i)= zero
          F_dwfft(             1:pil_s  ,        1:F_t1nk ,i)= zero
          F_dwfft(             1:F_t0njs, F_t1nk+1:F_t1nks,i)= zero
       enddo
-!$omp enddo
+
 !
-!$omp do
+
       do k=1, F_nk
          call itf_fft_drv (F_dwfft(1+pil_s,k,1+Lam_pil_w), &
                           (F_t0njs-1+1)*(F_t1nks-1+1),1  , &
                           (F_t0njs-1+1-pil_s-pil_n), -1 )
       enddo
-!$omp enddo
 
-!$omp do
+
+
       do i = 0+Lam_pil_w, F_gni-1-Lam_pil_e
          do k = 1, F_nk
             do j = 1+pil_s, (F_t0njs-1+1)-pil_n
@@ -126,17 +126,17 @@
             enddo
          enddo
       enddo
-!$omp enddo
+
 !
-!$omp single
+
       call rpn_comm_transpose( F_dwfft, 1, F_t0njs, F_gnj, (F_t1nks-1+1),&
                                1, F_t2nis, F_gni, F_dg2, 2, 2 )
-!$omp end single
+
 !
       ptotal = F_t2ni-l_pil_e-l_pil_w-1
       plon   = (ptotal+Ptopo_npeOpenMP)/ Ptopo_npeOpenMP
 
-!$omp do
+
       do piece=1,Ptopo_npeOpenMP
          p0 = 1+l_pil_w + plon*(piece-1)
          pn = min(F_t2ni-l_pil_e,plon*piece+l_pil_w)
@@ -164,24 +164,24 @@
             enddo
          enddo
       enddo
-!$omp enddo
+
 !
-!$omp single
+
       call rpn_comm_transpose( F_dwfft, 1, F_t0njs, F_gnj, (F_t1nks-1+1),&
                                1, F_t2nis, F_gni, F_dg2,- 2, 2 )
-!$omp end single
+
 
 !     inverse projection ( r = x * w )
 
-!$omp do
+
       do k=1, F_nk
          call itf_fft_drv (F_dwfft(1+pil_s,k,1+Lam_pil_w), &
                           (F_t0njs-1+1)*(F_t1nks-1+1),1  , &
                           (F_t0njs-1+1-pil_s-pil_n),  1 )
       enddo
-!$omp enddo
 
-!$omp end parallel
+
+
 
       call rpn_comm_transpose ( Sol, 1, F_t0nis, F_gni, (F_t0njs-1+1), &
                                      1, F_t1nks, F_gnk,  F_dwfft, -1, 2)

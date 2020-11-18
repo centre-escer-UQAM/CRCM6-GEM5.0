@@ -55,8 +55,8 @@ subroutine adv_trilin_turbo3 (F_out, F_in, F_dt, &
 
    !---------------------------------------------------------------------
 
-!$omp parallel do private(i,j,k,n,n0,ii,jj,kk,rri,rrj,rrk, &
-!$omp                capx,capy,capz,o1,o2,prf1,prf2,prf3,prf4)
+
+
    do k=k0,F_nk
       do j=j0,jn
 
@@ -100,7 +100,7 @@ subroutine adv_trilin_turbo3 (F_out, F_in, F_dt, &
 
       enddo
    enddo
-!$omp end parallel do
+
 
    !---------------------------------------------------------------------
 

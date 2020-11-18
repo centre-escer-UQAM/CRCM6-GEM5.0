@@ -16,6 +16,8 @@ module svs_configs
   implicit none
 
   ! INDEXES FOR SVS SURFACES 
+  integer, parameter :: svs_tilesp1  = 5 ! SVS tile + 1 for aggregated value
+  !
   integer, parameter :: indx_svs_ag  = 1 ! AGGREGATED VALUE 
   integer, parameter :: indx_svs_bg  = 2 ! BARE GROUND
   integer, parameter :: indx_svs_vg  = 3 ! VEGETATION (NOT COVERED BY SNOW)  
@@ -31,8 +33,6 @@ module svs_configs
   real, allocatable, save :: dl_svs(:)
   !=  (/ 0.05, 0.1, 0.2, 0.4, 1.0, 2.0, 3.0 /) 
 
-  ! Number of last active (permeable) layer
-  !integer, parameter :: kdp = 7
 
   ! Thicknesses of layers in METERS
   real,  allocatable, save :: delz(:) !nl_svs
@@ -41,7 +41,7 @@ module svs_configs
   ! SOIL TEXTURE OPTIONS: 
   !  1:   "GSDE"      --  8 layers of soil texture from CHINESE DATASET !!!
   !  2:   "SLC"       --  5 layers of soil texture:  SOIL LANDSCAPE of CANADA
-  !  3:   "SOILGRIDS" --  7  layers of soil texture:  ISRIC — World Soil Information
+  !  3:   "SOILGRIDS" --  7  layers of soil texture:  ISRIC ? World Soil Information
   ! ENTRY  bus number of levels for clay & sand variables
   integer,  save :: nl_ste
   ! PERMANENT PHYSICS bus number of levels for clay & sand variables
@@ -84,7 +84,7 @@ module svs_configs
   !                            and specific humidity instead of composite (area-averaged only) 
   !                            counterparts in surface flux calculations
   !           Reference: Chehbouni, A., E.G. Njoku, J. Lhomme, and Y.H. Kerr, 1995: Approaches for Averaging 
-  !                      Surface Parameters and Fluxes over Heterogeneous Terrain. J. Climate, 8, 1386–1393
+  !                      Surface Parameters and Fluxes over Heterogeneous Terrain. J. Climate, 8, 1386?1393
   !---------------------------------------------------------
 
   !-----------------------------------------------------------------
@@ -326,7 +326,7 @@ contains
     !  
     INTEGER I, NI
     REAL, dimension(ni) :: FVH,FVL,FSNVH,FSN
-    REAL, dimension(ni,indx_svs_ag) :: WT
+    REAL, dimension(ni,svs_tilesp1) :: WT
     REAL, parameter ::  min_wt=0.001 ! [1.=100%] minimum value of weight, otherwise set to zero.
 
     DO I=1,NI

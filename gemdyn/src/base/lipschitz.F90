@@ -76,7 +76,7 @@
       LipNOv=0.0
       LipNOw=0.0
 
-!$omp do
+
       do k=1,l_nk
          km=max(k-1,1)
          do j= j0, F_jn
@@ -105,7 +105,7 @@
          end do
          end do
       end do
-!$omp enddo
+
 
       LipNOu=Cstv_dt_8*LipNOu
       LipNOv=Cstv_dt_8*LipNOv

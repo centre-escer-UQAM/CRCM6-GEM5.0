@@ -46,8 +46,8 @@
 
       if (Schm_trapeze_L) then
 
-!$omp parallel private(i,j,k) shared(uh,vh,wm)
-!$omp do
+
+
          do k = 1,F_nk
             do j = F_miny,F_maxy
                do i = F_minx,F_maxx
@@ -58,8 +58,8 @@
             end do
          end do
 
-!$omp enddo
-!$omp end parallel
+
+
 
          call adv_destagWinds (uh,vh,F_minx,F_maxx,F_miny,F_maxy,F_nk)
 
@@ -67,8 +67,8 @@
 
 !     Unstaggered arrival winds
 
-!$omp parallel private(i,j,k)  shared(uh,vh,wm)
-!$omp do
+
+
          do k = 1,F_nk
             do j = 1,F_nj
                do i = 1,F_ni
@@ -79,15 +79,15 @@
                enddo
             enddo
          enddo
-!$omp enddo
-!$omp end parallel
+
+
 
 ! DEPARTURE WINDS: NO DESTAGRING
          err = gmm_get (gmmk_pw_uu_moins_s, pw_uu_moins)
          err = gmm_get (gmmk_pw_vv_moins_s, pw_vv_moins)
 
-!$omp parallel private(i,j,k) shared(uh,vh,wh)
-!$omp do
+
+
          do k = 1,l_nk
             do j = 1,l_nj
                do i = 1,l_ni
@@ -97,13 +97,13 @@
                enddo
             enddo
          enddo
-!$omp enddo
-!$omp end parallel
+
+
 
       else
 
-!$omp parallel private(i,j,k) shared(uh,vh,wh)
-!$omp do
+
+
          do k = 1,l_nk
             do j = 1,l_nj
                do i = 1,l_ni
@@ -113,8 +113,8 @@
                enddo
             enddo
          enddo
-!$omp enddo
-!$omp end parallel
+
+
 
          call adv_destagWinds (uh,vh,F_minx,F_maxx,F_miny,F_maxy,F_nk)
 
@@ -124,8 +124,8 @@
 
 !     Destag departure winds
 
-!$omp parallel private(i,j,k) shared(uh,vh,wm)
-!$omp do
+
+
       do k = 1,l_nk
          do j = 1,l_nj
             do i = 1,l_ni
@@ -135,8 +135,8 @@
             enddo
          enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 
 !
 !     ---------------------------------------------------------------

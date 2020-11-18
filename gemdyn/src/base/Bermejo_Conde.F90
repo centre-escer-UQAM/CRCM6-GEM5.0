@@ -68,11 +68,11 @@
       call get_density (bidon,mass_p,time_p,Minx,Maxx,Miny,Maxy,F_nk,k0)
       call get_density (bidon,mass_m,time_m,Minx,Maxx,Miny,Maxy,F_nk,k0)
 
-!$omp parallel do private(k)
+
       do k=1,F_nk
          F_new(:,:,k) = F_high(:,:,k)
       enddo
-!$omp end parallel do
+
 
       p_exp_8 = 1.0
 
@@ -132,9 +132,9 @@
       !-----------------------------------------
       !Compute Mass preserving BC solution F_out
       !-----------------------------------------
-!$omp parallel private(k,i,j,H_minus_L_8) &
-!$omp shared(weight,mass_deficit_8)
-!$omp do
+
+
+
       do k=k0,F_nk
 
          do j=1+pil_s,l_nj-pil_n
@@ -150,8 +150,8 @@
          enddo
 
       enddo
-!$omp end do
-!$omp end parallel
+
+
 
       call mass_tr (mass_wei_8,F_name_S(4:7),weight,mass_m,Minx,Maxx,Miny,Maxy,F_nk-k0+1,k0)
 
@@ -173,7 +173,7 @@
 
          if (.NOT.Tr_BC_min_max_L) then
 
-!$omp parallel do private(k,i,j,correction_8) shared(weight,lambda_8)
+
          do k=k0,F_nk
 
             do j=1+pil_s,l_nj-pil_n
@@ -187,11 +187,11 @@
             enddo
 
          enddo
-!$omp end parallel do
+
 
          else
 
-!$omp parallel do private(k,i,j,correction_8) shared(weight,lambda_8)
+
          do k=k0,F_nk
 
             do j=1+pil_s,l_nj-pil_n
@@ -212,15 +212,15 @@
             enddo
 
          enddo
-!$omp end parallel do
+
 
         endif
 
       else
 
-!$omp parallel private(k,i,j,correction_8) &
-!$omp shared(weight,count,lambda_8)
-!$omp do
+
+
+
       do k=k0,F_nk
 
          count(k,1) = 0.
@@ -253,8 +253,8 @@
          enddo
 
       enddo
-!$omp end do
-!$omp end parallel
+
+
 
       endif
 

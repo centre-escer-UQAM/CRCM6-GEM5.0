@@ -145,7 +145,7 @@ contains
       do while (.not.p3_comptend .and. i <= nphyoutlist)
          if (any(phyoutlist_S(i) == (/ &
               'ste ','sqe ','sqce','sqre','mtqi', &
-              'w7  ','w9  ','w5  ' &
+              'w7  ','w9  ','w5  ','ta  ' &
               /))) p3_comptend = .true.
          i = i+1
       enddo

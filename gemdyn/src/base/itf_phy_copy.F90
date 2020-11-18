@@ -38,7 +38,7 @@
       istat = gmm_get(gmmk_pw_vv_plus_s,pw_vv_plus)
       istat = gmm_get(gmmk_pw_vv_copy_s,vv_copy   )
 
-!$omp parallel
+!$omp parallel private(k)
 !$omp do
       do k= 1, G_nk
          uu_copy(:,:,k) = pw_uu_plus(:,:,k)

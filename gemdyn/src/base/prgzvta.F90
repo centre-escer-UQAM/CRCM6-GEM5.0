@@ -53,13 +53,13 @@
       prsmall= .001
       logpres(1:Nkout) = log(F_pres(1:Nkout))
 
-!$omp parallel private(i,k,kk,pnk,pnkm,pnindex,prlprso, &
-!$omp    prd,pre,prr,prfm0,prfm1,prfm2,prfm3,prfl2,prl, &
-!$omp    pnund,pn1,prlptop,prvttop,prfitop, &
-!$omp    prlpbot,prvtbot,prfibot,invprd,target_pres) &
-!$omp          shared (logpres)
 
-!$omp do
+
+
+
+
+
+
       do 600 j  = 1, l_nj
          do 500 kk = 1, Nkout
             pnindex = 0
@@ -260,9 +260,9 @@
  300        continue
  500     continue
  600  continue
-!$omp enddo
 
-!$omp end parallel
+
+
 !
 !-------------------------------------------------------------------
 !

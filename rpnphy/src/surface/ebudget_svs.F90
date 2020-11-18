@@ -41,7 +41,7 @@
       REAL WD1(N), WF(N)
       REAL RG(N), ALVG(N), RAT(N), THETAA(N), FCOR(N)
       REAL ZUSL(N), ZTSL(N)
-      REAL HU(N), PS(N), RHOA(N), WTA(N,indx_svs_ag), Z0(N), Z0H(N)
+      REAL HU(N), PS(N), RHOA(N), WTA(N,svs_tilesp1), Z0(N), Z0H(N)
       REAL HV(N), DEL(N), RS(N)
       REAL CG(N), CVP(N),  PSNG(N), EMIS(N)
       REAL LAI(N), GAMVEG(N), ALGR(N), EMGR(N)

@@ -23,8 +23,13 @@ module gmm_tracers
       real, pointer, dimension (:,:,:) :: fld_min => null()
       real, pointer, dimension (:,:,:) :: fld_max => null()
 
+      real, pointer, dimension (:)     :: pxto    => null()
+      real, pointer, dimension (:)     :: pyto    => null()
+      real, pointer, dimension (:)     :: pzto    => null()
+
       integer, parameter :: MAXNAMELENGTH = 32
 
-      character(len=MAXNAMELENGTH) :: gmmk_mono_s, gmmk_cub_s, gmmk_lin_s, gmmk_min_s, gmmk_max_s
+      character(len=MAXNAMELENGTH) :: gmmk_mono_s, gmmk_cub_s, gmmk_lin_s, gmmk_min_s, gmmk_max_s, &
+                                      gmmk_pxto_s, gmmk_pyto_s, gmmk_pzto_s 
 
 end module gmm_tracers

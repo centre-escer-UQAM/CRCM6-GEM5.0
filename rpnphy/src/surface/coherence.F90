@@ -205,8 +205,7 @@ subroutine coherence3(ni, trnch)
                enddo
 
                ! impose minimum root depth 0.5m
-               ! impose maximum root depth = permeable depth
-               zrootdp  (i) = min( max( zrootdp  (i) , 0.5  ) , dl_svs(kdp))
+               zrootdp  (i) = max( zrootdp  (i) , 0.5  ) 
                zcveg    (i) = max( zcveg    (i) , 1.e-5)
                zvegfrac (i) = max( zvegfrac (i) , 0.0  )
                zwveg    (i) = max( zwveg    (i) , 0.0  )

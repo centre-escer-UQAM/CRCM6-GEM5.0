@@ -35,12 +35,12 @@ use iso_c_binding
       integer,parameter :: BUFSIZE=10000
       integer, external :: fnom,wkoffit,OMP_get_max_threads
       integer, external :: generate_unique_name
-      
+
       character(len=3)   :: mycol_S,myrow_S
       character(len=33)  :: buffer
       character(len=1024):: fn, pwd_S, scratch_dir
       integer :: err,unf,nc
-      integer, dimension(2) :: bcast_ptopo
+      integer, dimension(4) :: bcast_ptopo
       integer :: bufnml(BUFSIZE),bufoutcfg  (BUFSIZE), &
                  bufinphycfg(BUFSIZE)
 !
@@ -180,13 +180,13 @@ use iso_c_binding
 
       err= clib_getcwd(ici)
       err= clib_chdir(trim(F_path_S))
-!$OMP PARALLEL DO private(i,j,status)
+
       do j=0,F_npey-1
       do i=0,F_npex-1
          status = mk_gem_dir(i,j)
       enddo
       enddo
-!$OMP END PARALLEL DO
+
       err= clib_chdir(ici)
 
 return

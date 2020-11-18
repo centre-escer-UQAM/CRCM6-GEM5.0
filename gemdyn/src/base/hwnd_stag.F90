@@ -55,9 +55,9 @@
          call rpn_comm_xch_halo (F_sv,l_minx,l_maxx,l_miny,l_maxy,l_ni,l_nj,Nk, &
                                  G_halox,G_haloy,G_periodx,G_periody,l_ni,0)
 
-!$omp parallel private(i,j,k) &
-!$omp shared (i0u,j0u,inu,jnu,i0v,j0v,inv,jnv,F_su,F_du)
-!$omp do
+
+
+
          do k = 1,Nk
             do j = j0u, jnu
             do i = i0u, inu
@@ -96,8 +96,8 @@
                end do
             endif
          end do
-!$omp enddo
-!$omp end parallel
+
+
 
       else
 
@@ -114,9 +114,9 @@
          call rpn_comm_xch_halo (F_sv,l_minx,l_maxx,l_miny,l_maxy,l_ni,l_njv,Nk, &
                                  G_halox,G_haloy,G_periodx,G_periody,l_ni,0)
 
-!$omp parallel private(i,j,k) &
-!$omp shared (i0u,j0u,inu,jnu,i0v,j0v,inv,jnv,F_su,F_du)
-!$omp do
+
+
+
          do k = 1,Nk
             do j = j0u, jnu
             do i = i0u, inu
@@ -156,8 +156,8 @@
                end do
             endif
          end do
-!$omp enddo
-!$omp end parallel
+
+
 
       endif
 !

@@ -54,8 +54,6 @@
       nij  = (ldnh_maxy-ldnh_miny+1)*(ldnh_maxx-ldnh_minx+1)
       wk1=0.0 ; wk2=0.0
 
-!$omp parallel private (i,j,k) shared (F_offi,F_offj,ni,nij,wk1)
-!$omp do
       do j=1+pil_s,ldnh_nj-pil_n
          call dgemm ('N','N', ni, G_nk, G_nk, 1.0D0, F_rhs_sol(1+pil_w,j,1), &
                      nij, Opr_lzevec_8, G_nk, 0.0d0, wk1(1+pil_w,j,1), nij)
@@ -66,8 +64,6 @@
             enddo
          end do
       end do
-!$omp enddo
-!$omp end parallel
 
       if (Grd_yinyang_L) then
          wk3 = wk1
@@ -89,14 +85,10 @@
                         F_print_L, F_ni, F_nj, F_nk )
       endif
 
-!$omp parallel private (j) shared (g_nk, wk2)
-!$omp do
       do j=1+pil_s,ldnh_nj-pil_n
          call dgemm ('N','T', ni, G_nk, G_nk, 1.0D0, wk2(1+pil_w,j,1), &
                       nij, Opr_zevec_8, G_nk, 0.0d0, F_lhs_sol(1+pil_w,j,1), nij)
       enddo
-!$omp enddo
-!$omp end parallel
 
  1001 format (3x,'Iterative YYG    solver convergence criteria: ',1pe14.7,' at iteration', i3)
  1002 format (3x,'Final YYG    solver convergence criteria: ',1pe14.7,' at iteration', i3)

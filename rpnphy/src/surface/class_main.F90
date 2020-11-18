@@ -27,9 +27,7 @@ subroutine class_main (BUS, BUSSIZ, &
   use phy_options, only: MU_JDATE_HALFDAY, RAD_NUVBRANDS
 !  use ctem_params, only : initpftpars, nlat, ilg, ican, ignd
   use class_configs, only : CLASS_IC, CTEM_ICC
-  use classicParams, only : nlat, ilg, ignd, &
-                            IDISP,IZREF,ITC,ITCG,ITG,ISLFD,NMIM, &
-                            IPAI,IHGT,IALC,IALS,IALG,IPCP
+  use classicParams, only : nlat, ilg, ignd
 
   implicit none
 
@@ -133,8 +131,8 @@ subroutine class_main (BUS, BUSSIZ, &
   logical, parameter :: INTERFLOW_L = .false.
 
   integer :: I
-  integer :: IC,ICP1,ICC,ICCP1
-!  integer :: IPAI,IHGT,IALC,IALS,IALG,IPCP,IDISP,IZREF,ITC,ITCG,ITG,ISLFD,NMIM       !,ILW
+  integer :: IC,ICP1,IPAI,IHGT,IALC,IALS,IALG,IPCP, ICC,ICCP1
+  integer :: IDISP,IZREF,ITC,ITCG,ITG,ISLFD,NMIM       !,ILW
   integer :: NLANDCS,NLANDGS,NLANDC, NLANDG, NLANDI
   logical :: DOTILE, DOPREC
   logical :: kount0  !to determine if we should run the initializations
@@ -275,7 +273,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: TFLUX, QFLUX, ZCANG, FLUSOL, ZHUAIRCAN
   real,pointer,dimension(:)   :: ZDLAT, ZDLON, ZSDEPTH, ZZTSL, ZZUSL, QLWIN
   real,pointer,dimension(:)   :: ZTAIRCAN, ZTSNOW, ZTBASE, ZTPOND, ZZPOND
-  real,pointer,dimension(:)   :: ZRHOSNO, ZRUNOFFTOT
+  real,pointer,dimension(:)   :: ZRHOSNO, ZRUNOFFTOT, ZEMISR
   real,pointer,dimension(:)   :: ZSCAN, ZINISOIL, XSNO, ZALBSNO, ZGROWTH
   real,pointer,dimension(:)   :: ZXDRAIN, ZXSLOPE, ZGRKFAC, ZWFSURF, ZWFCINT
   real,pointer,dimension(:)   :: ZCMAI, ZFSGV, ZFSGS, ZFSGG, ZFSNOW, ZFLGV
@@ -289,7 +287,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: FFC, FCS, FG, FGS, ZFL, ZRAINRATE, ZSNOWRATE
   real,pointer,dimension(:)   :: ZSNOW, ZSOILCOL
 
-  real,pointer,dimension(:)   :: ZFTEMP, ZFVAP, ZRIB, ZCDH, ZCDM, ZBM
+  real,pointer,dimension(:)   :: ZFTEMP, ZFVAP, ZRIB, ZCDH, ZCDM !, ZBM
 
   real,pointer,dimension(:)   :: ztt2m
 
@@ -665,8 +663,9 @@ subroutine class_main (BUS, BUSSIZ, &
   Z0ORO     (1:N) => bus( x( Z0     ,1,indx_sfc ) : )  !  input momentum roughness length
 
 
-  ! Physics output fields
-  ! ---------------------
+  ! Fields given back to the Physics
+  ! --------------------------------
+  ! (Check in iniptsurf.F90 that they are all there!!!)
   ! Mosaic fields
   ALVIS_SOL (1:N) => bus( x( ALVIS  ,1,indx_sfc ) : )  ! output visible surface albedo 
   QFLUX     (1:N) => bus( x( ALFAQ  ,1,1 ) : )         ! output Product of surface drag coefficient, wind speed and 
@@ -677,7 +676,8 @@ subroutine class_main (BUS, BUSSIZ, &
   CMU       (1:N) => bus( x( BM     ,1,1 ) : )         ! homog. term for U,V diffu.
   CTU       (1:N) => bus( x( BT     ,1,indx_sfc ) : )  ! output Diagnosed product of drag coefficient and wind speed
                                                        ! over modelled area [m/s] (homog. term for T,Q diffu.)
-  ZBM       (1:N) => bus( x( BM     ,1,1 ) : )         ! output homog. term for U,V diffu.
+!  ZBM       (1:N) => bus( x( BM     ,1,1 ) : )         ! output homog. term for U,V diffu.
+  ZEMISR    (1:N) => bus( x( EMISR  ,1,1 ) : )         ! output surface emissivity for radiation scheme
   QSENS     (1:N) => bus( x( FC     ,1,indx_sfc ) : )  ! output surface sensible heat flux
   QEVAP     (1:N) => bus( x( FV     ,1,indx_sfc ) : )  ! output surface latent   heat flux
   ZFRV      (1:N) => bus( x( FRV    ,1,indx_sfc ) : )  ! output Friction velocity of air [m/s]
@@ -741,6 +741,11 @@ subroutine class_main (BUS, BUSSIZ, &
 
 
   DO I=1,N
+
+     ! It is assumed that natural surfaces, because of their radiative complexity, 
+     ! act as effective black bodies, so that their emissivity can be taken to be 1.
+     ZEMISR(I) = 1.
+
      ZBLEND(I) = ZZUSL(I)
      ILAND(I)  = I
      ZUN(I)    = ZU
@@ -1303,20 +1308,21 @@ endif ! prints
 !       a polynomial curve between 0 c and 6 c.
 ! If ipcp=4, ONLY IN GEM. Calculates PCPR
 !
-!    IDISP = 0
-!    IZREF = 2
-!    ISLFD = 2
-!    ITC   = 1
-!    ITCG  = 1
-!    ITG   = 1
-!    NMIM  = 1
+    IDISP = 0
+    IZREF = 2
+    ISLFD = 2
+    ITC   = 1
+    ITCG  = 1
+    ITG   = 1
+!   ILW   = 1
+    NMIM  = 1
 
-!    IPAI  = 0
-!    IHGT  = 0
-!    IALC  = 0
-!    IALS  = 0
-!    IALG  = 0
-!    IPCP  = 4
+    IPAI  = 0
+    IHGT  = 0
+    IALC  = 0
+    IALS  = 0
+    IALG  = 0
+    IPCP  = 4
 
 
 
@@ -1339,15 +1345,6 @@ endif ! prints
 
 !    KOUNT_EQ_0 : IF(KOUNT.EQ.0 .or. maxval(zinisoil).gt.0.5) THEN
     KOUNT_EQ_0 : IF(kount0) THEN
-!
-!
-! Check if ROOTDP less or equal than SDEPTH
-!
-        do i=1,N
-           do j=1,ic
-              ZZRTMAX(I,J) = min(ZZRTMAX(I,J), ZSDEPTH(I))
-           enddo
-        enddo
 !
 !       Initialize the soil characteristics
 !       using the soil texture
@@ -1495,6 +1492,7 @@ endif ! prints
 !print *,'class_main DDD: ISAND(1,:):', ISAND(1,:)
          ZTSURF = 0.  ! Mike Lazard had taken the 'TSURF' out of CLASS. 
                       ! K. Winger put the calculation back in 'energyBudgetDriver'
+         ! QFLUX added by K. Winger
          call energyBudgetDriver(TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & ! Formerly CLASST
                                  THICEC, THICEG, HCPC,   HCPG,   TCTOPC, TCBOTC, TCTOPG, TCBOTG, &
                                  GZEROC, GZEROG, GZROCS, GZROGS, G12C,   G12G,   G12CS,  G12GS, &
@@ -1502,10 +1500,10 @@ endif ! prints
                                  EVAPC,  EVAPCG, EVAPG,  EVAPCS, EVPCSG, EVAPGS, TCANO,  TCANS, &
                                  RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP,  CHCAPS, TPONDC, TPONDG, &
                                  TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
-                                 ITERCT, ZCDH,   ZCDM,   QSENS,  TFLUX,  QEVAP,  EVAPO, &
-                                 EVPPOT, CMU,    CTU,    EVAPB,  ZTSRAD, QS, ZTSURF, &
+                                 ITERCT, ZCDH,   ZCDM,   QSENS,  TFLUX,  QEVAP,  EVAPO,  QFLUX, &
+                                 EVPPOT, CMU,    CTU,    EVAPB,  ZTSRAD, QS,     ZTSURF, &
                                  ST,     SU,     SV,     SQ,     srh, &
-                                 GTBS, SFCUBS, SFCVBS, USTARBS, &
+                                 GTBS,   SFCUBS, SFCVBS, USTARBS, &
                                  ZFSGV,  ZFSGS,  ZFSGG,  ZFLGV,  ZFLGS,  ZFLGG, &
                                  ZHFSC,  ZHFSS,  ZHFSG,  ZHEVC,  ZHEVS,  ZHEVG,  ZHMFC,  ZHMFN, &
                                  ZHTCC,  ZHTCS,  ZHTC,   ZQFCF,  ZQFCL,  CDRAG,  WTABLE, ZILMO, &
@@ -1625,7 +1623,7 @@ endif ! prints
 !   AND VERSION CHANGES
 !
           VMOD(I) = SQRT( MAX( VAMIN,UA(I)*UA(I)+VA(I)*VA(I) ) )
-          ZBM(I)  = VMOD(I) * ZCDM(I)
+!!!          ZBM(I)  = VMOD(I) * ZCDM(I)   ! KW: TODO check if this might be correct
 !
 !   ADD CALCULATION FOR Z0M & ZOT OUTSIDE CLASS TO FACILITATE CODE MAINTENANCE
 !   AND VERSION CHANGES
@@ -1669,7 +1667,7 @@ print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
 print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
 print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
 print*,'class_main CTU            :',minval(CTU),maxval(CTU),sum(CTU)/(N)
-print*,'class_main ZBM            :',minval(ZBM),maxval(ZBM),sum(ZBM)/(N)
+!print*,'class_main ZBM            :',minval(ZBM),maxval(ZBM),sum(ZBM)/(N)
 print*,'class_main QSENS          :',minval(QSENS),maxval(QSENS),sum(QSENS)/(N)
 print*,'class_main QEVAP          :',minval(QEVAP),maxval(QEVAP),sum(QEVAP)/(N)
 print*,'class_main ZFRV           :',minval(ZFRV),maxval(ZFRV),sum(ZFRV)/(N)

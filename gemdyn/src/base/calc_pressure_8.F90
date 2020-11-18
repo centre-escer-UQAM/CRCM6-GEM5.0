@@ -43,8 +43,8 @@
 !
       istat = gmm_get (gmmk_sls_s ,sls )
 
-!$omp parallel private(wk1_8,wk2_8,i,j,k)
-!$omp do
+
+
       do k=1,l_nk+1
          do j=1,l_nj
          do i=1,l_ni
@@ -62,8 +62,8 @@
             F_p0_8(1:l_ni,1:l_nj)= wk2_8(1:l_ni,1:l_nj,1)
          endif
       end do
-!$omp enddo
-!$omp end parallel
+
+
 !     ________________________________________________________________
 !
       return

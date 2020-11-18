@@ -127,16 +127,16 @@
             do m=0,l
                sig=(-1.D0)**(l+m)
 
-!$omp parallel private(j)  &
-!$omp shared (l,m,nlat,lmax,sig,fact)
-!$omp  do
+
+
+
                do j=1,nlat/2
                   call pleg (l, m, j, nlat, pl)
                   plg(j,lmax-l+1,m+1)=pl*fact
                   plg(nlat-j+1,lmax-l+1,m+1)=pl*fact*sig
                enddo
-!$omp enddo
-!$omp end parallel
+
+
             enddo
          enddo
 
@@ -316,8 +316,8 @@
 
       cc=0.D0
 
-!$omp parallel private(m,j)
-!$omp do
+
+
  	   do m=1,lmax+1
          do j=1,nlat
             cc(1,j,m)=0.d0
@@ -326,8 +326,8 @@
             cc(2,j,m)=cc(2,j,m) + Dot_product(plg(j,1:lmax-lmin+1,m),ai_s(1:lmax-lmin+1,m))
          enddo
  	   enddo
-!$omp enddo
-!$omp end parallel
+
+
 
 ! Fourier Transform (inverse)
 

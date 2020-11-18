@@ -61,8 +61,8 @@
       integer i, j, k
 !
 
-!$omp parallel private(k,i)
-!$omp do
+
+
       do j=F_j0,F_jn
       do k=2,F_nk
       do i=F_i0,F_in
@@ -71,8 +71,8 @@
       end do
       end do
       end do
-!$omp enddo
-!$omp end parallel
+
+
 !
       do j=F_j0,F_jn
       do i=F_i0,F_in
@@ -81,8 +81,8 @@
       end do
 
 !
-!$omp parallel private(k,i)
-!$omp do
+
+
       do j=F_j0,F_jn
       do k=2,F_nk-1
       do i=F_i0,F_in
@@ -92,11 +92,11 @@
       end do
       end do
       end do
-!$omp enddo
-!$omp end parallel
+
+
 !
-!$omp parallel private(i)
-!$omp do
+
+
       do j=F_j0,F_jn
       do i=F_i0,F_in
         F_der(i,j,1)    =   F_con1 * F_der(i,j,1) &
@@ -105,8 +105,8 @@
                           + (1.0 - F_con2) * F_der(i,j,F_nk-1)
       end do
       end do
-!$omp enddo
-!$omp end parallel
+
+
 !
       return
       end

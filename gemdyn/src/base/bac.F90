@@ -75,24 +75,24 @@
          enddo
       end do
 !
-!$omp parallel private(i,j,k,w1,w2,w3,w4,qbar,Pbar,km,xtmp_8,ytmp_8)&
-!$omp shared(nij,k0t,GP)
+
+
 !
 !     Compute P at top and bottom
 !     ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
       if ( Schm_opentop_L ) then
          GP(:,:,1:k0-2) = 0.0
-!$omp do
+
          do j= j0, jn
          do i= i0, in
             GP(i,j,k0-1) = Ver_alfat_8 * F_lhs_sol(i,j,k0) &
                          + Ver_cst_8*(F_rb(i,j)-F_nb(i,j))
          end do
          end do
-!$omp enddo
+
       endif
-!$omp do
+
       do j= j0, jn
       do i= i0, in
          GP(i,j,l_nk+1)  = Ver_alfas_8 * F_lhs_sol(i,j,l_nk)   &
@@ -100,17 +100,17 @@
                          - Ver_css_8*(F_rt(i,j,l_nk)-F_nt(i,j,l_nk))
       end do
       end do
-!$omp enddo
 
-!$omp single
+
+
       call rpn_comm_xch_halo(GP,l_minx,l_maxx,l_miny,l_maxy,l_ni,l_nj,G_nk+1, &
                   G_halox,G_haloy,G_periodx,G_periody,l_ni,0)
-!$omp end single
+
 
 !
 !     Compute w
 !     ~~~~~~~~~
-!$omp do
+
       do k=k0t,l_nk
          km = max(k-1,k0t)
          w1 = Cstv_tau_m_8*Rgasd_8*Ver_Tstar_8%t(k)/grav_8
@@ -125,7 +125,7 @@
          end do
          end do
       end do
-!$omp enddo
+
 
       if(.not.Schm_hydro_L) then
 
@@ -137,13 +137,13 @@
 !                   Open Top(k0 /= 1):  F_q(i,j,k0t) is externally specified
 
          if (Schm_opentop_L) then
-!$omp do
+
             do j= j0, jn
             do i= i0, in
                F_q(i,j,k0t)=F_nest_q(i,j,k0t)
             end do
             end do
-!$omp enddo
+
          endif
 !
 !        Note : we cannot use omp on loop k
@@ -154,7 +154,7 @@
             w3 = half*Ver_wp_8%t(k)*Ver_wmstar_8(k)*Ver_dz_8%t(k)*w4
             w2 = (one-(Ver_wm_8%t(k)+half*Ver_wp_8%t(k)*Ver_wmstar_8(k))*Ver_dz_8%t(k))*w4
             w1 = Ver_dz_8%t(k)/grav_8*w4
-!$omp do
+
             do j= j0, jn
             do i= i0, in
                F_q(i,j,k+1) = - w3 * F_q(i,j,km)   &
@@ -163,14 +163,14 @@
                                  - Cstv_invT_nh_8 * F_w(i,j,k)  )
             end do
             end do
-!$omp enddo
+
          end do
 
       endif
 
 !     Compute U & V
 !     ~~~~~~~~~~~~~
-!$omp do
+
       do k=k0,l_nk
          do j= j0, jn
          do i= i0, l_niu-pil_e
@@ -184,18 +184,18 @@
          end do
          end do
       enddo
-!$omp enddo
+
 
 !     Compute s
 !     ~~~~~~~~~
       w1 = one/(Rgasd_8*Ver_Tstar_8%m(l_nk+1))
-!$omp do
+
       do j= j0, jn
       do i= i0, in
          F_s(i,j) = w1*(GP(i,j,l_nk+1)-F_fis(i,j))-Cstv_rE_8*F_q(i,j,l_nk+1)-Cstv_Sstar_8
       end do
       end do
-!$omp enddo
+
 
 
 !     Compute zdot
@@ -205,7 +205,7 @@
 !              Closed Top(k0t == 1):  F_zd(i,j,k0t) = 0
 !                Open Top(k0t /= 1):  F_zd(i,j,k0t) is computed
 
-!$omp do
+
       do k=k0t,l_nk-1
          w1=Ver_gama_8(k)*Ver_idz_8%t(k)
          w2=Ver_gama_8(k)*Ver_epsi_8(k)
@@ -221,13 +221,13 @@
          enddo
          enddo
       enddo
-!$omp enddo
+
 
 
 !     Compute FI' (into GP)
 !     ~~~~~~~~~~~
 
-!$omp do
+
       do k=k0t,l_nk
          km=max(k-1,1)
          w1=Rgasd_8*Ver_Tstar_8%m(k)
@@ -239,7 +239,7 @@
          enddo
          enddo
       enddo
-!$omp enddo
+
 
       do j= j0, jn
       do i= i0, in
@@ -250,7 +250,7 @@
 !     Compute T
 !     ~~~~~~~~~
 
-!$omp do
+
       do k=k0t,l_nk
          km=max(k-1,1)
          do j= j0, jn
@@ -275,13 +275,13 @@
             enddo
          enddo
       enddo
-!$omp enddo
+
 
       if(Schm_autobar_L) then
          F_t=Cstv_Tstr_8 ; F_zd=0. ! not necessary but safer
       endif
 
-!$omp end parallel
+
 !
 1000  format (5X,'BACK SUBSTITUTION: (S/R BAC)')
 !     __________________________________________________________________

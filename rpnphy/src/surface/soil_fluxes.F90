@@ -76,7 +76,6 @@
 ! F (NL_SVS+1)      total flux of water between each layer and at top and bottom boundaries during time step [m]
 !                   initially, contains three values:
 !                   F(1):       infiltration coming in at the top of the soil column
-!                   F(KDP+1):   baseflow along impervious layer (if KDP<NL_SVS)
 !                   F(NL_SVS+1):baseflow at the bottom of the soil column
 !                   these three values are unchanged by this subroutine, which fills in the other values
 !                   * THESE THREE VALUES OF F NEED TO BE PROPERLY INITIALIZED BY THE CALLING SUBROUTINE *
@@ -109,7 +108,7 @@
 !***********************************************************************
 !
 !Compute water fluxes QZ between soil layers, find KSAT, PSISAT, K AND PSI at the boundaries     
-! do it for all layers except KDP and NL_SVS (water flux is computed above from watdrain).       
+! do it for all layers except NL_SVS (water flux is computed above from watdrain).       
        
       DO K=1,NL_SVS-1
          DO I=1,N
@@ -135,9 +134,7 @@
            !soil water potential at the soil boundries
             PSI(I,K)= MAX(PSISATBND(I,K)*SATBND(I,K)**(-BBND(I,K)),PSISATBND(I,K))
            !vertical flux of water between soil layers
-            IF(K.NE.KDP)THEN
-	       F(I,K+1)=DT*KHC(I,K)*(-BBND(I,K)*PSI(I,K)*DWDDZ_WDBND(I,K)+1.0)
-            END IF
+	    F(I,K+1)=DT*KHC(I,K)*(-BBND(I,K)*PSI(I,K)*DWDDZ_WDBND(I,K)+1.0)
          END DO
       END DO
 

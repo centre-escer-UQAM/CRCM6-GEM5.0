@@ -62,8 +62,8 @@
 
        !- Interpolate advection winds to geopotential grid
 
-!$omp parallel private(i,j,k)
-!$omp do
+
+
       do k=1,l_nk
 
          do j = j0, jn
@@ -85,9 +85,9 @@
          enddo
 
      enddo
-!$omp enddo
 
-!$omp do
+
+
          do k = 1,l_nk
             do j = j0,jn
                do i = i0u,inu
@@ -100,9 +100,9 @@
                enddo
             enddo
          enddo
-!$omp enddo
 
-!$omp end parallel
+
+
 
 !
 !---------------------------------------------------------------------

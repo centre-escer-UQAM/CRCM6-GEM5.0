@@ -35,8 +35,8 @@
 !
 !     ---------------------------------------------------------------
 !
-!$omp parallel private(i,j,k,jr) shared(fdg)
-!$omp do
+
+
       do k=1,Nk
          call dgemm('T','N',Ni,Nj,Ni,1.0d0,evec_local,Ni, &
                        Rhs(1,1,k),Ni,0.0d0,Fdg(1,1,k),Ni)
@@ -61,8 +61,8 @@
          call dgemm('N','N',Ni,Nj,Ni,1.0d0,evec_local,Ni, &
                         Fdg(1,1,k),Ni,0.d0,Sol(1,1,k),Ni)
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 !
 !     ---------------------------------------------------------------
 !

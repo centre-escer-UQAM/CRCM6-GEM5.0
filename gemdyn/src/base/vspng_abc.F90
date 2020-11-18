@@ -89,8 +89,8 @@
 !     in case JN is negative
       jn = max(0,jn)
 
-!$omp parallel private(jj,j2,j,k)
-!$omp do
+
+
       do i = 1, G_ni
          do j = 1, jn
             jj = Trp_12en0 + j - 1
@@ -113,8 +113,8 @@
             enddo
          enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 !
       call set_trig21 (F_aix_8,F_bix_8,F_cix_8,F_dix_8, ax_8,bx_8,cx_8,  &
                        NK*trp_12emax, 1, G_ni,  &
@@ -138,8 +138,8 @@
 !     in case IN is negative
       in = max(0,in)
 
-!$omp parallel private(i,k)
-!$omp do
+
+
       do j= 1, F_gnjv
          do i= 1, in
          do k= 1, NK
@@ -152,16 +152,16 @@
          enddo
          enddo
       enddo
-!$omp enddo
-!$omp do
+
+
       do i= 1, in
          do k= 1, NK
             ay_8(k,i,1) = ZERO_8
          enddo
       enddo
-!$omp enddo
 
-!$omp do
+
+
       do j = 1, F_gnjv
       do i = in+1,trp_22emax
       do k = 1, NK
@@ -171,8 +171,8 @@
       enddo
       enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 
       call set_trig21 (F_aiy_8,F_biy_8,F_ciy_8,diy_8, ay_8,by_8,cy_8,  &
                        NK*trp_22emax, 1, F_gnjv,  &

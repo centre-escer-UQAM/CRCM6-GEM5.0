@@ -175,6 +175,8 @@
            dirstep_S = Out_dirname_S        
            if (Ptopo_myproc == 0 .and. Ptopo_couleur == 0) then
               err = clib_mkdir(trim(Out_dirname_S))
+print *,'out_outdir: Create ',trim(Out_dirname_S)
+print *,'out_outdir: err: ',err
               if (Lun_out>0) write(Lun_out,1001) trim(Out_laststep_S),Step_kount
            endif
         endif

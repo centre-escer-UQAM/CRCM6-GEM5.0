@@ -90,20 +90,20 @@
       call rpn_comm_transpose( Rhs, 1, F_t0nis, F_gni, (F_t0njs-1+1),&
                                        1, F_t1nks, F_gnk, F_dg1, 1,2 )
 
-!$omp parallel private(i,j,k,p0,pn,piece,jr) &
-!$omp          shared(ptotal,plon,l_pil_w,l_pil_e)
 
-!$omp do
+
+
+
       do i= 1,F_gni
          F_dg1(F_t0nj+1-pil_n:F_t0njs,1:F_t1nk,i)= zero
          F_dg1(             1:pil_s  ,1:F_t1nk,i)= zero
          F_dwfft(1:F_t0njs,F_t1nk+1:F_t1nks,i)   = zero
       enddo
-!$omp enddo
+
 
 !     projection ( wfft = x transposed * g )
 
-!$omp do
+
       do k=1,F_nk
          call dgemm('N','N', (F_t0njs-1+1-pil_s-pil_n),  &
                   F_gni-Lam_pil_w-Lam_pil_e, &
@@ -114,18 +114,18 @@
                   0._8, F_dwfft(1+pil_s,k,1+Lam_pil_w), &
                   (F_t0njs-1+1)* (F_t1nks-1+1))
       enddo
-!$omp enddo
 
-!$omp single
+
+
       call rpn_comm_transpose &
            ( F_dwfft, 1, F_t0njs, F_gnj, (F_t1nks-1+1),&
                         1, F_t2nis, F_gni, F_dg2, 2, 2 )
-!$omp end single
+
 
       ptotal = F_t2ni-l_pil_e-l_pil_w
       plon   = (ptotal+Ptopo_npeOpenMP) / Ptopo_npeOpenMP
 
-!$omp do
+
        do piece=1,Ptopo_npeOpenMP
           p0 = 1+l_pil_w + plon*(piece-1)
           pn = min(F_t2ni-l_pil_e,plon*piece+l_pil_w)
@@ -156,17 +156,17 @@
             enddo
          enddo
       enddo
-!$omp enddo
 
-!$omp single
+
+
       call rpn_comm_transpose &
            ( F_dwfft, 1, F_t0njs, F_gnj, (F_t1nks-1+1), &
                      1, F_t2nis, F_gni, F_dg2,- 2, 2 )
-!$omp end single
+
 
 !     inverse projection ( r = x * w )
 
-!$omp do
+
       do k=1,F_nk
          call dgemm('N','T', (F_t0njs-1+1-pil_s-pil_n),  &
                   F_gni-Lam_pil_w-Lam_pil_e, &
@@ -177,9 +177,9 @@
                   0._8, F_dg1(1+pil_s,k,1+Lam_pil_w), &
                   (F_t0njs-1+1) * (F_t1nks-1+1))
       enddo
-!$omp end do
 
-!$omp end parallel
+
+
 
       call rpn_comm_transpose( Sol, 1, F_t0nis, F_gni, (F_t0njs-1+1),&
                                     1, F_t1nks, F_gnk, F_dg1, -1, 2 )

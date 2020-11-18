@@ -38,8 +38,8 @@ contains
       xxx = - Cstv_hco2_8
       yyy = - Cstv_hco1_8
 
-!$omp parallel private (i,j,k,jj,ii,di_8) shared(xxx, yyy)
-!$omp do
+
+
       do k=1, l_nk
          do j=1+sol_pil_s, l_nj-sol_pil_n
             jj=j+l_j0-1
@@ -72,8 +72,8 @@ contains
             enddo
          enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
    end subroutine matvec_init
 
 
@@ -88,8 +88,8 @@ contains
       vector = 0.0d0
       prod = 0.0d0
 
-!$omp parallel private (i,j,k) shared(vector, prod)
-!$omp do
+
+
       do k = 1, l_nk
          vector(:,:,k) = 0.0d0
          do j=1+sol_pil_s, l_nj-sol_pil_n
@@ -98,14 +98,14 @@ contains
             enddo
          enddo
       enddo
-!$omp enddo
 
-!$omp single
+
+
       call rpn_comm_xch_halon (vector, 0, l_ni+1, 0, l_nj+1, l_ni, l_nj, l_nk+2, &
                                1, 1, G_periodx, G_periody, l_ni, 0, 2)
-!$omp end single
 
-!$omp do
+
+
       do k=1,l_nk
          do j=1+sol_pil_s, l_nj-sol_pil_n
             do i=1+sol_pil_w, l_ni-sol_pil_e
@@ -120,8 +120,8 @@ contains
             enddo
          enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
    end subroutine matvec_3d
 
 end module matvec

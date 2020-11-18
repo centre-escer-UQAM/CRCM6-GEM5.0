@@ -241,13 +241,13 @@ subroutine svs(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
 !******************************************************************
 !
 
-!   2 possible approaches for flux and coeff. calculations... IMPOSE minimum wind or minimum Monin–Obukhov Length
-!   For minimum Monin–Obukhov, atm wind will be modified internally to insure coupling and desired minimum value
+!   2 possible approaches for flux and coeff. calculations... IMPOSE minimum wind or minimum Monin?Obukhov Length
+!   For minimum Monin?Obukhov, atm wind will be modified internally to insure coupling and desired minimum value
 !   In this case, min_wind_speed is really numeric = VAMIN
 
 
       if (sl_Lmin_soil > 0.) then
-         ! option using minimun Monin–Obukhov Length ( vmod=max(uv,vamin) )
+         ! option using minimun Monin?Obukhov Length ( vmod=max(uv,vamin) )
          ! impose minimum wind = VAMIN 
          i = sl_prelim(tt,hu,uu,vv,ps,zzusl,VMOD,VDIR,TVA,RHOA,min_wind_speed=VAMIN)
       else
@@ -480,7 +480,7 @@ subroutine svs(BUS, BUSSIZ, PTSURF, PTSURFSIZ, DT, KOUNT, TRNCH, N, M, NK)
          CALL PHTSYN_SVS ( BUS(x(LAIVF26,1,1))  , BUS(x(VEGF   ,1,1)), &
                         BUS(x(TVEGE  ,1,1))  , ps , &
                         BUS(x(RESAVG ,1,1))  , hu , &
-                        BUS(x(RNET_S ,1,1))  , BUS(x(WSOIL ,1,1)), &
+                        zFSOLIS              , BUS(x(WSOIL ,1,1)), &
                         BUS(x(FROOTD ,1,1))  , SUNCOSA            , &
                         BUS(x(WFC    ,1,1))  , BUS(x(WWILT  ,1,1)), &
                         MASKLAT50            , BUS(x(VGCTEM ,1,1))  , &

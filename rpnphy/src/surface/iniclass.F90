@@ -14,8 +14,13 @@ subroutine iniclass
 !  character(len=*), intent(in) :: F_path
 !  integer, intent(in) :: F_myproc
 !  integer :: F_istat
+  logical, save :: first = .true.
 
-print *,'In iniclass.F90'
+if (first) then
+  first = .false.
+  print *,'In iniclass.F90'
+  print *,'iniclass HELLOOOOOOOOOOOOOOOOOOOOOOOOOOO AAA'
+endif
 
   runParamsFile = "../CLASS_input_table"
 

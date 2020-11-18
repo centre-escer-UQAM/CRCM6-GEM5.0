@@ -50,8 +50,8 @@
          if (l_north) jn = F_nj - 1
       endif
 
-!$omp parallel private(xx,x1,x2,x3,x4,i,j,k,km2,w1,w2,w3,w4)
-!$omp do
+
+
       do k=2,F_nk-1
          xx = Ver_z_8%m(k)
          x1 = Ver_z_8%x(k-2)
@@ -78,8 +78,8 @@
             enddo
          enddo
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 
       !- Note zdot at top = 0
       k = 1

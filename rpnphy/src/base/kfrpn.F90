@@ -447,7 +447,8 @@ contains
          wsmax = kfctrigw(2)
          w_wsmin = kfctrigw(3)
          w_wsmax = kfctrigw(4)
-         WKLCLA = min(max(w_wsmin + (wstar - wsmin) / (wsmax - wsmin) * (w_wsmax - w_wsmin) , min(w_wsmin,w_wsmax)), max(w_wsmin,w_wsmax))
+         WKLCLA = min(max(w_wsmin + (wstar - wsmin) / (wsmax - wsmin) * (w_wsmax - w_wsmin) , &
+              min(w_wsmin,w_wsmax)), max(w_wsmin,w_wsmax))
          where(mg > CRITMASK .or. mlac > CRITMASK) wklcla = WKLCL
       endif
 
@@ -2259,7 +2260,7 @@ contains
             CNDTNF=0.
             UPDINC=1.
             LDB=LFS
-            do NDK=1,LTOP
+            do NDK=1,KX
               UD(NDK)=0.            ! Clean-up added
               VD(NDK)=0.            ! Clean-up added
 !              DMS(NDK)=0.

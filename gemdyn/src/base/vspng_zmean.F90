@@ -60,8 +60,8 @@
       if(lmean) then
       sum_8(:,:)=0.
 !
-!$omp parallel private(i,j)
-!$omp do
+
+
          do k=k0,kn
             do j=j0,jn
                sum_8(j,k) = 0.
@@ -70,16 +70,16 @@
                end do
             end do
          end do
-!$omp enddo
-!$omp end parallel
+
+
 !
          call rpn_comm_ALLREDUCE ( sum_8, gsum_8, l_nj*Nk, &
                       "MPI_DOUBLE_PRECISION","MPI_SUM","EW",err )
 !
          tsum_8=gsum_8/real(G_ni)
 !
-!$omp parallel private(i,j)
-!$omp do
+
+
          do k=k0,kn
             do j=j0,jn
                do i=i0,in
@@ -87,12 +87,12 @@
                end do
             end do
          end do
-!$omp enddo
-!$omp end parallel
+
+
 !
       else
-!$omp parallel private(i,j)
-!$omp do
+
+
          do k=k0,kn
             do j=j0,jn
                do i=i0,in
@@ -100,8 +100,8 @@
                end do
             end do
          end do
-!$omp enddo
-!$omp end parallel
+
+
       endif
 !
 !----------------------------------------------------------------

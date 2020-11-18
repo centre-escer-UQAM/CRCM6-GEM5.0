@@ -164,8 +164,8 @@
 ! projection ( wfft = x transposed * g )
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!$omp parallel
-!$omp do
+
+
       do i= 1,F_Gni               ! trimming in X
          do k= F_Minz, F_Nkl
             do j= F_Njl+1-pil_n,F_Maxy
@@ -186,38 +186,38 @@
             enddo
          enddo
       enddo
-!$omp enddo
 
 
-!$omp single
+
+
       call itf_fft_set( F_Gni-Lam_pil_w-Lam_pil_e,'QCOS',pri )
-!$omp end single
 
-!$omp do
+
+
       do k=1,F_Nkl                ! do forward fft in X direction
          call itf_fft_drv( fdwfft(1+pil_s,k,1+Lam_pil_w), &
          (F_Maxy-F_Miny+1)*(F_Maxz-F_Minz+1),1,       &
          (F_Maxy-F_Miny+1-pil_s-pil_n), -1 )
       enddo
-!$omp enddo
 
-!$omp single
+
+
 ! do transpose from (j,k,i) to (k,i,j)
       call rpn_comm_transpose                          &
       ( fdwfft, F_Miny,  F_Maxy,  F_Gnj, (F_Maxz-F_Minz+1), &
       F_Minij, F_Maxij, F_Gni, fdg2, 2, 2 )
       call itf_fft_set( F_Gnj-Lam_pil_s-Lam_pil_n,'QCOS',pri )
-!$omp end single
 
-!$omp do
+
+
       do k=1,F_nij              ! do forward fft in Y direction
          call itf_fft_drv( fdg2(1,k,1+Lam_pil_s),     &
          (F_Maxz-F_Minz+1)*(F_Maxij-F_Minij+1),1, &
          (F_Maxz-F_Minz+1), -1 )
       enddo
-!$omp enddo
 
-!$omp do
+
+
       do jj=1,G_nj+2            ! do filter in X-Y direction
          do ii=1,F_nij
             do kk=F_Minz,F_Maxz
@@ -225,36 +225,36 @@
             enddo
          enddo
       enddo
-!$omp enddo
 
-!$omp do
+
+
       do k=1,F_nij              ! do backward fft in Y direction
          call itf_fft_drv( fdg2(1,k,1+Lam_pil_s),     &
          (F_Maxz-F_Minz+1)*(F_Maxij-F_Minij+1),1, &
          (F_Maxz-F_Minz+1), +1 )
       enddo
-!$omp enddo
 
-!$omp single
+
+
 ! do backward transpose from (k,i,j) to (j,k,i)
       call rpn_comm_transpose                          &
       ( fdwfft, F_Miny,  F_Maxy,  F_Gnj, (F_Maxz-F_Minz+1), &
       F_Minij, F_Maxij, F_Gni, fdg2, -2, 2 )
       call itf_fft_set( F_Gni-Lam_pil_w-Lam_pil_e,'QCOS',pri )
-!$omp end single
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! inverse projection ( r = x * w )
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!$omp do
+
       do k=1, F_Nkl               ! do backward fft in X direction
          call itf_fft_drv( fdwfft(1+pil_s,k,1+Lam_pil_w), &
          (F_Maxy-F_Miny+1)*(F_Maxz-F_Minz+1),1,       &
          (F_Maxy-F_Miny+1-pil_s-pil_n), +1 )
       enddo
-!$omp enddo
-!$omp end parallel
+
+
 
 ! do backward transpose from (j,k,i) to (i,j,k)
       call rpn_comm_transpose                         &

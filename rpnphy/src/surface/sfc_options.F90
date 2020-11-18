@@ -137,8 +137,8 @@ module sfc_options
    namelist /surface_cfgs/ isba_melting_fix
 
 
-   !# If .true., do not consider "latent heat realease due to liquid water 
-   !# refreezing in the snowpack" in the surface energy budget WHEN the 
+   !# If .true., do not consider "latent heat realease due to liquid water
+   !# refreezing in the snowpack" in the surface energy budget WHEN the
    !# superficial surface temperature is above zero.
    logical           :: isba_no_warm_sn_freez = .false.
    namelist /surface_cfgs/ isba_no_warm_sn_freez
@@ -162,9 +162,17 @@ module sfc_options
    logical           :: isba_zr_freeze = .false.
    namelist /surface_cfgs/ isba_zr_freeze
 
+   !# OBSOLETE, REPLACED by KHYD !!! WILL BE EVENTUALLY REMOVED
    !# Deepest active (permeable) soil layer in SVS land surface scheme (schmsol=SVS)
    integer           :: kdp    = -1
    namelist /surface_cfgs/ kdp
+
+   !# Last/Deepest soil layer considered during the accumulation of
+   !# lateral flow and drainage. Drainage is taken as the vertical flux
+   !# leaving layer KHYD, and lateral flow as the sum of lateral flows from
+   !# layers 1 to KHYD
+   integer           :: khyd    = -1
+   namelist /surface_cfgs/ khyd
 
    !# Vegetation field update frequency (units D,H,M,S,P)
    character(len=16) :: kntveg_S     = ''
@@ -275,9 +283,9 @@ module sfc_options
    namelist /surface_cfgs/ snowmax
 
    !#  Soil texture database/calculations for SVS land surface scheme
-   !# * 'GSDE   '   : 8 layers of sand & clay info from Global Soil Dataset for ESMs (GSDE) 
+   !# * 'GSDE   '   : 8 layers of sand & clay info from Global Soil Dataset for ESMs (GSDE)
    !# * 'SLC    '   : 5 layers of sand & clay info from Soil Landscape of Canada (SLC)
-   !# * 'SOILGRIDS' : 7 layers of sand & clay info from ISRIC — World Soil Information
+   !# * 'SOILGRIDS' : 7 layers of sand & clay info from ISRIC ? World Soil Information
    character(len=16) :: soiltext    = 'GSDE'
    namelist /surface_cfgs/ soiltext
    character(len=*), parameter :: SOILTEXT_OPT(3) = (/ &

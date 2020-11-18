@@ -10,7 +10,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
                                EVAPC, EVAPCG, EVAPG, EVAPCS, EVPCSG, EVAPGS, TCANO, TCANS, &
                                RAICAN, SNOCAN, RAICNS, SNOCNS, CHCAP, CHCAPS, TPONDC, TPONDG, &
                                TPNDCS, TPNDGS, TSNOCS, TSNOGS, WSNOCS, WSNOGS, RHOSCS, RHOSGS, &
-                               ITERCT, CDH, CDM, QSENS, TFLUX, QEVAP, EVAP, &
+                               ITERCT, CDH, CDM, QSENS, TFLUX, QEVAP, EVAP, QFLUX, &
                                EVPPOT, CMU, ACOND, EVAPB, GT, QG, TSURF, &
                                ST, SU, SV, SQ, SRH, &
                                GTBS, SFCUBS, SFCVBS, USTARBS, &
@@ -228,6 +228,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
   real, intent(out) :: DRAG  (ILG) !< Surface drag coefficient under neutral stability [ ]
 
   real, intent(out) :: EVAP  (ILG) !< Diagnosed total surface water vapour flux over modelled area \f$[kg m^{-2} s^{-1} ]\f$
+  real, intent(out) :: QFLUX (ILG) !< inhomog. term for Q diff.
   real, intent(out) :: EVAPB (ILG) !< Evaporation efficiency at ground surface [ ]
   real, intent(out) :: EVAPC (ILG) !< Evaporation from vegetation over ground \f$[m s^{-1} ]\f$
   real, intent(out) :: EVAPCG(ILG) !< Evaporation from ground under vegetation \f$[m s^{-1} ]\f$
@@ -1517,6 +1518,7 @@ subroutine energyBudgetDriver (TBARC, TBARG, TBARCS, TBARGS, THLIQC, THLIQG, & !
     EVAP(I) = EVAP(I) + RHOW * &
               (FCS(I) * (EVAPCS(I) + EVPCSG(I)) + FGS(I) * EVAPGS(I) + &
               FC (I) * (EVAPC (I) + EVAPCG(I)) + FG (I) * EVAPG(I))
+    QFLUX(I) = -EVAP(I) / RHOAIR(I)
     if (EVPPOT(I) /= 0.0) then
       EVAPB(I) = EVAP(I) / EVPPOT(I)
     else

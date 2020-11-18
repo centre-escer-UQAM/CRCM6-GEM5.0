@@ -43,7 +43,7 @@
       REAL RHOSV(N), Z0MVH(N), VEGH(N), VEGL(N), SVM(N)
       REAL CGSAT(N), WSAT(N,NL_SVS), WWILT(N,NL_SVS), BCOEF(N,NL_SVS)
       REAL Z0(N)
-      REAL CG(N), WTA(N,indx_svs_ag)
+      REAL CG(N), WTA(N,svs_tilesp1)
       REAL PSNGRVL(N)
       REAL Z0H(N), ALGR(N), CLAY(N), SAND(N)
       REAL DECI(N), EVER(N), LAID(N)

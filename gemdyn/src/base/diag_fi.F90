@@ -58,19 +58,19 @@
       istat = gmm_get (gmmk_fis0_s,fis0)
       istat = gmm_get (gmmk_sls_s ,sls )
 
-!$omp parallel private(qbar,w1,km)
 
-!$omp do
+
+
       do j=j0,jn
          do i=i0,in
             F_fi(i,j,G_nk+1)= fis0(i,j)
          end do
       end do
-!$omp enddo
+
 
       if (Schm_hydro_L) then
 
-!$omp do
+
       do j=j0,jn
          do k= G_nk,1,-1
             w1= rgasd_8*Ver_dz_8%t(k)
@@ -80,11 +80,11 @@
             end do
          end do
       end do
-!$omp enddo
+
 
       else
 
-!$omp do
+
       do j=j0,jn
          do k= G_nk,1,-1
             km= max(1,k-1)
@@ -97,10 +97,10 @@
             end do
          end do
       end do
-!$omp enddo
+
 
       endif
-!$omp end parallel
+
 !
 !     ---------------------------------------------------------------
 !

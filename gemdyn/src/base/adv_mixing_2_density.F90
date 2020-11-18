@@ -41,7 +41,7 @@
 
       if (F_kind==1) then
 
-!$omp parallel do private(i,j,k)
+
          do k=1,F_nk
          do j=1,l_nj
          do i=1,l_ni
@@ -49,13 +49,13 @@
          enddo
          enddo
          enddo
-!$omp end parallel do
+
 
       endif
 
       if (F_kind==2) then
 
-!$omp parallel do private(i,j,k)
+
          do k=1,F_nk
          do j=1,l_nj
          do i=1,l_ni
@@ -63,7 +63,7 @@
          enddo
          enddo
          enddo
-!$omp end parallel do
+
 
       endif
 

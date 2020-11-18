@@ -48,8 +48,8 @@
          if (Tr3d_wload (n)) then
             nullify (tr)
             istat = gmm_get('TR/'//trim(Tr3d_name_S(n))//':'//F_timelevel_S,tr)
-!$omp parallel private(j,i)
-!$omp do
+
+
             do k = 1, l_nk
                do j = 1, l_nj
                   do i = 1, l_ni
@@ -57,8 +57,8 @@
                   end do
                end do
             end do
-!$omp enddo
-!$omp end parallel
+
+
          endif
       end do
 

@@ -15,7 +15,9 @@
 !
       subroutine adv_param ()
       use glb_ld
+      use gem_options
       use ver
+      use adv_options
       use adv_grid
       use adv_interp
       use outgrid
@@ -39,6 +41,10 @@
 !
 !     ---------------------------------------------------------------
 !
+
+
+      if(.not. Schm_phyms_L)  Adv_slt_winds = .false.
+
       sig=(Ver_z_8%m(l_nk)-Ver_z_8%m(1))/(abs(  Ver_z_8%m(l_nk)-Ver_z_8%m(1) ))
       verz_m(0)=sig*Ver_z_8%m(0)
       verz_m(l_nk+1)=sig*Ver_z_8%m(l_nk+1)

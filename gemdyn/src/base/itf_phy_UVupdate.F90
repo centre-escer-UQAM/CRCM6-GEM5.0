@@ -40,7 +40,7 @@
       istat = gmm_get (gmmk_pw_uu_plus_s,pw_uu_plus)
       istat = gmm_get (gmmk_pw_vv_plus_s,pw_vv_plus)
 
-!$omp parallel
+!$omp parallel private(k)
 !$omp do
       do k= 1, G_nk
          tdu(l_minx:l_maxx,l_miny:0,k) = 0. ; tdu(l_minx:l_maxx,l_nj+1:l_maxy,k) = 0.
@@ -58,7 +58,7 @@
       call hwnd_stag ( pw_uu_copy,pw_vv_copy, tdu,tdv, &
                        l_minx,l_maxx,l_miny,l_maxy,l_nk,.true. )
 
-!$omp parallel do
+!$omp parallel do private(k)
       do k= 1, G_nk
          ut1(1:l_niu,1:l_nj,k) = ut1(1:l_niu,1:l_nj,k) + pw_uu_copy(1:l_niu,1:l_nj,k)
          vt1(1:l_ni,1:l_njv,k) = vt1(1:l_ni,1:l_njv,k) + pw_vv_copy(1:l_ni,1:l_njv,k)

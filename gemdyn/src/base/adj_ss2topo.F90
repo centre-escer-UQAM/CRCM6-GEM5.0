@@ -111,20 +111,20 @@
 !
 !     ---------------------------------------------------------------
 !
-!$omp parallel private(q1,q2,q3,x0,xm,xp,aa,bb, &
-!$omp         con,cc,dd,invdet,zak,zbk,zck,i,k, &
-!$omp         difgz,lapse,ttop,tbot,cons      ) &
-!$omp          shared (vma, vmb, vmc)
+
+
+
+
 
       con = -rgasd_8
 
-!$omp do
+
       do j= F_j0, F_jn
          gz_temp(F_i0:F_in,j,nk) = F_oldtopo(F_i0:F_in,j)
       enddo
-!$omp enddo
 
-!$omp do
+
+
       do k= 1,Nk
       do j= F_j0, F_jn
       do i= F_i0, F_in
@@ -162,9 +162,9 @@
       end do
       end do
       end do
-!$omp enddo
 
-!$omp do
+
+
       do j= F_j0, F_jn
 
          do i= F_i0, F_in
@@ -225,9 +225,9 @@
             endif
          enddo
       end do
-!$omp enddo
 
-!$omp end parallel
+
+
 !
 !     ---------------------------------------------------------------
 !

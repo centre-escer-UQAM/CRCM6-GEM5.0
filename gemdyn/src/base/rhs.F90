@@ -166,15 +166,15 @@
                     i0u,inu+1,j0v,jnv+1)
       endif
 
-!$omp parallel private(i,j,k,km,kq,barz,barzp,w1,w2,w3, &
-!$omp                  u_interp,v_interp,t_interp,mu_interp, &
-!$omp                  dlnTstr_8,BsPqbarz,tdiv,xtmp_8,ytmp_8) &
-!$omp shared(BsPq,FI,MU,Afis,i0,in,j0,jn,i0u, &
-!$omp        inu,j0u,jnu,i0v,inv,j0v,jnv,nij,&
-!$omp        phy_bA_m_8, phy_bA_t_8)
+
+
+
+
+
+
 
       if(Schm_eulmtn_L) then
-!$omp do
+
          do k=1,l_nk
             do j=j0,jn
             do i=i0,in
@@ -189,10 +189,10 @@
             enddo
             enddo
          enddo
-!$omp enddo
+
       endif
 
-!$omp do
+
       do k=1,l_nk+1
          kq=max(2,k)
          do j=j0v,jnv+1
@@ -202,9 +202,9 @@
          enddo
          enddo
       enddo
-!$omp enddo
 
-!$omp do
+
+
    do k = 1,l_nk
       km=max(k-1,1)
 
@@ -352,9 +352,9 @@
       endif
 
    end do
-!$omp enddo
 
-!$omp end parallel
+
+
 
       if (hzd_div_damp > 0.0) then
          call hz_div_damp ( F_oru, F_orv, F_u, F_v, &

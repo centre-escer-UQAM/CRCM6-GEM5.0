@@ -19,6 +19,8 @@ module adv
    save
 
    character(len=12) :: Adv_component_S
-   logical :: Adv_done_precompute_L
+
+   logical :: Adv_done_precompute_L = .false.
+   logical :: Adv_repair_restart_L  = .false.
 
 end module adv

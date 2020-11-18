@@ -79,13 +79,13 @@
 
          istat = gmm_get('TR/HU:'//timelevel_S,tr)
 
-!$omp    parallel do private(k) shared(sumq,tr)
+
          do k=1,l_nk
             sumq(1+pil_w:l_ni-pil_e,1+pil_s:l_nj-pil_n,k)= &
             sumq(1+pil_w:l_ni-pil_e,1+pil_s:l_nj-pil_n,k)+ &
             tr  (1+pil_w:l_ni-pil_e,1+pil_s:l_nj-pil_n,k)
          end do
-!$omp    end parallel do
+
 
       endif
 
@@ -93,7 +93,7 @@
       !---------------------------------
       if (.NOT.Schm_testcases_L) then
 
-!$omp    parallel do private(k,i,j) shared(pr_m,sumq)
+
          do k=F_k0,F_nk
             do j=1,l_nj
             do i=1,l_ni
@@ -101,11 +101,11 @@
             end do
             end do
          end do
-!$omp    end parallel do
+
 
       else
 
-!$omp    parallel do private(k,i,j) shared(pr_t,w2d)
+
          do k=F_k0,F_nk
             do j=1,l_nj
             do i=1,l_ni
@@ -113,11 +113,11 @@
             end do
             end do
          end do
-!$omp    end parallel do
+
 
       endif
 
-!$omp parallel do private(k,i,j)
+
       do k=F_k0,F_nk
          do j=1,l_nj
          do i=1,l_ni
@@ -125,7 +125,7 @@
          end do
          end do
       end do
-!$omp end parallel do
+
 
       !---------------------------------------------------------------
 

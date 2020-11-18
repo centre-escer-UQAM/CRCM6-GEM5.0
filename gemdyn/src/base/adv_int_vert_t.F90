@@ -108,10 +108,6 @@
          err = gmm_get(gmmk_pw_vslt_s, pw_vslt)
       endif
 
-!$omp parallel private(i,j,k,wdt,ww,wp,wm,inv_cy_8) &
-!$omp          shared(k00, w1, w2, w3, w4, &
-!$omp                 zmin_bound,zmax_bound,z_bottom)
-!$omp do
   do j=j0,jn
 
 !     Fill non computed upstream positions with zero to avoid math exceptions
@@ -174,12 +170,16 @@
 
           ! The lowest thermodynamic level is half way between the surface
           ! and the lowest momentum level
-          if (associated(pw_uslt) .and. associated(pw_vslt)) then
+          if (Adv_slt_winds) then
+             ww=0.d0
+             if ( associated(pw_uslt) .and. associated(pw_vslt)) then
              ! Use surface layer winds for horizontal displacements
-             do i=i0,in
-                F_xt(i,j,F_nk) = adv_xx_8(i) - Dcst_inv_rayt_8 * Cstv_dt_8 * pw_uslt(i,j)*inv_cy_8
-                F_yt(i,j,F_nk) = adv_yy_8(j) - Dcst_inv_rayt_8 * Cstv_dt_8 * pw_vslt(i,j)
-             enddo
+
+                do i=i0,in
+                  F_xt(i,j,F_nk) = adv_xx_8(i) - Dcst_inv_rayt_8 * Cstv_dt_8 * pw_uslt(i,j)*inv_cy_8
+                  F_yt(i,j,F_nk) = adv_yy_8(j) - Dcst_inv_rayt_8 * Cstv_dt_8 * pw_vslt(i,j)
+                enddo
+             endif
           else
              ! Extrapolate horizontal positions downwards
              ww=Ver_wmstar_8(F_nk)
@@ -231,8 +231,6 @@
       endif
 
   enddo
-!$omp enddo
-!$omp end parallel
 
 
 !

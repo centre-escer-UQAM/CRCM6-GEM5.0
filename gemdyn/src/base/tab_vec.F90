@@ -36,8 +36,8 @@
       nij=(in-i0+1)*(jn-j0+1)
 !
       if (idir == 1) then
-!$omp parallel private(i,j,iloc) shared(nij)
-!$omp do
+
+
          do k = 1  , nk
 !           iloc=iloc+1
 !           vec(iloc)  =tab(i,j,k)
@@ -50,11 +50,11 @@
                enddo
             enddo
          enddo
-!$omp enddo
-!$omp end parallel
+
+
       else if (idir == (-1)) then
-!$omp parallel private(i,j,iloc)  shared(nij)
-!$omp do
+
+
          do k = 1  , nk
 !           iloc=iloc+1
 !           tab(i,j,k) =vec(iloc)
@@ -67,8 +67,8 @@
                enddo
             enddo
          enddo
-!$omp enddo
-!$omp end parallel
+
+
       endif
 !
 !     ---------------------------------------------------------------

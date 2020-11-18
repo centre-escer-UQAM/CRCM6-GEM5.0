@@ -94,7 +94,7 @@ contains
       real, dimension(ni,nkm1) ::  kmsg, ktsg, rgam0, wthl_ng, wqw_ng, uw_ng, vw_ng, &
            c, d, unused, zero, qclocal, ficelocal
       real, dimension(ni,nk) :: gam0
-      real, dimension(ni,nkm1), target :: thl, qw, tthl, tqw, dkem, dket
+      real, dimension(ni,nkm1), target :: thl, qw, tthl, tqw, dkem, dket, tu2m, tu2t
 
       !     Pointeurs pour champs deja definis dans les bus
       real, pointer, dimension(:)   :: ps
@@ -411,12 +411,15 @@ contains
             dket(j,nkm1) = dsig * dket(j,nkm1-1)
          end do
       case ('LOCAL_K')
+         tu2m = tu(:,1:nkm1)**2 + tv(:,1:nkm1)**2
+         call vint_mom2thermo(tu2t, tu2m, zvcoef, ni, nkm1)
          do k=1,(nkm1-1)
             do j=1,ni
-               du = uu(j,k) - uu(j,k+1) + 0.5*tau*(tu(j,k) - tu(j,k+1))
-               dv = vv(j,k) - vv(j,k+1) + 0.5*tau*(tv(j,k) - tv(j,k+1))
+               du = uu(j,k) - uu(j,k+1) + tau*(tu(j,k) - tu(j,k+1))
+               dv = vv(j,k) - vv(j,k+1) + tau*(tv(j,k) - tv(j,k+1))
                dsig = zsigm(j,k) - zsigm(j,k+1)
-               dket(j,k) = - kmsg(j,k)*((du/dsig)**2 + (dv/dsig)**2)
+               dket(j,k) = - kmsg(j,k)*( (du/dsig)**2 + (dv/dsig)**2 ) &
+                           - 0.5*tau*tu2t(j,k) 
             end do
          end do
          do j=1,ni

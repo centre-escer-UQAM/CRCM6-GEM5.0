@@ -552,7 +552,6 @@ module sfcbus_mod
       SFCVAR(rofc, 'rofc')
       SFCVAR(rofn, 'rofn')
       SFCVAR(rovg, 'rovg')
-      SFCVAR(soilcol, 'soilcol')
       SFCVAR(sdepth, 'sdepth')
       SFCVAR(subflw, 'subflw')
       SFCVAR(taircan, 'taircan')

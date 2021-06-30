@@ -153,7 +153,6 @@ subroutine sfc_businit(moyhr,ni,nk)
         vgbiomas_veg, wtstatus
    ! For CLASSIC
    integer :: grdhflx, snowsize
-   integer :: soilcol
 
  
 
@@ -548,7 +547,6 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(rovg,         'VN=rovg         ;ON=M7  ;VD=to be determined (rovg)                                           ;VB=v0')
       PHYVAR3D1(sand,         'VN=sand         ;ON=SAND;VD=percentage of sand in soil                     ;VS=A*'//ncg//'    ;VB=p1')
       PHYVAR2D1(snoden,       'VN=snoden       ;ON=DN  ;VD=snow density in kg/m3                                             ;VB=p1  ;MIN=0')
-      PHYVAR2D1(soilcol,      'VN=soilcol      ;ON=SCOL;VD=soil color for albedo lookup table                                ;VB=p1')
       PHYVAR2D1(sdepth,       'VN=sdepth       ;ON=DPTH;VD=depth of soil water layer in CLASS                                ;VB=p1')
       PHYVAR2D1(snoal,        'VN=snoal        ;ON=I6  ;VD=albedo of snow                                                    ;VB=p0')
       PHYVAR2D1(snowsize,     'VN=snowsize     ;ON=SNGZ;VD=Snow grain size (for ISNOALB=1 option)  [m]                       ;VB=p0')

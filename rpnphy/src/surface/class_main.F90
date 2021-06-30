@@ -290,7 +290,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: CMU, CTU, ZPCPN, ZHMFN, ZALGWN, ZALGWV, ZALGDN, ZALGDV
   real,pointer,dimension(:)   :: ZALGDRY, ZALGWET, ZWT
   real,pointer,dimension(:)   :: FFC, FCS, FG, FGS, ZFL, ZRAINRATE, ZSNOWRATE
-  real,pointer,dimension(:)   :: ZSNOW, ZSOILCOL
+  real,pointer,dimension(:)   :: ZSNOW
 
   real,pointer,dimension(:)   :: ZFTEMP, ZFVAP, ZRIB, ZCDH, ZCDM, ZBM
 
@@ -889,7 +889,6 @@ subroutine class_main (BUS, BUSSIZ, &
     FIRUACC   (1:N) => bus( x( FIRUPAF,1,1 ) : )         !  inout acc. of soil surf. upward infrared flux
        !
     ZSDEPTH   (1:N) => bus( x( SDEPTH ,1,1 ) : )         !  input Permeable depth of soil column (depth to bedrock) [m]
-    ZSOILCOL  (1:N) => bus( x( SOILCOL ,1,1 ) : )        !  input soil color for albedo lookup table
     ZFCANMX   (1:N,1:ICP1) => bus( x( FCANMX ,1,1 ) : )  !  input fract. coverage of vegetation classes
     ZZOLN     (1:N,1:ICP1) => bus( x( ZOLN   ,1,1 ) : )  !  input ln of roughness length for each veg. class
     ZALVSC    (1:N,1:ICP1) => bus( x( ALVSC  ,1,1 ) : )  !  input canopy albedo (visible)
@@ -1234,7 +1233,6 @@ enddo
 !print*,'class_main ALVIS_SOL      :',minval(ALVIS_SOL),maxval(ALVIS_SOL),sum(ALVIS_SOL)/(N)
 !print*,'class_main ZFL            :',minval(ZFL),maxval(ZFL),sum(ZFL)/(N)
 !print*,'class_main ZSDEPTH        :',minval(ZSDEPTH),maxval(ZSDEPTH),sum(ZSDEPTH)/(N)
-!print*,'class_main ZSOILCOL       :',minval(ZSOILCOL),maxval(ZSOILCOL),sum(ZSOILCOL)/(N)
 !print*,'class_main ZFCANMX        :',minval(ZFCANMX),maxval(ZFCANMX),sum(ZFCANMX)/(N*ICP1)
 !print*,'class_main ZZOLN          :',minval(ZZOLN),maxval(ZZOLN),sum(ZZOLN)/(N*ICP1)
 !print*,'class_main ZALVSC         :',minval(ZALVSC),maxval(ZALVSC),sum(ZALVSC)/(N*ICP1)
@@ -1377,12 +1375,6 @@ endif ! prints
 !       Initialize the soil characteristics
 !       using the soil texture
 !
-!print *,'class_main AAA: ISAND(1,:):', ISAND(1,:)
-!        call soilProperties(ZTHPOR, ZTHLRET, ZTHLMIN, ZBI, ZPSISAT, ZGRKSAT, & ! Formerly CLASSB
-!                            ZTHLRAT, ZHCPS, ZTCS, ZTHFC, ZTHLW, ZPSIWLT,     &
-!                            ZDELZW, ZZBOTW, ZALGWV, ZALGWN, ZALGDV, ZALGDN,  &
-!                            ZSAND, ZCLAY, ZORGM, ZSOILCOL, DELZ, ZBOT, ZSDEPTH,  &
-!                            ISAND, igdr, N, NMIM, 1, N, NMIM, IG, ipeatland)
 
 !if (trnch==17) then
 !  print *,'class_main: ZSAND(1,1):',ZSAND(1,1)

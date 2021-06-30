@@ -152,7 +152,8 @@ subroutine sfc_businit(moyhr,ni,nk)
         roottemp, socres, socresveg, soilresp, tltrleaf, tltrroot, tltrstem, &
         vgbiomas_veg, wtstatus
    ! For CLASSIC
-   integer :: grdhflx, soilcol, snowsize
+   integer :: grdhflx, snowsize
+   integer :: soilcol
 
  
 

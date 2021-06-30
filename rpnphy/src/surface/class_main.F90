@@ -216,7 +216,7 @@ subroutine class_main (BUS, BUSSIZ, &
 
 ! Local fields added for CLASS 3.6
       real,pointer,dimension(:)   ::  ZSLP, ZARE, ZLEG, ZANIS, ZEXCW, ZLBEDR, ZWTNEW
-      real :: TRSNOW(N),ALVS(N), ALIR(N)
+      real :: TRSNOW(N)
       integer :: igwscheme, ictemmod
 
 !
@@ -1553,7 +1553,7 @@ endif ! prints
                    CHCAP,  CHCAPS, CMASSC, CMASCS, CWLCAP, CWFCAP, &
                    CWLCPS, CWFCPS, RC,     RCS,    RBCOEF, FROOT, &
                    ZPLIMC, ZPLIMG, ZPLMCS, ZPLMGS, TRSNOW, ZSNOW, &
-                   ZWSNOW, ALVS,   ALIR,   ZHTCC,  ZHTCS,  ZHTC, &
+                   ZWSNOW, ZALVS,  ZALIR,  ZHTCC,  ZHTCS,  ZHTC, &
                    ZWTRC,  ZWTRS,  ZWTRG,  ZCMAI,  ZFSNOW, &
                    ZFCANMX,ZZOLN,  ZALVSC, ZALIRC, ZPAIMAX,ZPAIMIN, &
                    ZCWGTMX,ZZRTMAX,ZRSMIN, ZQA50,  ZVPDA,  ZVPDB, &

@@ -94,10 +94,10 @@
          Step_job = Step_job  + 1
          if (Lun_out > 0) then
             write (Lun_out,print_label) Lctl_step,last_step
-            oun = 0
-            ier = fnom (oun,'still_running','SEQ+FMT',0)
-            write (oun,"('Running timestep: ',i8)") Lctl_step
-            ier = fclos(oun)
+            !oun = 0
+            !ier = fnom (oun,'still_running','SEQ+FMT',0)
+            !write (oun,"('Running timestep: ',i8)") Lctl_step
+            !ier = fclos(oun)
          end if
 
          call out_outdir
@@ -134,7 +134,7 @@
 
          if (Lun_out > 0) write(Lun_out,3000) Lctl_step
 
-         seconds_since= model_timeout_alarm(Step_alarm*3)
+         seconds_since= model_timeout_alarm(Step_alarm*10)
          call save_restart
 
          F_rstrt_L= gem_muststop (stepf)

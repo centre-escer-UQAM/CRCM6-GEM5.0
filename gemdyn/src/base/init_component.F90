@@ -48,7 +48,7 @@
 !--------------------------------------------------------------------
 !
       call gemtim4 ( 6, '', .false. )
-      Step_alarm= 60
+      Step_alarm= 600
       ierr= model_timeout_alarm (Step_alarm)
       call rpn_comm_mydomain (init_ndoms, mydomain)
 

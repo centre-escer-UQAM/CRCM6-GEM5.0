@@ -74,11 +74,10 @@ subroutine inilake(ni, trnch)
 
    ! Lake depth
    if (any('lakedepth' == phyinread_list_s(1:phyinread_n)))  then
+      ! Set all lake depth lower then 3m to 10m (assuming lake depth is missing in geophys)
       do i=1,ni
-         if (zlakedepth(i) < 30.) zlakedepth(i) = 100.    ! Here zlakedepth is still in decimeters!!!
+         if (zlakedepth(i) < 3.) zlakedepth(i) = 10.
       enddo
-      zlakedepth = zlakedepth*0.1  ! Convert read zlakedepth from decimeters to meters
-   ! From here on zlakedepth is in meters!
    elseif (any('vegf' == phyinread_list_s(1:phyinread_n))) then
       do i=1,ni
          if (zvegf(i,3) <= 0.5) then
@@ -128,7 +127,7 @@ subroutine inilake(ni, trnch)
 
    ! Lake mixed layer thickness
    if (all('lakehml'  /= phyinread_list_s(1:phyinread_n))) &
-      zlakehml(i)    = 1.0
+      zlakehml       = 1.0
 
    if     (schmlake == 'FLAKE') then
       ! Limit lake depth to 60m
@@ -184,7 +183,7 @@ subroutine inilake(ni, trnch)
             zlaketransp(i) = 0.
             zlakefice(i)  = 0.
             zlakehice(i)  = 0.
-            zlakehice(i)  = 0.
+            zlaketice(i)  = 0.
             zfrv_li(i)    = 0.
             zfrv_lw(i)    = 0.
             zlakehml(i)   = 0.

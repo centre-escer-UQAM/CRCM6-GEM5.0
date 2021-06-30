@@ -597,7 +597,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
    !========================================================================
    !                       for CLASS/CTEM only
    !========================================================================
-
+!print *,'inisurf: trnch =',trnch
 !print *,'inisurf: zsand(1,:):',zsand(1,:)
 !print *,'inisurf: zsand(:, 1):',zsand(:, 1)
 !print *,'inisurf: zsand(:,16):',zsand(:,16)
@@ -705,17 +705,59 @@ subroutine inisurf4(kount, ni, nk, trnch)
          zmcmai = 0.
          zmexcw = 0.
 
+
+         ! Set adjust sand & clay values
+         do k=1,class_ig
+            do i=1,ni
+
+               if (zmg(i).lt.critmask) then
+                  ! OVER WATER...
+                  zsand  (i,k)    = 0.0
+                  zclay  (i,k)    = 0.0
+               else
+                  ! OVER LAND
+                  if (zsand(i,k)+zclay(i,k).lt.critexture) then
+                     !                If no sand and clay component
+                     !                attribute to these points characteristics
+                     !                of typical loamy soils
+                     zsand(i,k) = 35.
+                     zclay(i,k) = 35.
+                  else
+                     !                 Minimum of 1% of sand and clay 
+                     zsand(i,k) =  max( zsand(i,k) , 1.0)
+                     zclay(i,k) =  max( zclay(i,k) , 1.0)
+
+                     ! If the sum of sand + clay is greater than 100% ...
+                     if ( zsand(i,k)+zclay(i,k).gt.100 ) then
+                        ! ... reduce sand & clay  percentage proportionally 
+                        tempsum= zsand(i,k) + zclay(i,k)
+                        zsand(i,k) = zsand(i,k)/tempsum * 100.
+                        zclay(i,k) = zclay(i,k)/tempsum * 100.
+                     endif
+                  endif
+               endif
+
+            enddo
+         enddo
+
          do i=1,ni
+
             ! Set minimum soil moisture to 0.04
             do k=1,class_ig
                zwsoil(i,k)= max(0.04,zwsoil(i,k))
             enddo
 
+            ! If soil is frozen set liquid water content to 0.04
+            do k=1,class_ig
+               if (ztsoil(i,k).lt.273.15) zwsoil(i,k)=0.04
+            enddo
+
             ! Set drainage index for water flow at bottom of soil profile
             zxdrain(i) = 1.0 - zvegf(i,23)
 
-            ! Set minimum depth to bedrock to 0.1m
-            zsdepth(i) = max(0.1, zsdepth(i))
+            ! Keep depth to bedrock between 0.38 and 3.0 m
+            zsdepth(i) = max(0.38, zsdepth(i))
+            zsdepth(i) = min(3.00, zsdepth(i))
 
             ! Make sure root depth does not go beyond depth to bedrock
             do k=1,class_ic

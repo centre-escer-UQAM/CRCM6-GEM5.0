@@ -65,6 +65,8 @@ module sfcbus_mod
       SFCVAR(alvis, 'alvis')
       SFCVAR(alvl, 'alvl')
       SFCVAR(alvs, 'alvs')
+      SFCVAR(algdry, 'algdry')
+      SFCVAR(algwet, 'algwet')
       SFCVAR(alwater, 'alwater')
       SFCVAR(avg_gwsol, 'avg_gwsol')
       SFCVAR(azim, 'azim')

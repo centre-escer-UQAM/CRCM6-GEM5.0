@@ -124,7 +124,8 @@ subroutine out_open_file ( F_prefix_S )
 
          ! No unit extension for monthly or daily pilot files (KW)
          if ( trim(F_prefix_S) == 'nm' ) then
-            if ( curr_unit_S(1:3) == "MON" .or. curr_unit_S(1:3) == "DAY" ) then
+!            if ( curr_unit_S(1:3) == "MON" .or. curr_unit_S(1:3) == "DAY" ) then
+            if ( curr_unit_S(1:3) == "MON" ) then
                unit_ext = ''
             end if
          endif

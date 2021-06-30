@@ -1180,6 +1180,12 @@ contains
 !Arguments
 !          - Input -
 ! delt     timestep in seconds
+  ! Private parameters
+  real,    parameter :: ANGMAX = 0.85
+  real,    parameter :: AS = 12.
+  real,    parameter :: BS = 1.
+  real,    parameter :: CI = 40.
+
 !
 !*
 !
@@ -1209,6 +1215,33 @@ contains
 !
       call class_GEM_comm ('PI'     , PI     )
 !
+!
+      call classd ('DELT'   , delt   )
+      call classd ('VAMIN'  , vamin  )
+      call classd ('IFRSOIL', real(1))
+!
+      call classd ('CPD'    , CPD    )
+      call classd ('SPHAIR' , CPD    )
+      call classd ('DELTA'  , DELTA  )
+      call classd ('GRAV'   , GRAV   )
+      call classd ('CGRAV'  , GRAV   )
+      call classd ('CKARM'  , KARMAN )
+      call classd ('RGAS'   , RGASD  )
+      call classd ('RGASV'  , RGASV  )
+      call classd ('SBC'    , STEFAN )
+      call classd ('TFREZ'  , TCDK   )
+!
+      call classd ('ANGMAX' , ANGMAX )
+      call classd ('AS'     , AS     )
+      call classd ('ASX'    , ASX    )
+      call classd ('BETA'   , BETA   )
+      call classd ('BS'     , BS     )
+      call classd ('CI'     , CI     )
+      call classd ('FACTN'  , FACTN  )
+      call classd ('HMIN'   , HMIN   )
+!
+      call classd ('PI'     , PI     )
+
       return
   end subroutine set_class_const
 

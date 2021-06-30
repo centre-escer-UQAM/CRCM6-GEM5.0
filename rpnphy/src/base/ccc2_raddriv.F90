@@ -337,7 +337,6 @@
       !!print*,'exomga',exomga
       !!print*,'absa',absa
 
-
       solarc                    =  CONSOL2
       fracs                     =  r0r * solarc / specirr
       x                         =  fracs / pi

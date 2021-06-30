@@ -123,6 +123,9 @@ subroutine sfc_businit(moyhr,ni,nk)
         wfsurf, wtrc, wtrg, wtrs, xdrain, xslope, zbotw, zoln, zpond, &
         zponden
    integer :: anis, are, excw, lbedr, leggw, slpgw, totw, wtnew
+
+! Parameters for CLASS 3.6
+   integer :: algwet, algdry
    !--------   FOR CTEM -----------------
    integer :: ailc, ailcb, ailcg, alirctm, allwacc, alswacc, alvsctm, &
         ancgvgac, ancsvgac, anndefct, annpcp, annsrpls, anpcpcur, anpecur, &
@@ -596,6 +599,10 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(slpgw,        'VN=slpgw        ;ON=SLP ;VD=land surface slope                                                ;VB=p0')
       PHYVAR2D1(totw,         'VN=totw         ;ON=WATT;VD=ground water storage                                              ;VB=p0')
       PHYVAR2D1(wtnew,        'VN=wtnew        ;ON=WT2 ;VD=updated ground water storage                                      ;VB=p0')
+
+! Parameters for CLASS 3.6
+      PHYVAR2D1(algwet,       'VN=algwet       ;ON=ALWT;VD=albedo of wet soil                                                ;VB=p0')
+      PHYVAR2D1(algdry,       'VN=algdry       ;ON=ALDY;VD=albedo of dry soil                                                ;VB=p0')
 
       ! Parameters for CTEM
       PHYVAR3D1(ailc,         'VN=ailc         ;ON=AILC;VD=lumped LAI for 4 CLASS PFTs                    ;VS=A*'//ncv//'    ;VB=p0')

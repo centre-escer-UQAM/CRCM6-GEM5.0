@@ -580,6 +580,7 @@ module sfcbus_mod
       SFCVAR(wtrs, 'wtrs')
       SFCVAR(xdrain, 'xdrain')
       SFCVAR(xslope, 'xslope')
+      SFCVAR(z0oro, 'z0oro')
       SFCVAR(zbotw, 'zbotw')
       SFCVAR(zoln, 'zoln')
       SFCVAR(zpond, 'zpond')

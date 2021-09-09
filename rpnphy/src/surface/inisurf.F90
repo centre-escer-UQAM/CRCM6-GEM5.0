@@ -67,14 +67,14 @@ subroutine inisurf4(kount, ni, nk, trnch)
         zresasa, zresasv, zslop, zsnoal, zsnoalen, zsnoagen, zsnodpl, zsnoden, &
         zsnoma, zsnoro, zsnvden, zsnvdp, zsnvma, ztsrad, ztwater, zwveg, &
         zwsnow, zz0en, zz0veg, zz0tveg
-   ! pointers added for lake fraction
-   real, pointer, dimension(:) :: &
-        zlakedepth, zlakefr, zlaketransp
    real, pointer, dimension(:,:) :: &
         zalvis, zclay, zclayen, zisoil, zrunofftotaf, zsand, zsanden, zsnodp, &
         ztglacier, ztmice, ztmoins, ztsoil, zvegf, zwsoil, zz0, zz0t
+   ! pointers added for lake fraction
+   real, pointer, dimension(:) :: &
+        zlakefr
    ! pointers added for CLASS
-   real, pointer, dimension(:)   :: zsdepth, zxdrain
+   real, pointer, dimension(:)   :: zsdepth, zxdrain, zz0oro
    real, pointer, dimension(:,:) :: zrootdp, zorgm, zmcmai, zmexcw
 
    logical, save :: CLASS_nml_read  = .false.
@@ -142,17 +142,19 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR2D(zz0t,z0t)
    
    ! for lakes
-   MKPTR1D(zlakedepth,lakedepth)
    MKPTR1D(zlakefr,lakefr)
-   MKPTR1D(zlaketransp,laketransp)
 
    ! for CLASS
-   MKPTR1D(zsdepth,sdepth)
-   MKPTR1D(zxdrain,xdrain)
-   MKPTR2D(zrootdp,rootdp)
-   MKPTR2D(zorgm,orgm)
-   MKPTR2D(zmexcw,excw)
-   MKPTR2D(zmcmai,cmai)
+   if (schmsol == 'CLASS') then
+      MKPTR1D(zsdepth,sdepth)
+      MKPTR1D(zxdrain,xdrain)
+      MKPTR1D(zz0oro,z0oro)
+
+      MKPTR2D(zrootdp,rootdp)
+      MKPTR2D(zorgm,orgm)
+      MKPTR2D(zmexcw,excw)
+      MKPTR2D(zmcmai,cmai)
+   endif
 
 
    ! Several treatments on geophysical fields valid for isba
@@ -583,12 +585,6 @@ subroutine inisurf4(kount, ni, nk, trnch)
 
    IF_LAKES: if (schmlake /= 'NIL' .and. kount == 0) then
 
-      if (any('lakedepth' == phyinread_list_s(1:phyinread_n)))  &
-         zlakedepth(i) = max(10.0,zlakedepth(i) * 0.1)    ! when using LDPT, which is in cenimeters
-         zlakedepth(i) = max(10.0,zlakedepth(i))          ! when using LDEP, which is in meters
-      if (all('laketransp' /= phyinread_list_s(1:phyinread_n))) &
-         zlaketransp(i) = ltran0
-
       call inilake(ni,trnch)
 
    endif IF_LAKES
@@ -706,7 +702,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
          zmexcw = 0.
 
 
-         ! Set adjust sand & clay values
+         ! Adjust sand & clay values
          do k=1,class_ig
             do i=1,ni
 
@@ -741,6 +737,14 @@ subroutine inisurf4(kount, ni, nk, trnch)
          enddo
 
          do i=1,ni
+
+            ! orographic roughness length
+            if (any('z0oro' == phyinread_list_s(1:phyinread_n))) then
+               zz0oro (i) = max(zz0oro(i),z0min)
+            else
+               zz0oro (i) = max(zz0en(i),z0min)
+            endif
+!zz0oro (i) = z0min
 
             ! Set minimum soil moisture to 0.04
             do k=1,class_ig

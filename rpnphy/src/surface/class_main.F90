@@ -185,9 +185,7 @@ subroutine class_main (BUS, BUSSIZ, &
            WSNOCS(N),   WSNOGS(N),   RHOSCS(N),   RHOSGS(N), &
            CDRAG (N), &
            ALVSGC(N),   ALIRGC(N),   ALVSSC(N),   ALIRSC(N), &
-! roughness modif 1
-!     N     Z0ORO (N),   SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N),
-           Z0M   (N),   SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N), &
+           SNOLIM(N),   ZPLMG0(N),   ZPLMS0(N), &
            PCPR  (N),   ZGGEO (N),   VMOD  (N), &
            SRATE (N),   RRATE (N),   COSZS (N), RUNOFF(N)
 
@@ -273,7 +271,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: ZALVS, ZALIR
   real,pointer,dimension(:)   :: FSOLUACC, FIRUACC, SU, SV, ST, SQ, ALVIS_SOL
   real,pointer,dimension(:)   :: EVAPO, QSENS, QEVAP, HBL, ZILMO, ZFRV, PS, QS
-  real,pointer,dimension(:)   :: Z0H, Z0ORO, ZTSURF, ZTSRAD, UA, VA, TA, TH, QA
+  real,pointer,dimension(:)   :: Z0H, Z0M, ZZ0ORO, ZTSURF, ZTSRAD, UA, VA, TA, TH, QA
   real,pointer,dimension(:)   :: TFLUX, QFLUX, ZCANG, FLUSOL, ZHUAIRCAN
   real,pointer,dimension(:)   :: ZDLAT, ZDLON, ZSDEPTH, ZZTSL, ZZUSL, QLWIN
   real,pointer,dimension(:)   :: ZTAIRCAN, ZTSNOW, ZTBASE, ZTPOND, ZZPOND
@@ -667,9 +665,6 @@ subroutine class_main (BUS, BUSSIZ, &
   ZSW4TOTL  (1:N,1:NBS) => bus( x(SW4TOTL,1,1) : )    !  input Total   solar radiation in each modelled wavelength band [W/m^2]
   ZSW4DRCT  (1:N,1:NBS) => bus( x(SW4DRCT,1,1) : )    !  input Direct  solar radiation in each modelled wavelength band [W/m^2]
   ZSW4DIFF  (1:N,1:NBS) => bus( x(SW4DIFF,1,1) : )    !  input Diffuse solar radiation in each modelled wavelength band [W/m^2]
-  ! Mosaic fields
-  Z0H       (1:N) => bus( x( Z0T    ,1,indx_sfc ) : )  !  input thermal  roughness length
-  Z0ORO     (1:N) => bus( x( Z0     ,1,indx_sfc ) : )  !  input momentum roughness length
 
 
   ! Fields given back to the Physics
@@ -706,10 +701,13 @@ subroutine class_main (BUS, BUSSIZ, &
 
   ! Geophysical fields
   ! ==================
-  ZSAND     (1:N,1:IG) => bus( x(SAND   ,1,1) : )  !  input percentage of sand in soil
-  ZCLAY     (1:N,1:IG) => bus( x(CLAY   ,1,1) : )  !  input percentage of clay in soil
-  ZORGM     (1:N,1:IG) => bus( x(ORGM   ,1,1) : )  !  input percentage of organic matter in soil
-  ZXDRAIN   (1:N)      => bus( x(XDRAIN ,1,1) : )  !  input drainage factor in CLASS
+  ZSAND     (1:N,1:IG) => bus( x(SAND   ,1,1) : )          !  input  percentage of sand in soil
+  ZCLAY     (1:N,1:IG) => bus( x(CLAY   ,1,1) : )          !  input  percentage of clay in soil
+  ZORGM     (1:N,1:IG) => bus( x(ORGM   ,1,1) : )          !  input  percentage of organic matter in soil
+  ZXDRAIN   (1:N)      => bus( x(XDRAIN ,1,1) : )          !  input  drainage factor in CLASS
+  Z0H       (1:N)      => bus( x( Z0T   ,1,indx_sfc ) : )  !  output thermal    roughness length
+  Z0M       (1:N)      => bus( x( Z0    ,1,indx_sfc ) : )  !  output momentum   roughness length
+  ZZ0ORO    (1:N)      => bus( x( Z0ORO ,1,1) : )          !  input  orographic roughness length
 
 
   ! Surface fields
@@ -794,8 +792,6 @@ subroutine class_main (BUS, BUSSIZ, &
      ENDIF
      FCLOUD(I) = XDIFFUS(I)
      QSOL(I)   = MAX(QSWINV(I)/COSZS(I),0.)
-! roughness modif 4
-!     Z0ORO(I)=0
      SNOLIM(I) = 0.10
      ZPLMG0(I) = 0.10
      ZPLMS0(I) = 0.10
@@ -1134,7 +1130,7 @@ enddo
 !print*,'class_main groundHeatFlux :',minval(groundHeatFlux),maxval(groundHeatFlux),sum(groundHeatFlux)/(N)
 !print*,'class_main ZWFSURF        :',minval(ZWFSURF),maxval(ZWFSURF),sum(ZWFSURF)/(N)
 !print*,'class_main Z0H            :',minval(Z0H),maxval(Z0H),sum(Z0H)/(N)
-!print*,'class_main Z0ORO          :',minval(Z0ORO),maxval(Z0ORO),sum(Z0ORO)/(N)
+!print*,'class_main ZZ0ORO         :',minval(ZZ0ORO),maxval(ZZ0ORO),sum(ZZ0ORO)/(N)
 !print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
 !print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
 !print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
@@ -1520,7 +1516,7 @@ endif ! prints
 !                               ZALGWV, ZALGWN, ZALGDV, ZALGDN, &
 !                               THLIQ,  THICE,  TS,     ZRCAN,  ZSCAN,  ZTCAN, &
 !                               ZGROWTH,XSNO,   ZTSNOW, ZRHOSNO,ZALBSNO,ZBLEND, &
-!                               Z0ORO,  SNOLIM, ZPLMG0, ZPLMS0, &
+!                               ZZ0ORO,  SNOLIM, ZPLMG0, ZPLMS0, &
 !                               FCLOUD, TA,     VPD,    RHOAIR, COSZS, &
 !                               ZSW4DRCT, ZSW4DIFF, REFSNO, BCSNO, &
 !                               QSWINV, ZDLAT,  ZDLON,  RHOSNI, DELZ,   ZDELZW, &
@@ -1553,7 +1549,7 @@ endif ! prints
                    ASVDAT, ASIDAT, AGVDAT, AGIDAT, ZALGWET,ZALGDRY, &
                    THLIQ,  THICE,  TS,     ZRCAN,  ZSCAN,  ZTCAN, &
                    ZGROWTH,XSNO,   ZTSNOW, ZRHOSNO,ZALBSNO,ZBLEND, &
-                   Z0ORO,  SNOLIM, ZPLMG0, ZPLMS0, &
+                   ZZ0ORO,  SNOLIM, ZPLMG0, ZPLMS0, &
                    FCLOUD, TA,     VPD,    RHOAIR, COSZS, &
                    QSWINV, ZDLAT,  ZDLON,  RHOSNI, DELZ,   ZDELZW, &
                    ZZBOTW, ZTHPOR, ZTHLMIN,ZPSISAT,ZBI,    ZPSIWLT, &

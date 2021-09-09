@@ -120,7 +120,7 @@ subroutine sfc_businit(moyhr,ni,nk)
         tbasfl, tcs, thfc, thlmin, thlrat, thlret, thpor, tovrfl, &
         tpond, trunoff, tsno, tsubfl, tsurfsa, tveg, &
         veggro, vegma, vpda, vpdb, &
-        wfsurf, wtrc, wtrg, wtrs, xdrain, xslope, zbotw, zoln, zpond, &
+        wfsurf, wtrc, wtrg, wtrs, xdrain, xslope, z0oro, zbotw, zoln, zpond, &
         zponden
    integer :: anis, are, excw, lbedr, leggw, slpgw, totw, wtnew
 
@@ -585,6 +585,7 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(wveg,         'VN=wveg         ;ON=I3  ;VD=water retained on the vegetation                                  ;VB=p0')
       PHYVAR2D1(xdrain,       'VN=xdrain       ;ON=L9  ;VD=drainage factor in CLASS                                          ;VB=p0')
       PHYVAR2D1(xslope,       'VN=xslope       ;ON=SFIS;VD=mosaic slope                                                      ;VB=p0')
+      PHYVAR2D1(z0oro,        'VN=z0oro        ;ON=ZTOP;VD=origraphic roughness length                                       ;VB=p0')
       PHYVAR3D1(zbotw,        'VN=zbotw        ;ON=G0  ;VD=soil layer depths for water                    ;VS=A*'//ncg//'    ;VB=p0')
       PHYVAR3D1(zoln,         'VN=zoln         ;ON=X9  ;VD=roughness length for each veg. class           ;VS=A*'//ncvp//'   ;VB=p0')
       PHYVAR2D1(zpond,        'VN=zpond        ;ON=M9  ;VD=height of water lying on surface                                  ;VB=p0')

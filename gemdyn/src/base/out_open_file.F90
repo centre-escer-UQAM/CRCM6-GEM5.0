@@ -48,9 +48,9 @@ subroutine out_open_file ( F_prefix_S )
       real*8, parameter :: OV_day = 1.0d0/86400.0d0
       real*8  dayfrac
       character*4 curr_unit_S
-      character*15 date_S, dateo_S, prognum_S
-      integer date, time, stamp, stamp_prev, hour, minute, second
-      integer interval, pp_int_step, pp_add_step, next_out_step
+      character*15 date_S, prognum_S
+      integer date, time, stamp, stamp_prev
+      integer interval, pp_int_step, next_out_step
 !
 !------------------------------------------------------------------
 !
@@ -72,68 +72,100 @@ subroutine out_open_file ( F_prefix_S )
 
 ! KW
          curr_unit_S = Out3_unit_S(1:3)
-!         interval    = max( int(Out3_close_interval), 1 )
-         interval    = 1
-
-         ! Unit extension
-         unit_ext = ''
+         interval    = max( int(Out3_close_interval), 1 )
 
          ! Write pilot files always as DAY or subdaily files (KW)
          if ( trim(F_prefix_S) == 'nm' ) then
             interval = 1
-            curr_unit_S = Out3_pilot_unit_S(1:3)
+            if ( curr_unit_S(1:3) == 'MON' ) curr_unit_S = 'DAY'
          endif
 
 
-         ! Use "Step_kount-1" to make sure 00Z goes to the previous month/day/hour/minute
-         select case (curr_unit_S(1:3)) 
-            case ('MON') ! Monthly files
-                         unit_ext = 'n'
-                         date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount-1)
-                         prognum_S = date_S(1: 6) ! Write as *_YYYYMMn
+         ! Unit extension
+         unit_ext = ' '
+         if (curr_unit_S(1:3) == 'SEC') unit_ext = 's'
+         if (curr_unit_S(1:3) == 'MIN') unit_ext = 'm'
+         if (curr_unit_S(1:3) == 'HOU') unit_ext = 'h'
+         if (curr_unit_S(1:3) == 'DAY') unit_ext = 'd'
+         if (curr_unit_S(1:3) == 'STE') unit_ext = 's'  ! originally 'p'  (KW)
+         if (curr_unit_S(1:3) == 'MON') unit_ext = 'n'
+         if (trim(F_prefix_S) == 'nm' ) unit_ext = ''   ! no extension for pilot files (KW)
 
-            case ('DAY') ! Daily files
-                         unit_ext = 'd'
-                         date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount-1)
-                         prognum_S = date_S(1: 8) ! Write as *_YYYYMMDDd
+! KW
+         ! Monthly files
+         if ( curr_unit_S(1:3) == 'MON' ) then
+           ! Use Step_kount-1 to make sure 00Z goes to the previous day/month
+           date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount-1)
 
-            case ('HOU') ! Hourly files
-                         unit_ext = 'h'
-                         date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount-1+int(3600/sngl(Cstv_dt_8)))
-                         prognum_S = date_S(1:11) ! Write as *_YYYYMMDD.hhh
+         ! Daily and sub-daily files
+         else
+           ! Determine file interval in steps
+           select case (curr_unit_S(1:3))
+              case ('DAY') ; pp_int_step =       int(interval * 86400. / Cstv_dt_8)
+              case ('HOU') ; pp_int_step = max(1,int(interval *  3600. / Cstv_dt_8))
+              case ('MIN') ; pp_int_step = max(1,int(interval *    60. / Cstv_dt_8))
+              case ('SEC') ; pp_int_step = max(1,int(interval          / Cstv_dt_8))
+              case ('STE') ; pp_int_step = max(1,int(interval                     ))
+           end select
+!print *,'out_outdir pp_int_step:',pp_int_step
 
-            case ('MIN') ! Minutely files
-                         unit_ext = 'm'
-                         if ( Cstv_dt_8 >= 60. ) then
-                            date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount)
-                         else
-                            date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount-1+int(60/sngl(Cstv_dt_8)))
-                         endif
-                         prognum_S = date_S(1:13) ! Write as *_YYYYMMDD.hhmmm
+           next_out_step = Step_kount
+           if ( mod(Step_kount,pp_int_step) .ne. 0 ) then
+             next_out_step = min(Step_kount + pp_int_step - mod(Step_kount,pp_int_step), Out_endstepno)
+           else
+             next_out_step = Step_kount
+           endif
 
-            case default ! Secondly & step files
-                         unit_ext = 's'
-                         date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount)
-                         prognum_S = date_S(1:15) ! Write as *_YYYYMMDD.hhmmsss
-         end select
+           ! For 'DAY' make sure 00Z goes to previous day
+           if ( curr_unit_S(1:3) == 'DAY' ) next_out_step = next_out_step - 1
 
+           ! Output date
+           date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),next_out_step)
+
+         endif
 
 !print*,'out_open_file new date:',date_S
-!print *,'out_open_file next_out_step:', next_out_step
+
+
+!print *,'out_open_file'
 !print *,'out_open_file date_S:',date_S
 
-         ! No unit extension for monthly or daily pilot files (KW)
-         if ( trim(F_prefix_S) == 'nm' ) then
-!            if ( curr_unit_S(1:3) == "MON" .or. curr_unit_S(1:3) == "DAY" ) then
-            if ( curr_unit_S(1:3) == "MON" ) then
-               unit_ext = ''
-            end if
+         ! For hourly, minutely and secondly files set 00Z00m00s to 24Z00m00s of the previous day
+         if ( curr_unit_S(1:3) == 'HOU' .or. &
+              curr_unit_S(1:3) == 'MIN' .or. &
+              curr_unit_S(1:3) == 'SEC' ) then
+            read (date_S (10:15),'(i6.6)') time
+            if ( time .eq. 0 ) then
+              read (date_S ( 1: 8),'(i8.8)') date
+              err = newdate (stamp, date, 0, 3)
+              call incdatr (stamp_prev, stamp, -1.0_8)
+!print *,'out_open_file stamp, stamp_prev:',stamp, stamp_prev
+              err = newdate (stamp_prev, date, time, -3)
+!print *,'out_open_file date, time:',date, time
+              write (date_S,'(i8.8,a,i6.6)') date, '.', 240000
+!print *,'out_open_file date_S:',date_S
+            endif
          endif
 
-
+         prognum_S = ''
          if ( lctl_step == 0 ) then
             prognum_S = '00000000'
             unit_ext  = 'p'
+         elseif ( curr_unit_S(1:3) == 'MON' ) then
+            ! Write monthly  files as *_YYYYMMn (KW)
+            prognum_S = date_S(1:6)
+         elseif ( curr_unit_S(1:3) == 'DAY' ) then
+            ! Write daily    files as *_YYYYMMDDd (KW)
+            prognum_S = date_S(1:8)
+         elseif ( curr_unit_S(1:3) == 'HOU' ) then
+            ! Write hourly   files as *_YYYYMMDD.hhh   and pilot files as *_YYYYMMDD.hh0000 (KW)
+            prognum_S = date_S(1:11)
+         elseif ( curr_unit_S(1:3) == 'MIN' ) then
+            ! Write minutely files as *_YYYYMMDD.hhmmm and pilot files as *_YYYYMMDD.hhmm00 (KW)
+            prognum_S = date_S(1:13)
+         else
+            ! Write secondly files and files per steps as *_YYYYMMDD.hhmmsss(KW)
+            prognum_S = date_S(1:15)
          endif
 
          filen= trim(F_prefix_S)//fdate(1:8)//fdate(10:11)// &

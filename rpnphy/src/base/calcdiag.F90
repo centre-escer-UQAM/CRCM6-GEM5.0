@@ -58,6 +58,7 @@ contains
       !@Revisions
       ! 001 K. Winger (ESCER/UQAM) Oct 2019 - make precipitation fields independent
       ! 002 K. Winger (ESCER/UQAM) Sep 2021 - add n-minutely precipitation
+      ! 002 K. Winger (ESCER/UQAM) Sep 2021 - add aggregated heat fluxes (fcaffrac,fvaffrac)
       !*@/
 
 #include <msg.h>
@@ -83,6 +84,8 @@ contains
 
       ! Variable needed for n-minutely precipitation (KW)
       integer :: pr_int
+      ! Variables needed for AHF and AVF (KW)
+      integer :: nsurf, ier
 
 
 #define PHYPTRDCL
@@ -93,6 +96,13 @@ contains
       if (timings_L) call timing_start_omp(470, 'calcdiag', 46)
 
       nkm1 = nk-1
+
+      ! Get number of surface fractions from surface
+      ier = WB_OK
+      ier = min(wb_get('sfc/nsurf', nsurf), ier)
+
+!print *,'calcdiag nsurf:',nsurf
+
 
 #undef PHYPTRDCL
 #include "calcdiag_ptr.hf"
@@ -1161,6 +1171,10 @@ contains
             zflaf(:) = 0.
             zfcaf(:) = 0.
             zfvaf(:) = 0.
+            do k = 1,nsurf+1
+               zfcaffrac (i,k) = 0.
+               zfvaffrac (i,k) = 0.
+            enddo
          endif
          if (lightning_diag) then
             zafoudre(:) = 0.
@@ -1209,6 +1223,10 @@ contains
                zflaf (i) = zflaf (i) + zfl  (i) * dt
                zfcaf (i) = zfcaf (i) + zfc_ag(i) * dt
                zfvaf (i) = zfvaf (i) + zfv_ag(i) * dt
+               do k = 1,nsurf+1
+                  zfcaffrac (i,k) = zfcaffrac (i,k) + zfc(i,k) * dt
+                  zfvaffrac (i,k) = zfvaffrac (i,k) + zfv(i,k) * dt
+               enddo
             endif
 
             !# Accumulation of lightning threat (in number of flashes/m2)

@@ -57,6 +57,7 @@ contains
       !@Author B. Bilodeau Feb 2003
       !@Revisions
       ! 001 K. Winger (ESCER/UQAM) Oct 2019 - make precipitation fields independent
+      ! 002 K. Winger (ESCER/UQAM) Sep 2021 - add n-minutely precipitation
       !*@/
 
 #include <msg.h>
@@ -79,6 +80,9 @@ contains
       real(RDOUBLE), dimension(ni) :: enm, pwm, en0, pw0, enp, pwp, enr, pwr
       real, dimension(ni,nk) :: presinv, t2inv, tiinv
       real, dimension(ni,nk-1) :: q_grpl,iiwc
+
+      ! Variable needed for n-minutely precipitation (KW)
+      integer :: pr_int
 
 
 #define PHYPTRDCL
@@ -535,6 +539,123 @@ contains
          endif
          call lightning2(zfoudre,zp0_plus,zsigm,ztplus,zwplus,q_grpl,iiwc,ni,nk)
       endif
+
+
+      !****************************************************************
+      !     n-minute precipitation accumulation
+      !     -----------------------------------
+
+      ! Make sure each interval is a multiple of delta-t
+      !  5 minute precip
+      pr_int =  300
+
+      ! If  5 minute precip can get calculated (depends on deltat)
+      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+        ! Initialize 5-minutely average to first value of accumulation interval
+        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
+          zpr05(:) =            zrt(:) * dt / pr_int
+        ! Add to 5-minutely average
+        else
+          zpr05(:) = zpr05(:) + zrt(:) * dt / pr_int
+        end if
+
+        ! Maximum 5-minutely precip
+        zprmax05 = max(zprmax05, zpr05)
+
+      else
+        zpr05    = -999.
+        zprmax05 = -999.
+      endif
+
+
+      ! 10 minute precip
+      pr_int  =  600
+      ! If 10 minute precip can get calculated (depends on deltat)
+      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+        ! Initialize 10-minutely average to first value of accumulation interval
+        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
+          zpr10(:) =            zrt(:) * dt / float(pr_int)
+        ! Add to 10-minutely average
+        else
+          zpr10(:) = zpr10(:) + zrt(:) * dt / float(pr_int)
+        end if
+
+        ! Maximum 10-minutely precip
+        zprmax10 = max(zprmax10, zpr10)
+
+      else
+        zpr10    = -999.
+        zprmax10 = -999.
+      endif
+
+
+      ! 15 minute precip
+      pr_int  =  900
+      ! If 15 minute precip can get calculated (depends on deltat)
+      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+        ! Initialize 15-minutely average to first value of accumulation interval
+        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
+          zpr15(:) =            zrt(:) * dt / float(pr_int)
+        ! Add to 15-minutely average
+        else
+          zpr15(:) = zpr15(:) + zrt(:) * dt / float(pr_int)
+        end if
+
+        ! Maximum 15-minutely precip
+        zprmax15 = max(zprmax15, zpr15)
+
+      else
+        zpr15    = -999.
+        zprmax15 = -999.
+      endif
+
+
+      ! 20 minute precip
+      pr_int  = 1200
+      ! If 20 minute precip can get calculated (depends on deltat)
+      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+        ! Initialize 20-minutely average to first value of accumulation interval
+        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
+          zpr20(:) =            zrt(:) * dt / float(pr_int)
+        ! Add to 20-minutely average
+        else
+          zpr20(:) = zpr20(:) + zrt(:) * dt / float(pr_int)
+        end if
+
+        ! Maximum 20-minutely precip
+        zprmax20 = max(zprmax20, zpr20)
+
+      else
+        zpr20    = -999.
+        zprmax20 = -999.
+      endif
+
+
+      ! 30 minute precip
+      pr_int = 1800
+!print *,'calcdiag: kount,dt,pr_int,mod:',kount,int(dt),pr_int,mod( pr_int , int(dt))
+      ! If 30 minute precip can get calculated (depends on deltat)
+      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+!print *,'calcdiag: In if'
+        ! Initialize 30-minutely average to first value of accumulation interval
+        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
+!print *,'calcdiag: Initialize',kount
+          zpr30(:) =            zrt(:) * dt / pr_int
+        ! Add to 30-minutely average
+        else
+!print *,'calcdiag: Increase',kount
+          zpr30(:) = zpr30(:) + zrt(:) * dt / pr_int
+        end if
+!print *,'calcdiag: zpr30(1:5):',zpr30(1:5)
+
+        ! Maximum 30-minutely precip (gets automatically reset after each output)
+        zprmax30 = max(zprmax30, zpr30)
+
+      else
+        zpr30    = -999.
+        zprmax30 = -999.
+      endif
+
 
       !****************************************************************
       !     Energy budget diagnostics

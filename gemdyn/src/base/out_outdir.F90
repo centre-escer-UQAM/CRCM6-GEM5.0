@@ -58,11 +58,11 @@
 !----------------------------------------------------------------------
 !
 
-!print *,'In out_outdir'
-!print *,'out_outdir Step_kount    = ',Step_kount
+print *,'In out_outdir'
+print *,'out_outdir Step_kount    = ',Step_kount
 !print *,'out_outdir startofroutine: out_int = ',out_int
 
-!print *,'out_outdir Step_total    = ',Step_total
+print *,'out_outdir Step_total    = ',Step_total
 !print *,'out_outdir Out_dateo     = ',Out_dateo
 !print *,'out_outdir Out_endstepno = ',Out_endstepno
 
@@ -89,6 +89,7 @@
 !print *,'out_outdir Out_endstepno:',Out_endstepno
       interval = int(Out3_close_interval * Out3_postproc_fact)
 
+print *,'out_outdir out_int, interval:',out_int, interval
       ! Decide if new directory needs to get created
       if ( out_int    == interval .or. &
            out_int    == -1 ) then
@@ -101,7 +102,7 @@
         new_dir_L = .false.
       endif
 
-!print *,'out_outdir interval,out_int,new_dir_L:',interval,out_int,new_dir_L
+print *,'out_outdir interval,out_int,new_dir_L:',interval,out_int,new_dir_L
 
 
 
@@ -135,24 +136,21 @@
       end select
 
 
-      ! Always start PP at the end of a month and a new directory at the beginning of a month
-      if (curr_date_S( 7:15) == '01.000000') out_int = interval
-
 
       ! Determine if post processing should get started
       !   Create new directory after Out3_postproc_fact
       !   Always create new output directory at time steps 0 and 1
       !   Always start post processing at the end of a job
+! Do not remember why this line was there:
+!           Step_kount == 1        .or. &
+! Needed to remove it to get output for every timestep
       if ( out_int    == interval .or. &
            Step_kount == 0        .or. &
-           Step_kount == 1        .or. &
            stepno == Out_endstepno) then
         Out_post_L = .true.
       else
         Out_post_L = .false.
       endif
-
-
 
 !print *,'out_outdir interval,out_int,Out_post_L:',interval,out_int,Out_post_L
 

@@ -117,9 +117,9 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
         zglacier, zglsea, zpmoins, zpplus, ztdiag, ztnolim, zurban, zztsl, &
         zqdiag, zudiag, zvdiag,zicedp, zlakefr, ztwater, zqdiagstn, ztdiagstn, &
         zudiagstn, zvdiagstn, zqdiagstnv, ztdiagstnv, zudiagstnv, zvdiagstnv
-   real, pointer, dimension(:,:)    :: poids_out, zfvap, zilmo, zrunofftot, &
-        zrunofftotaf, ztmoins, ztplus, &
+   real, pointer, dimension(:,:)    :: poids_out, zfvap, zilmo, ztmoins, ztplus, &
         zhuplus,zuplus,zvplus,zsnodp, &
+        zrunofftot, zrunofftotaf, zdraintot, zdraintotaf, ztrunofftot, ztrunofftotaf, &
         zqdiagtyp, ztdiagtyp, zudiagtyp, zvdiagtyp, zqdiagtypv, ztdiagtypv, &
         zudiagtypv, zvdiagtypv, ztddiagtyp, ztddiagtypv
    !     ---------------------------------------------------------------
@@ -159,6 +159,8 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    MKPTR1D(zztsl, ztsl)
 
    MKPTR2D(poids_out, sfcwgt)
+   MKPTR2D(zdraintot, draintot)
+   MKPTR2D(zdraintotaf, draintotaf)
    MKPTR2D(zfvap, fvap)
    MKPTR2D(zilmo, ilmo)
    MKPTR2D(zqdiagtyp, qdiagtyp)
@@ -172,6 +174,8 @@ function sfc_main2(seloc, trnch, kount, dt, ni, nk) result(F_istat)
    MKPTR2D(ztdiagtypv, tdiagtypv)
    MKPTR2D(ztmoins, tmoins)
    MKPTR2D(ztplus, tplus)
+   MKPTR2D(ztrunofftot, trunofftot)
+   MKPTR2D(ztrunofftotaf, trunofftotaf)
    MKPTR2D(zhuplus, huplus)
    MKPTR2D(zudiagtyp, udiagtyp)
    MKPTR2D(zudiagtypv, udiagtypv)
@@ -581,9 +585,13 @@ print *,'sfc_main: i,zmg,zglsea,zglacier,zurban,zlakefr:', i,zmg(i),zglsea(i),zg
         do_glaciers, do_ice, do_urb, do_lake)
 
    !       ACCUMULATE RUNOFF FOR EACH SURFACE TYPE
+   !       AND CALCULATE TOTAL RUNOFF (SURFACE + DRAINAGE)
    do k=1,nsurf+1
       do i=1,ni
-         zrunofftotaf(i,k) = zrunofftotaf(i,k) + zrunofftot(i,k)
+         zrunofftotaf(i,k)  = zrunofftotaf(i,k) + zrunofftot(i,k) * dt
+         zdraintotaf(i,k)   = zdraintotaf(i,k)  + zdraintot(i,k) * dt
+         ztrunofftot(i,k)   = zrunofftot(i,k)   + zdraintot(i,k)
+         ztrunofftotaf(i,k) = zrunofftotaf(i,k) + zdraintotaf(i,k)
       enddo
    enddo
 

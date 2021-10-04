@@ -7,7 +7,7 @@
      6            WTRS,WTRG,CMAI,PAI,PAIS,AIL,FCAN,FCANS,PSIGND,
      7            FCANMX,ZOLN,PAIMAX,PAIMIN,CWGTMX,ZRTMAX,
      8            PAIDAT,HGTDAT,THLIQ,THICE,TBAR,RCAN,SNCAN,
-     9            TCAN,GROWTH,ZSNOW,TSNOW,FSNOW,RHOSNO,SNO,Z0ORO,
+     9            TCAN,GROWTH,ZSNOW,TSNOW,FSNOW,RHOSNO,SNO,Z0ORO,Z0VEG,
      A            ZBLEND,ZPLMG0,ZPLMS0,
      B            TA,RHOAIR,RADJ,DLON,RHOSNI,DELZ,DELZW,ZBOTW,
      C            THPOR,THLMIN,PSISAT,BI,PSIWLT,HCPS,ISAND,
@@ -18,6 +18,7 @@
      H            AILC,PAIC,AILCG,L2MAX,NOL2PFTS,
      I            AILCGS,FCANCS,FCANC,ZOLNC,CMASVEGC,SLAIC )
 
+C     * OCT 04/21 - K.WINGER.   ADD OUTPUT FOR Z0VEG
 C     * SEP 05/12 - J.MELTON.   REMOVED UNUSED VAR, CWCPAV, CHANGED IDAY
 C                               CONVERSION FROM FLOAT TO REAL, REINTEGRATED
 C                               CTEM 
@@ -168,7 +169,8 @@ C
      2     FSNOW (ILG),     RHOSNO(ILG),     SNO   (ILG),     
      3     TA    (ILG),     RHOAIR(ILG),     DLON  (ILG),
      4     Z0ORO (ILG),     ZBLEND(ILG),     RHOSNI(ILG),
-     5     ZPLMG0(ILG),     ZPLMS0(ILG),     RADJ  (ILG)
+     5     ZPLMG0(ILG),     ZPLMS0(ILG),     RADJ  (ILG),
+     6     Z0VEG (ILG)
 C
 C     * SOIL PROPERTY ARRAYS.                                     
 C                                                                                 
@@ -814,6 +816,13 @@ C
               ZOELNS(I)=ZOMLNS(I)-LOG(ZORATG)                                    
           ENDIF                                                                   
   300 CONTINUE                                                                    
+C
+C     * CALCULATE AGGREGATED VEGETATION ROUGHNESS LENGTH
+C
+      DO 310 I=IL1,IL2
+          Z0VEG(I) = FCS(I)*EXP(ZOMLCS(I)) + FGS(I)*EXP(ZOMLNS(I))
+     1             +  FC(I)*EXP(ZOMLNC(I)) +  FG(I)*EXP(ZOMLNG(I))
+  310  CONTINUE
 C                
 C     * ADD CONTRIBUTION OF OROGRAPHY TO MOMENTUM ROUGNESS LENGTH
 C

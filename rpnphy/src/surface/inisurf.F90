@@ -68,7 +68,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
         zsnoma, zsnoro, zsnvden, zsnvdp, zsnvma, ztsrad, ztwater, zwveg, &
         zwsnow, zz0en, zz0veg, zz0tveg
    real, pointer, dimension(:,:) :: &
-        zalvis, zclay, zclayen, zisoil, zrunofftotaf, zsand, zsanden, zsnodp, &
+        zalvis, zclay, zclayen, zisoil, zrunofftotaf, zdraintotaf, zsand, zsanden, zsnodp, &
         ztglacier, ztmice, ztmoins, ztsoil, zvegf, zwsoil, zz0, zz0t
    ! pointers added for lake fraction
    real, pointer, dimension(:) :: &
@@ -127,6 +127,7 @@ subroutine inisurf4(kount, ni, nk, trnch)
    MKPTR2D(zalvis,alvis)
    MKPTR2D(zclay,clay)
    MKPTR2D(zclayen,clayen)
+   MKPTR2D(zdraintotaf,draintotaf)
    MKPTR2D(zisoil,isoil)
    MKPTR2D(zrunofftotaf,runofftotaf)
    MKPTR2D(zsand,sand)
@@ -300,13 +301,9 @@ subroutine inisurf4(kount, ni, nk, trnch)
 
       if(kount == 0) then
          !# total surface runoff
-         zrunofftotaf(i,indx_soil   ) = 0.0
-         zrunofftotaf(i,indx_glacier) = 0.0
-         zrunofftotaf(i,indx_water  ) = 0.0
-         zrunofftotaf(i,indx_ice    ) = 0.0
-         zrunofftotaf(i,indx_agrege ) = 0.0
-         zrunofftotaf(i,indx_urb    ) = 0.0
-         zrunofftotaf(i,indx_lake   ) = 0.0
+         zrunofftotaf(i,1:nsurf+1) = 0.0
+         !# total drainage
+         zdraintotaf(i,1:nsurf+1) = 0.0
          !# evaporation
          zfvapliqaf(i) = 0.0
       endif
@@ -740,8 +737,10 @@ subroutine inisurf4(kount, ni, nk, trnch)
 
             ! orographic roughness length
             if (any('z0oro' == phyinread_list_s(1:phyinread_n))) then
+!print *,'inisurf ZTOP read'
                zz0oro (i) = max(zz0oro(i),z0min)
             else
+!print *,'inisurf ZTOP not read'
                zz0oro (i) = max(zz0en(i),z0min)
             endif
 !zz0oro (i) = z0min

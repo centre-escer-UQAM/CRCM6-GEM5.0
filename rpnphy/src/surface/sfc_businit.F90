@@ -50,7 +50,7 @@ subroutine sfc_businit(moyhr,ni,nk)
         hc_roofen, hc_wall, hc_wallen, le_industry, le_industryen, le_road, &
         le_roof, le_town, le_traffic, le_trafficen, le_wall, nat, naten, pav, &
         paven, q_canyon, q_canyonen, rn_road, rn_roof, rn_town, rn_wall, &
-        runofftot, runofftotaf, &
+        runofftot, runofftotaf, draintot, draintotaf, trunofftot, trunofftotaf, &
         sroad_alb, sroad_alben, sroad_emis, sroad_emisen, sroad_rho, &
         sroad_rhoen, sroad_scheme, sroad_t, sroad_ten, sroad_ts, sroad_tsen, &
         sroad_wsnow, sroad_wsnowen, sroof_alb, sroof_alben, sroof_emis, &
@@ -120,7 +120,7 @@ subroutine sfc_businit(moyhr,ni,nk)
         tbasfl, tcs, thfc, thlmin, thlrat, thlret, thpor, tovrfl, &
         tpond, trunoff, tsno, tsubfl, tsurfsa, tveg, &
         veggro, vegma, vpda, vpdb, &
-        wfsurf, wtrc, wtrg, wtrs, xdrain, xslope, z0oro, zbotw, zoln, zpond, &
+        wfsurf, wtrc, wtrg, wtrs, xdrain, xslope, z0oro, z0vegc, zbotw, zoln, zpond, &
         zponden
    integer :: anis, are, excw, lbedr, leggw, slpgw, totw, wtnew
 
@@ -273,7 +273,11 @@ subroutine sfc_businit(moyhr,ni,nk)
    PHYVAR2D1(fvapliqaf,    'VN=fvapliqaf    ;ON=AHFL;VD=accum. surf. evaporation (HFLQ) (kg/m2 or mm)                     ;VB=p0')
    PHYVAR3D1(runofftot,    'VN=runofftot    ;ON=TRUN;VD=total surface runoff                           ;VS=A*'//nagg//' ;VB=v0')
    PHYVAR3D1(runofftotaf,  'VN=runofftotaf  ;ON=TRAF;VD=accum. of total surface runoff                 ;VS=A*'//nagg//' ;VB=p0')
-   PHYVAR2D1(snoma,        'VN=snoma        ;ON=I5  ;VD=snow mass                                                         ;VB=p0        ;MIN=0')
+   PHYVAR3D1(draintot,     'VN=draintot     ;ON=TDR ;VD=total drainage                                 ;VS=A*'//nagg//' ;VB=v0')
+   PHYVAR3D1(draintotaf,   'VN=draintotaf   ;ON=TDRA;VD=accum. of total drainage                       ;VS=A*'//nagg//' ;VB=p0')
+   PHYVAR3D1(trunofftot,   'VN=trunofftot   ;ON=TTR ;VD=total runoff (surface + drainage)              ;VS=A*'//nagg//' ;VB=v0')
+   PHYVAR3D1(trunofftotaf, 'VN=trunofftotaf ;ON=TTRA;VD=accum. of total runoff (surface + drainage)    ;VS=A*'//nagg//' ;VB=p0')
+   PHYVAR2D1(snoma,        'VN=snoma        ;ON=I5  ;VD=snow mass                                                       ;VB=p0        ;MIN=0')
 
    IF_ISBA: if (schmsol == 'ISBA') then
       PHYVAR2D1(acoef,        'VN=acoef        ;ON=1I  ;VD=a coef. in wgeq                                                   ;VB=p0')
@@ -585,7 +589,8 @@ subroutine sfc_businit(moyhr,ni,nk)
       PHYVAR2D1(wveg,         'VN=wveg         ;ON=I3  ;VD=water retained on the vegetation                                  ;VB=p0')
       PHYVAR2D1(xdrain,       'VN=xdrain       ;ON=L9  ;VD=drainage factor in CLASS                                          ;VB=p0')
       PHYVAR2D1(xslope,       'VN=xslope       ;ON=SFIS;VD=mosaic slope                                                      ;VB=p0')
-      PHYVAR2D1(z0oro,        'VN=z0oro        ;ON=ZTOP;VD=origraphic roughness length                                       ;VB=p0')
+      PHYVAR2D1(z0oro,        'VN=z0oro        ;ON=ZTOP;VD=orographic roughness length [m]                                   ;VB=p0')
+      PHYVAR2D1(z0vegc,       'VN=z0vegc       ;ON=ZVEG;VD=vegetation roughness length [m]                                   ;VB=v0')
       PHYVAR3D1(zbotw,        'VN=zbotw        ;ON=G0  ;VD=soil layer depths for water                    ;VS=A*'//ncg//'    ;VB=p0')
       PHYVAR3D1(zoln,         'VN=zoln         ;ON=X9  ;VD=roughness length for each veg. class           ;VS=A*'//ncvp//'   ;VB=p0')
       PHYVAR2D1(zpond,        'VN=zpond        ;ON=M9  ;VD=height of water lying on surface                                  ;VB=p0')

@@ -98,6 +98,7 @@ subroutine class_main (BUS, BUSSIZ, &
 !021       L. Duarte  (    2014) -Update for use with CLASS 3.6/CTEM 2.0
 !022       K. Winger  (Aug 2016) -Initialize if soil just appeard due to melting glacier
 !023       K. Winger  (Jun 2020) -Adapted for GEM5 and CLASSIC
+!024       K. Winger  (Oct 2021) -Add Z0ORO, Z0VEG
 !
 !Object
 !          Driver of the surface scheme CLASS
@@ -271,11 +272,11 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: ZALVS, ZALIR
   real,pointer,dimension(:)   :: FSOLUACC, FIRUACC, SU, SV, ST, SQ, ALVIS_SOL
   real,pointer,dimension(:)   :: EVAPO, QSENS, QEVAP, HBL, ZILMO, ZFRV, PS, QS
-  real,pointer,dimension(:)   :: Z0H, Z0M, ZZ0ORO, ZTSURF, ZTSRAD, UA, VA, TA, TH, QA
+  real,pointer,dimension(:)   :: Z0H, Z0M, ZZ0ORO, ZZ0VEG,ZTSURF, ZTSRAD, UA, VA, TA, TH, QA
   real,pointer,dimension(:)   :: TFLUX, QFLUX, ZCANG, FLUSOL, ZHUAIRCAN
   real,pointer,dimension(:)   :: ZDLAT, ZDLON, ZSDEPTH, ZZTSL, ZZUSL, QLWIN
   real,pointer,dimension(:)   :: ZTAIRCAN, ZTSNOW, ZTBASE, ZTPOND, ZZPOND
-  real,pointer,dimension(:)   :: ZRHOSNO, ZRUNOFFTOT, ZEMISR
+  real,pointer,dimension(:)   :: ZRHOSNO, ZRUNOFFTOT, ZDRAINTOT, ZEMISR
   real,pointer,dimension(:)   :: ZSCAN, ZINISOIL, XSNO, ZALBSNO, ZGROWTH
   real,pointer,dimension(:)   :: ZXDRAIN, ZXSLOPE, ZGRKFAC, ZWFSURF, ZWFCINT
   real,pointer,dimension(:)   :: ZCMAI, ZFSGV, ZFSGS, ZFSGG, ZFSNOW, ZFLGV
@@ -705,9 +706,10 @@ subroutine class_main (BUS, BUSSIZ, &
   ZCLAY     (1:N,1:IG) => bus( x(CLAY   ,1,1) : )          !  input  percentage of clay in soil
   ZORGM     (1:N,1:IG) => bus( x(ORGM   ,1,1) : )          !  input  percentage of organic matter in soil
   ZXDRAIN   (1:N)      => bus( x(XDRAIN ,1,1) : )          !  input  drainage factor in CLASS
-  Z0H       (1:N)      => bus( x( Z0T   ,1,indx_sfc ) : )  !  output thermal    roughness length
-  Z0M       (1:N)      => bus( x( Z0    ,1,indx_sfc ) : )  !  output momentum   roughness length
-  ZZ0ORO    (1:N)      => bus( x( Z0ORO ,1,1) : )          !  input  orographic roughness length
+  Z0H       (1:N)      => bus( x(Z0T    ,1,indx_sfc ) : )  !  output thermal    roughness length
+  Z0M       (1:N)      => bus( x(Z0     ,1,indx_sfc ) : )  !  output momentum   roughness length
+  ZZ0ORO    (1:N)      => bus( x(Z0ORO  ,1,1) : )          !  input  orographic roughness length
+  ZZ0VEG    (1:N)      => bus( x(Z0VEGC ,1,1) : )          !  output vegetation roughness length
 
 
   ! Surface fields
@@ -862,6 +864,7 @@ subroutine class_main (BUS, BUSSIZ, &
     ZMELTS    (1:N) => bus( x( MELTS  ,1,1 ) : )         ! output Liquid water runoff from snow pack, accumulation [kg/m^2]
     ZROVG     (1:N) => bus( x( ROVG   ,1,1 ) : )         ! output Liquid/frozen water runoff from vegetation to ground surface [kg/m^2/s]
     ZRUNOFFTOT(1:N) => bus( x(RUNOFFTOT, 1,indx_sfc) : ) ! output Surface runoff for all fractions [m]
+    ZDRAINTOT (1:N) => bus( x(DRAINTOT , 1,indx_sfc) : ) ! output Drainage       for all fractions [m]
     ZSCAN     (1:N) => bus( x( IVEG   ,1,1 ) : )         !  inout Intercepted frozen water stored on canopy [kg/m^2]
     ZSUBFLW   (1:N) => bus( x( SUBFLW ,1,1 ) : )         ! output Interflow from sides of soil column [m]
     ZTBASE    (1:N) => bus( x( TBASE  ,1,1 ) : )         !  inout Temperature of bedrock in third soil layer (if only three layers are being modelled) [K]
@@ -1131,6 +1134,7 @@ enddo
 !print*,'class_main ZWFSURF        :',minval(ZWFSURF),maxval(ZWFSURF),sum(ZWFSURF)/(N)
 !print*,'class_main Z0H            :',minval(Z0H),maxval(Z0H),sum(Z0H)/(N)
 !print*,'class_main ZZ0ORO         :',minval(ZZ0ORO),maxval(ZZ0ORO),sum(ZZ0ORO)/(N)
+!print*,'class_main ZZ0VEG         :',minval(ZZ0VEG),maxval(ZZ0VEG),sum(ZZ0VEG)/(N)
 !print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
 !print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
 !print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
@@ -1549,7 +1553,7 @@ endif ! prints
                    ASVDAT, ASIDAT, AGVDAT, AGIDAT, ZALGWET,ZALGDRY, &
                    THLIQ,  THICE,  TS,     ZRCAN,  ZSCAN,  ZTCAN, &
                    ZGROWTH,XSNO,   ZTSNOW, ZRHOSNO,ZALBSNO,ZBLEND, &
-                   ZZ0ORO,  SNOLIM, ZPLMG0, ZPLMS0, &
+                   ZZ0ORO, ZZ0VEG, SNOLIM, ZPLMG0, ZPLMS0, &
                    FCLOUD, TA,     VPD,    RHOAIR, COSZS, &
                    QSWINV, ZDLAT,  ZDLON,  RHOSNI, DELZ,   ZDELZW, &
                    ZZBOTW, ZTHPOR, ZTHLMIN,ZPSISAT,ZBI,    ZPSIWLT, &
@@ -1782,6 +1786,7 @@ endif ! prints
                  + FFC(I)*EXP(ZOMLNC(I)) +  FG(I)*EXP(ZOMLNG(I))
           Z0H(I) = FCS(I)*EXP(ZOELCS(I)) + FGS(I)*EXP(ZOELNS(I)) &
                  + FFC(I)*EXP(ZOELNC(I)) +  FG(I)*EXP(ZOELNG(I))
+
 !
 !
           if (QSWINV(I)+QSWINI(I) .le. 10.) then
@@ -1799,12 +1804,17 @@ endif ! prints
           ZMELTS(I)    = ZMELTS(I) + ZROFN(I)*DT  ! Accumulation of liquid water runoff from snow pack
 !
     end do FINAL_CALC
+
+!print*,'class_main Z0M :',minval(Z0M),maxval(Z0M),sum(Z0M)/(N)
 !
 !  end do DO_MOSAIC
 !
-
       zRUNOFFTOT(:) = ZOVRFLW(:)
+      zDRAINTOT(:)  = ZBASFLW(:)
       zTT2m(:)      = st(:)
+
+!print *,'class_main max OVRFLW:', maxval(ZOVRFLW)
+!print *,'class_main max BASFLW:', maxval(ZBASFLW)
 
 if (kount==0 .and. trnch==1) then
 

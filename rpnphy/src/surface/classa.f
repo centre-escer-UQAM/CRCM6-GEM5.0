@@ -16,7 +16,7 @@
      F                  ASVDAT, ASIDAT, AGVDAT, AGIDAT, ALGWET, ALGDRY, 
      G                  THLIQ,  THICE,  TBAR,   RCAN,   SNCAN,  TCAN,   
      H                  GROWTH, SNO,    TSNOW,  RHOSNO, ALBSNO, ZBLEND,
-     I                  Z0ORO,  SNOLIM, ZPLMG0, ZPLMS0, 
+     I                  Z0ORO,  Z0VEG,  SNOLIM, ZPLMG0, ZPLMS0, 
      J                  FCLOUD, TA,     VPD,    RHOAIR, COSZS,  
      K                  QSWINV, RADJ,   DLON,   RHOSNI, DELZ,   DELZW,  
      L                  ZBOTW,  THPOR,  THLMIN, PSISAT, BI,     PSIWLT, 
@@ -35,6 +35,7 @@ C     surface parameters.
 C
 C===================== CTEM =====================================/
 C
+C     * OCT 04/21 - K.WINGER.   ADD Z0VEG
 C     * SEP 05/12 - J.MELTON.   REMOVED UNUSED VAR, CWCPAV
 C     * NOV 14/11 - M.LAZARE.   IMPLEMENT CTEM SUPPORT, PRIMARILY
 C     *                         INVOLVING ADDITIONAL FIELDS TO PASS
@@ -306,6 +307,7 @@ C
       REAL ALGDRY(ILG)  !Reference albedo for dry soil [ ] 
       REAL RHOSNI(ILG)  !Density of fresh snow [kg m-3] 
       REAL Z0ORO (ILG)  !Orographic roughness length [m]
+      REAL Z0VEG (ILG)  !Vegetation roughness length [m]
       REAL RCAN  (ILG)  !Intercepted liquid water stored on canopy 
                         ![kg m-2]
       REAL SNCAN (ILG)  !Intercepted frozen water stored on canopy 
@@ -556,7 +558,7 @@ C
      6            WTRS,WTRG,CMAI,PAI,PAIS,AIL,FCAN,FCANS,PSIGND,
      7            FCANMX,ZOLN,PAIMAX,PAIMIN,CWGTMX,ZRTMAX,
      8            PAIDAT,HGTDAT,THLIQ,THICE,TBAR,RCAN,SNCAN,
-     9            TCAN,GROWTH,ZSNOW,TSNOW,FSNOW,RHOSNO,SNO,Z0ORO,
+     9            TCAN,GROWTH,ZSNOW,TSNOW,FSNOW,RHOSNO,SNO,Z0ORO,Z0VEG,
      A            ZBLEND,ZPLMG0,ZPLMS0,
      B            TA,RHOAIR,RADJ,DLON,RHOSNI,DELZ,DELZW,ZBOTW,
      C            THPOR,THLMIN,PSISAT,BI,PSIWLT,HCPS,ISAND,

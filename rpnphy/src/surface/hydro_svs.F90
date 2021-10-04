@@ -19,7 +19,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
      WSAT, KSAT, PSISAT, BCOEF, FBCOF, WFCINT, GRKEF, &
      SNM, SVM, WR, WRT, WD, WDT, WF, WFT, &
      KSATC, KHC, PSI, GRKSAT, WFCDP, &
-     F, LATFLW, RUNOFF, N)
+     F, LATFLW, RUNOFF, DRAIN, N)
   !
   use sfc_options
   use svs_configs
@@ -52,6 +52,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
   real, dimension(n,nl_svs+1):: f
   real, dimension(n,nl_svs) :: latflw
   real, dimension(n)        :: runoff
+  real, dimension(n)        :: drain
 
   !
   !Author
@@ -371,6 +372,7 @@ SUBROUTINE HYDRO_SVS ( DT, &
      ELSE 
         F(I,NL_SVS+1)=0.0
      END IF
+     DRAIN(I) = F(I,NL_SVS+1)*DT
 
   END DO
 

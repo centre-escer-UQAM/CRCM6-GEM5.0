@@ -737,10 +737,14 @@ subroutine inisurf4(kount, ni, nk, trnch)
 
             ! orographic roughness length
             if (any('z0oro' == phyinread_list_s(1:phyinread_n))) then
-!print *,'inisurf ZTOP read'
+               ! Re-initialize Z0M and Z0M to Z0oro
+               if (any('z0en' == phyinread_list_s(1:phyinread_n))) then
+                  zz0 (i,indx_soil   ) = max(zz0oro(i),z0min)
+                  zz0t(i,indx_soil   ) = max(zz0en(i),z0min)
+               endif
+
                zz0oro (i) = max(zz0oro(i),z0min)
             else
-!print *,'inisurf ZTOP not read'
                zz0oro (i) = max(zz0en(i),z0min)
             endif
 !zz0oro (i) = z0min

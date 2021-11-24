@@ -258,12 +258,16 @@ subroutine inicover2(kount, ni, trnch)
         0.     , 0.1    , 5.0    , 0.     , 1.2    , &
         1.2    /
 
+! KW:
+! Move "mixed wood forests (25)" from "broadleaf (2)" to "needle- and broadleaf (12)"
+! Move "deciduous shrubs (11)" from "grass (4) to "broadleaf (2)"
+! Move "desert (24)" from "urbain (5)" to "bare soil (6)"
    data vgclass/ &
         0      , 0      , 0      , 1      , 2      , &
         1      , 2      , 2      , 2      , 4      , &
-        4      , 4      , 4      , 4      , 3      , &
+        2      , 4      , 4      , 4      , 3      , &
         3      , 3      , 3      , 3      , 3      , &
-        5      , 4      , 4      , 5      , 2      , &
+        5      , 4      , 4      , 6      , 12     , &
         4      /
 
    data vg000 / &
@@ -274,7 +278,10 @@ subroutine inicover2(kount, ni, trnch)
         1      , 1      , 1      , 1      , 1      , &
         1      /
 
-   data fveg/ 0.90,  0.90,   0.70,  0.60 /
+! All values set to 1.00 so that no bare soil is added artificially (KW)
+! Although, this parameter does not seem to get used anymore (KW)
+!   data fveg/ 0.90,  0.90,   0.70,  0.60 /
+   data fveg/ 1.00,  1.00,   1.00,  1.00 /
 
    !********************************************************************
    !                tables describing the annual evolution of veg fields

@@ -99,6 +99,9 @@ subroutine class_main (BUS, BUSSIZ, &
 !022       K. Winger  (Aug 2016) -Initialize if soil just appeard due to melting glacier
 !023       K. Winger  (Jun 2020) -Adapted for GEM5 and CLASSIC
 !024       K. Winger  (Oct 2021) -Add Z0ORO, Z0VEG
+!025       F. Roberge (Nov 2021) -Add wind per surface fraction (UDST and VDST) 
+!026       K. Winger  (Nov 2021) -Add other diagnostic fields as well (DQST, TJSZ, UDSZ, VDSZ)
+!                                -Change zTT2m to tdiagtyp
 !
 !Object
 !          Driver of the surface scheme CLASS
@@ -293,7 +296,8 @@ subroutine class_main (BUS, BUSSIZ, &
 
   real,pointer,dimension(:)   :: ZFTEMP, ZFVAP, ZRIB, ZCDH, ZCDM, ZBM
 
-  real,pointer,dimension(:)   :: ztt2m
+  real,pointer,dimension(:)   :: ztdiagtyp , zqdiagtyp , zudiagtyp , zvdiagtyp
+  real,pointer,dimension(:)   :: ztdiagtypv, zqdiagtypv, zudiagtypv, zvdiagtypv
 
   real,pointer,dimension(:,:) :: THLIQ, THICE, TS, ZFCANMX, ZSAND, ZCLAY
   real,pointer,dimension(:,:) :: ZORGM, ZDELZW, ZZBOTW, ZTHPOR, ZTHLMIN
@@ -672,32 +676,40 @@ subroutine class_main (BUS, BUSSIZ, &
   ! --------------------------------
   ! (Check in iniptsurf.F90 that they are all there!!!)
   ! Mosaic fields
-  ALVIS_SOL (1:N) => bus( x( ALVIS  ,1,indx_sfc ) : )  ! output visible surface albedo 
-  QFLUX     (1:N) => bus( x( ALFAQ  ,1,1 ) : )         ! output Product of surface drag coefficient, wind speed and 
-                                                       ! surface-air specific humidity difference [m/s]
-                                                       ! (inhomog. term for Q diff.)
-  TFLUX     (1:N) => bus( x( ALFAT  ,1,1 ) : )         ! output Product of surface drag coefficient, wind speed and 
-                                                       ! surface-air (inhomog. term for T diff.)
-  CMU       (1:N) => bus( x( BM     ,1,1 ) : )         ! homog. term for U,V diffu.
-  CTU       (1:N) => bus( x( BT     ,1,indx_sfc ) : )  ! output Diagnosed product of drag coefficient and wind speed
-                                                       ! over modelled area [m/s] (homog. term for T,Q diffu.)
-  ZBM       (1:N) => bus( x( BM     ,1,1 ) : )         ! output homog. term for U,V diffu.
-  ZEMISR    (1:N) => bus( x( EMISR  ,1,1 ) : )         ! output surface emissivity for radiation scheme
-  QSENS     (1:N) => bus( x( FC     ,1,indx_sfc ) : )  ! output surface sensible heat flux
-  QEVAP     (1:N) => bus( x( FV     ,1,indx_sfc ) : )  ! output surface latent   heat flux
-  ZFRV      (1:N) => bus( x( FRV    ,1,indx_sfc ) : )  ! output Friction velocity of air [m/s]
-  HBL       (1:N) => bus( x( HST    ,1,indx_sfc ) : )  ! output Height of the atmospheric boundary layer [m]
-  ZILMO     (1:N) => bus( x( ILMO   ,1,indx_sfc ) : )  ! output Inverse of Monin-Obukhov roughness length [1/m]
-  QS        (1:N) => bus( x( QSURF  ,1,indx_sfc ) : )  ! output skin specific humidity [kg/kg]
-  ZTSURF    (1:N) => bus( x( TSURF  ,1,indx_sfc ) : )  ! output skin temperature [K]
-  SQ        (1:N) => bus( x( QDIAG  ,1,1 ) : )         ! output screen level specific humidity
-  ST        (1:N) => bus( x( TDIAG  ,1,1 ) : )         ! output screen level temperature
-  SU        (1:N) => bus( x( UDIAG  ,1,1 ) : )         ! output screen level X-component of wind
-  SV        (1:N) => bus( x( VDIAG  ,1,1 ) : )         ! output screen level X-component of wind
-  ZTSRAD    (1:N) => bus( x( TSRAD  ,1,1 ) : )         ! output Diagnosed effective surface black-body temperature [K]
-  ZFL       (1:N) => bus( x( FL     ,1,1 ) : )         ! output heat flux at soil surface
-  ZFTEMP    (1:N) => bus( x( FTEMP  ,1,indx_sfc ) : )  ! output sfc. temperature flux (T-DT)
-  ZFVAP     (1:N) => bus( x( FVAP   ,1,indx_sfc ) : )  ! output surf. vapour flux (T-DT)
+  ALVIS_SOL (1:N) => bus( x( ALVIS    ,1,indx_sfc ) : )  ! output visible surface albedo 
+  QFLUX     (1:N) => bus( x( ALFAQ    ,1,1 ) : )         ! output Product of surface drag coefficient, wind speed and 
+                                                         ! surface-air specific humidity difference [m/s]
+                                                         ! (inhomog. term for Q diff.)
+  TFLUX     (1:N) => bus( x( ALFAT    ,1,1 ) : )         ! output Product of surface drag coefficient, wind speed and 
+                                                         ! surface-air (inhomog. term for T diff.)
+  CMU       (1:N) => bus( x( BM       ,1,1 ) : )         ! homog. term for U,V diffu.
+  CTU       (1:N) => bus( x( BT       ,1,indx_sfc ) : )  ! output Diagnosed product of drag coefficient and wind speed
+                                                         ! over modelled area [m/s] (homog. term for T,Q diffu.)
+  ZBM       (1:N) => bus( x( BM       ,1,1 ) : )         ! output homog. term for U,V diffu.
+  ZEMISR    (1:N) => bus( x( EMISR    ,1,1 ) : )         ! output surface emissivity for radiation scheme
+  QSENS     (1:N) => bus( x( FC       ,1,indx_sfc ) : )  ! output surface sensible heat flux
+  QEVAP     (1:N) => bus( x( FV       ,1,indx_sfc ) : )  ! output surface latent   heat flux
+  ZFRV      (1:N) => bus( x( FRV      ,1,indx_sfc ) : )  ! output Friction velocity of air [m/s]
+  HBL       (1:N) => bus( x( HST      ,1,indx_sfc ) : )  ! output Height of the atmospheric boundary layer [m]
+  ZILMO     (1:N) => bus( x( ILMO     ,1,indx_sfc ) : )  ! output Inverse of Monin-Obukhov roughness length [1/m]
+  QS        (1:N) => bus( x( QSURF    ,1,indx_sfc ) : )  ! output skin specific humidity [kg/kg]
+  ZTSURF    (1:N) => bus( x( TSURF    ,1,indx_sfc ) : )  ! output skin temperature [K]
+  ST        (1:N) => bus( x( TDIAG    ,1,1 ) : )         ! output  2m temperature
+  ztdiagtyp (1:n) => bus( x( tdiagtyp ,1,indx_sfc) : )   ! output  2m temperature for each sfc type
+  ztdiagtypv(1:n) => bus( x( tdiagtypv,1,indx_sfc) : )   ! output  2m temperature for each sfc type; z0 vegetation-only
+  SQ        (1:N) => bus( x( QDIAG    ,1,1 ) : )         ! output  2m specific humidity
+  zqdiagtyp (1:n) => bus( x( qdiagtyp ,1,indx_sfc) : )   ! output  2m specific humidity for each sfc type
+  zqdiagtypv(1:n) => bus( x( qdiagtypv,1,indx_sfc) : )   ! output  2m specific humidity for each sfc type; z0 vegetation-only
+  SU        (1:N) => bus( x( UDIAG    ,1,1 ) : )         ! output 10m u-component of wind
+  zudiagtyp (1:n) => bus( x( udiagtyp ,1,indx_sfc) : )   ! output 10m u-component of wind for each sfc type
+  zudiagtypv(1:n) => bus( x( udiagtypv,1,indx_sfc) : )   ! output 10m u-component of wind for each sfc type; z0 vegetation-only
+  SV        (1:N) => bus( x( VDIAG    ,1,1 ) : )         ! output 10m v-component of wind
+  zvdiagtyp (1:n) => bus( x( vdiagtyp ,1,indx_sfc) : )   ! output 10m v-component of wind for each sfc type
+  zvdiagtypv(1:n) => bus( x( vdiagtypv,1,indx_sfc) : )   ! output 10m v-component of wind for each sfc type; z0 vegetation-only
+  ZTSRAD    (1:N) => bus( x( TSRAD    ,1,1 ) : )         ! output Diagnosed effective surface black-body temperature [K]
+  ZFL       (1:N) => bus( x( FL       ,1,1 ) : )         ! output heat flux at soil surface
+  ZFTEMP    (1:N) => bus( x( FTEMP    ,1,indx_sfc ) : )  ! output sfc. temperature flux (T-DT)
+  ZFVAP     (1:N) => bus( x( FVAP     ,1,indx_sfc ) : )  ! output surf. vapour flux (T-DT)
 
 
   ! Geophysical fields
@@ -909,7 +921,6 @@ subroutine class_main (BUS, BUSSIZ, &
     ZTSUBFL   (1:N) => bus( x( TSUBFL ,1,1 ) : )         ! output Temperature of interflow from sides of soil column [K]
     ZTRUNOFF  (1:N) => bus( x( TRUNOFF,1,1 ) : )         ! output Temperature of total runoff from soil column [K]
     ZTSFS     (1:N,1:4) => bus( x( TSURFSA,1,1 ) : )     !  inout Ground surface temperature over subarea [K]
-    ztt2m     (1:n) => bus( x(tdiagtyp,1,indx_sfc)  : )  ! output screen level temperature for each sfc type
 !
     ZRIB      (1:N) => bus( x( RIB    ,1,1 ) : )         ! output Bulk Richardson number [-10,5]
     ZCDH      (1:N) => bus( x( CDH    ,1,1 ) : )         ! output Surface drag coefficient for heat []
@@ -1254,7 +1265,7 @@ enddo
 !print*,'class_main ZTSUBFL        :',minval(ZTSUBFL),maxval(ZTSUBFL),sum(ZTSUBFL)/(N)
 !print*,'class_main ZTRUNOFF       :',minval(ZTRUNOFF),maxval(ZTRUNOFF),sum(ZTRUNOFF)/(N)
 !print*,'class_main ZTSFS          :',minval(ZTSFS),maxval(ZTSFS),sum(ZTSFS)/(N*4)
-!print*,'class_main ztt2m          :',minval(ztt2m),maxval(ztt2m),sum(ztt2m)/(n)
+!print*,'class_main ztdiagtyp      :',minval(ztdiagtyp),maxval(ztdiagtyp),sum(ztdiagtyp)/(n)
 !print*,'class_main ZFTEMP         :',minval(ZFTEMP),maxval(ZFTEMP),sum(ZFTEMP)/(N)
 !print*,'class_main ZFVAP          :',minval(ZFVAP),maxval(ZFVAP),sum(ZFVAP)/(N)
 !print*,'class_main ZRIB           :',minval(ZRIB),maxval(ZRIB),sum(ZRIB)/(N)
@@ -1811,7 +1822,15 @@ endif ! prints
 !
       zRUNOFFTOT(:) = ZOVRFLW(:)
       zDRAINTOT(:)  = ZBASFLW(:)
-      zTT2m(:)      = st(:)
+      ztdiagtyp(:)  = st(:)
+      ztdiagtypv(:) = st(:)
+      zqdiagtyp(:)  = sq(:)
+      zqdiagtypv(:) = sq(:)
+      zudiagtyp(:)  = su(:)
+      zudiagtypv(:) = su(:)
+      zvdiagtyp(:)  = sv(:)
+      zvdiagtypv(:) = sv(:)
+
 
 !print *,'class_main max OVRFLW:', maxval(ZOVRFLW)
 !print *,'class_main max BASFLW:', maxval(ZBASFLW)

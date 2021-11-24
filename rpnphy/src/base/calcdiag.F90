@@ -58,7 +58,8 @@ contains
       !@Revisions
       ! 001 K. Winger (ESCER/UQAM) Oct 2019 - make precipitation fields independent
       ! 002 K. Winger (ESCER/UQAM) Sep 2021 - add n-minutely precipitation
-      ! 002 K. Winger (ESCER/UQAM) Sep 2021 - add aggregated heat fluxes (fcaffrac,fvaffrac)
+      ! 003 K. Winger (ESCER/UQAM) Sep 2021 - add aggregated heat fluxes (fcaffrac,fvaffrac)
+      ! 004 K. Winger (ESCER/UQAM) Sep 2021 - add n-minutely screen wind modulus
       !*@/
 
 #include <msg.h>
@@ -83,7 +84,7 @@ contains
       real, dimension(ni,nk-1) :: q_grpl,iiwc
 
       ! Variable needed for n-minutely precipitation (KW)
-      integer :: pr_int
+      integer :: acc_int
       ! Variables needed for AHF and AVF (KW)
       integer :: nsurf, ier
 
@@ -552,118 +553,147 @@ contains
 
 
       !****************************************************************
-      !     n-minute precipitation accumulation
-      !     -----------------------------------
+      !     n-minute precipitation accumulation & 10m wind
+      !     ----------------------------------------------
+
+      ! Calculate 10m wind modulus
+      uvs(1:ni) = zudiag(1:ni)*zudiag(1:ni) + zvdiag(1:ni)*zvdiag(1:ni)
+      call VSSQRT(uvs,uvs,ni)
 
       ! Make sure each interval is a multiple of delta-t
-      !  5 minute precip
-      pr_int =  300
+      !  5 minute precip / 10m wind
+      acc_int =  300
 
-      ! If  5 minute precip can get calculated (depends on deltat)
-      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+      ! If  5 minute precip / 10m wind can get calculated (depends on deltat)
+      if ( int(dt) <= acc_int .and. mod( acc_int , int(dt)) == 0 ) then
         ! Initialize 5-minutely average to first value of accumulation interval
-        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
-          zpr05(:) =            zrt(:) * dt / pr_int
+        if (lkount0 .or. mod( kount-1, int(acc_int/dt)) == 0 ) then
+          zpr05(:)  =             zrt(:) * dt / acc_int
+          zuvs05(:) =             uvs(:) * dt / acc_int
         ! Add to 5-minutely average
         else
-          zpr05(:) = zpr05(:) + zrt(:) * dt / pr_int
+          zpr05(:)  = zpr05(:)  + zrt(:) * dt / acc_int
+          zuvs05(:) = zuvs05(:) + uvs(:) * dt / acc_int
         end if
 
-        ! Maximum 5-minutely precip
-        zprmax05 = max(zprmax05, zpr05)
+        ! Maximum 5-minutely precip / 10m wind
+        zprmax05  = max(zprmax05 , zpr05)
+        zuvsmax05 = max(zuvsmax05, zuvs05)
 
       else
         zpr05    = -999.
         zprmax05 = -999.
+        zuvs05    = -999.
+        zuvsmax05 = -999.
       endif
 
 
-      ! 10 minute precip
-      pr_int  =  600
-      ! If 10 minute precip can get calculated (depends on deltat)
-      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+      ! 10 minute precip / 10m wind
+      acc_int  =  600
+      ! If 10 minute precip / 10m wind can get calculated (depends on deltat)
+      if ( int(dt) <= acc_int .and. mod( acc_int , int(dt)) == 0 ) then
         ! Initialize 10-minutely average to first value of accumulation interval
-        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
-          zpr10(:) =            zrt(:) * dt / float(pr_int)
+        if (lkount0 .or. mod( kount-1, int(acc_int/dt)) == 0 ) then
+          zpr10(:)  =             zrt(:) * dt / float(acc_int)
+          zuvs10(:) =             uvs(:) * dt / acc_int
         ! Add to 10-minutely average
         else
-          zpr10(:) = zpr10(:) + zrt(:) * dt / float(pr_int)
+          zpr10(:)  = zpr10(:)  + zrt(:) * dt / float(acc_int)
+          zuvs10(:) = zuvs10(:) + uvs(:) * dt / acc_int
         end if
 
-        ! Maximum 10-minutely precip
-        zprmax10 = max(zprmax10, zpr10)
+        ! Maximum 10-minutely precip / 10m wind
+        zprmax10  = max(zprmax10 , zpr10)
+        zuvsmax10 = max(zuvsmax10, zuvs10)
 
       else
         zpr10    = -999.
         zprmax10 = -999.
+        zuvs10    = -999.
+        zuvsmax10 = -999.
       endif
 
 
-      ! 15 minute precip
-      pr_int  =  900
-      ! If 15 minute precip can get calculated (depends on deltat)
-      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+      ! 15 minute precip / 10m wind
+      acc_int  =  900
+      ! If 15 minute precip / 10m wind can get calculated (depends on deltat)
+      if ( int(dt) <= acc_int .and. mod( acc_int , int(dt)) == 0 ) then
         ! Initialize 15-minutely average to first value of accumulation interval
-        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
-          zpr15(:) =            zrt(:) * dt / float(pr_int)
+        if (lkount0 .or. mod( kount-1, int(acc_int/dt)) == 0 ) then
+          zpr15(:)  =             zrt(:) * dt / float(acc_int)
+          zuvs15(:) =             uvs(:) * dt / acc_int
         ! Add to 15-minutely average
         else
-          zpr15(:) = zpr15(:) + zrt(:) * dt / float(pr_int)
+          zpr15(:)  = zpr15(:)  + zrt(:) * dt / float(acc_int)
+          zuvs15(:) = zuvs15(:) + uvs(:) * dt / acc_int
         end if
 
-        ! Maximum 15-minutely precip
-        zprmax15 = max(zprmax15, zpr15)
+        ! Maximum 15-minutely precip / 10m wind
+        zprmax15  = max(zprmax15 , zpr15)
+        zuvsmax15 = max(zuvsmax15, zuvs15)
 
       else
         zpr15    = -999.
         zprmax15 = -999.
+        zuvs15    = -999.
+        zuvsmax15 = -999.
       endif
 
 
-      ! 20 minute precip
-      pr_int  = 1200
-      ! If 20 minute precip can get calculated (depends on deltat)
-      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+      ! 20 minute precip / 10m wind
+      acc_int  = 1200
+      ! If 20 minute precip / 10m wind can get calculated (depends on deltat)
+      if ( int(dt) <= acc_int .and. mod( acc_int , int(dt)) == 0 ) then
         ! Initialize 20-minutely average to first value of accumulation interval
-        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
-          zpr20(:) =            zrt(:) * dt / float(pr_int)
+        if (lkount0 .or. mod( kount-1, int(acc_int/dt)) == 0 ) then
+          zpr20(:)  =             zrt(:) * dt / float(acc_int)
+          zuvs20(:) =             uvs(:) * dt / acc_int
         ! Add to 20-minutely average
         else
-          zpr20(:) = zpr20(:) + zrt(:) * dt / float(pr_int)
+          zpr20(:)  = zpr20(:)  + zrt(:) * dt / float(acc_int)
+          zuvs20(:) = zuvs20(:) + uvs(:) * dt / acc_int
         end if
 
-        ! Maximum 20-minutely precip
-        zprmax20 = max(zprmax20, zpr20)
+        ! Maximum 20-minutely precip / 10m wind
+        zprmax20  = max(zprmax20 , zpr20)
+        zuvsmax20 = max(zuvsmax20, zuvs20)
 
       else
         zpr20    = -999.
         zprmax20 = -999.
+        zuvs20    = -999.
+        zuvsmax20 = -999.
       endif
 
 
-      ! 30 minute precip
-      pr_int = 1800
-!print *,'calcdiag: kount,dt,pr_int,mod:',kount,int(dt),pr_int,mod( pr_int , int(dt))
-      ! If 30 minute precip can get calculated (depends on deltat)
-      if ( int(dt) <= pr_int .and. mod( pr_int , int(dt)) == 0 ) then
+      ! 30 minute precip / 10m wind
+      acc_int = 1800
+!print *,'calcdiag: kount,dt,acc_int,mod:',kount,int(dt),acc_int,mod( acc_int , int(dt))
+      ! If 30 minute precip / 10m wind can get calculated (depends on deltat)
+      if ( int(dt) <= acc_int .and. mod( acc_int , int(dt)) == 0 ) then
 !print *,'calcdiag: In if'
         ! Initialize 30-minutely average to first value of accumulation interval
-        if (lkount0 .or. mod( kount-1, int(pr_int/dt)) == 0 ) then
+        if (lkount0 .or. mod( kount-1, int(acc_int/dt)) == 0 ) then
 !print *,'calcdiag: Initialize',kount
-          zpr30(:) =            zrt(:) * dt / pr_int
+          zpr30(:)  =             zrt(:) * dt / acc_int
+          zuvs30(:) =             uvs(:) * dt / acc_int
         ! Add to 30-minutely average
         else
 !print *,'calcdiag: Increase',kount
-          zpr30(:) = zpr30(:) + zrt(:) * dt / pr_int
+          zpr30(:)  = zpr30(:)  + zrt(:) * dt / acc_int
+          zuvs30(:) = zuvs30(:) + uvs(:) * dt / acc_int
         end if
 !print *,'calcdiag: zpr30(1:5):',zpr30(1:5)
 
-        ! Maximum 30-minutely precip (gets automatically reset after each output)
-        zprmax30 = max(zprmax30, zpr30)
+        ! Maximum 30-minutely precip / 10m wind (gets automatically reset after each output)
+        zprmax30  = max(zprmax30 , zpr30)
+        zuvsmax30 = max(zuvsmax30, zuvs30)
 
       else
-        zpr30    = -999.
-        zprmax30 = -999.
+        zpr30     = -999.
+        zprmax30  = -999.
+        zuvs30    = -999.
+        zuvsmax30 = -999.
       endif
 
 

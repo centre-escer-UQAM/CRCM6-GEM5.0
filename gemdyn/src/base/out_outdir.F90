@@ -38,6 +38,18 @@
 !                                 - Make sure 00Z goes to the previous day
 
 #include <rmnlib_basics.hf>
+#include "cstv.cdk"
+#include "grd.cdk"
+#include "lctl.cdk"
+#include "out.cdk"
+#include "out3.cdk"
+#include "ptopo.cdk"
+#include "lun.cdk"
+#include "path.cdk"
+#include "step.cdk"
+#include "init.cdk"
+#include "out_listes.cdk"      ! needed to only create directories when needed (KW)
+#include <clib_interface_mu.hf>
       include "rpn_comm.inc"
 
       character(len=1024),save :: dirstep_S=' ', diryy_S=' ', dirbloc_S=' ', &
@@ -58,11 +70,11 @@
 !----------------------------------------------------------------------
 !
 
-print *,'In out_outdir'
-print *,'out_outdir Step_kount    = ',Step_kount
+!print *,'In out_outdir'
+!print *,'out_outdir Step_kount    = ',Step_kount
 !print *,'out_outdir startofroutine: out_int = ',out_int
 
-print *,'out_outdir Step_total    = ',Step_total
+!print *,'out_outdir Step_total    = ',Step_total
 !print *,'out_outdir Out_dateo     = ',Out_dateo
 !print *,'out_outdir Out_endstepno = ',Out_endstepno
 
@@ -89,7 +101,6 @@ print *,'out_outdir Step_total    = ',Step_total
 !print *,'out_outdir Out_endstepno:',Out_endstepno
       interval = int(Out3_close_interval * Out3_postproc_fact)
 
-print *,'out_outdir out_int, interval:',out_int, interval
       ! Decide if new directory needs to get created
       if ( out_int    == interval .or. &
            out_int    == -1 ) then
@@ -102,13 +113,12 @@ print *,'out_outdir out_int, interval:',out_int, interval
         new_dir_L = .false.
       endif
 
-print *,'out_outdir interval,out_int,new_dir_L:',interval,out_int,new_dir_L
+!print *,'out_outdir interval,out_int,new_dir_L:',interval,out_int,new_dir_L
 
 
 
 
-      ! Always create monthly laststep directories as laststep_YYYYMMDD.hhmmss (KW)
-      ! And make sure 00Z goes to the previous day (KW)
+      ! Make sure 00Z goes to the previous day (KW)
 
       ! Current date
       curr_date_S = timestr_date_S(Out_dateo,sngl(Cstv_dt_8),Step_kount)
@@ -140,17 +150,23 @@ print *,'out_outdir interval,out_int,new_dir_L:',interval,out_int,new_dir_L
       ! Determine if post processing should get started
       !   Create new directory after Out3_postproc_fact
       !   Always create new output directory at time steps 0 and 1
+      !   Always create new output directory at beginning of a month
       !   Always start post processing at the end of a job
-! Do not remember why this line was there:
-!           Step_kount == 1        .or. &
-! Needed to remove it to get output for every timestep
-      if ( out_int    == interval .or. &
-           Step_kount == 0        .or. &
+      if ( out_int    == interval            .or. &
+           Step_kount == 0                   .or. &
+           Step_kount == 1                   .or. &
+           curr_date_S( 7:15) == '01.000000' .or. &
            stepno == Out_endstepno) then
         Out_post_L = .true.
       else
         Out_post_L = .false.
       endif
+
+
+      ! Always create a new directory at the beginning of a month
+      ! Set flag for next timestep
+      if (curr_date_S( 7:15) == '01.000000') out_int = -1
+
 
 !print *,'out_outdir interval,out_int,Out_post_L:',interval,out_int,Out_post_L
 

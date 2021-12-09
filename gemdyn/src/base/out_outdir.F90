@@ -38,18 +38,6 @@
 !                                 - Make sure 00Z goes to the previous day
 
 #include <rmnlib_basics.hf>
-#include "cstv.cdk"
-#include "grd.cdk"
-#include "lctl.cdk"
-#include "out.cdk"
-#include "out3.cdk"
-#include "ptopo.cdk"
-#include "lun.cdk"
-#include "path.cdk"
-#include "step.cdk"
-#include "init.cdk"
-#include "out_listes.cdk"      ! needed to only create directories when needed (KW)
-#include <clib_interface_mu.hf>
       include "rpn_comm.inc"
 
       character(len=1024),save :: dirstep_S=' ', diryy_S=' ', dirbloc_S=' ', &

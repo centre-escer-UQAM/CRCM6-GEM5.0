@@ -505,12 +505,17 @@ contains
          ! Apply shallow convective tendencies
          call apply_tendencies(ttp, ztshal, ztdmask, ni, nk, nkm1)
          call apply_tendencies(qqp, zhushal, ztdmask, ni, nk, nkm1)
-         call apply_tendencies(qcp, zprctns, ztdmask, ni, nk, nkm1)
-         call apply_tendencies(qcp, zpritns, ztdmask, ni, nk, nkm1)
+         ! Commented following GEM 5.2 fixed bugs (FR)
+         !call apply_tendencies(qcp, zprctns, ztdmask, ni, nk, nkm1)
+         !call apply_tendencies(qcp, zpritns, ztdmask, ni, nk, nkm1)
          if (bkf_lshalm) then
             call apply_tendencies(uu, ztusc, ztdmask, ni, nk, nkm1)
             call apply_tendencies(vv, ztvsc, ztdmask, ni, nk, nkm1)
          endif
+
+         ! Added following GEM5.2 fixed bugs (FR)
+         ! Apply shallow convective tendencies for consdensed variables
+         call conv_mp_tendencies1(zprctns, zpritns, ttp, qcp, ncp, qip, nip, qti1p, nti1p, ztdmask, ni, nk, nkm1)
 
          ! Post-scheme energy budget analysis
          if (associated(zconesc)) then

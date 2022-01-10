@@ -59,6 +59,8 @@ contains
 
       !@Author L.Spacek, November 2011
       !*@/
+      ! Revision
+      ! 001 Roberge - December 2021 - apply bechtold tendencies at the end of the subroutine only if MP is not use
 #include <msg.h>
 #include "phymkptr.hf"
       include "nocld.cdk"
@@ -171,20 +173,23 @@ contains
          zqcphytd(:,1:nkm1) = zcqce(:,1:nkm1) + zsqce(:,1:nkm1) + zmqce(:,1:nkm1)
       endif
       zqrphytd(:,1:nkm1) = zsqre(:,1:nkm1)
+      ! note: zqcphytd does not contain shal contributions; ok because will be re-calculated in tendency
 
-      ! Apply shallow convective tendencies when computed before deep
-      if (conv_shal == 'BECHTOLD') then
-         call apply_tendencies(dbus,vbus,fbus,tplus,tshal,ni,nk,nkm1)
-         call apply_tendencies(dbus,vbus,fbus,huplus,hushal,ni,nk,nkm1)
-         call apply_tendencies(dbus,vbus,fbus,qcplus,prctns,ni,nk,nkm1)
-         call apply_tendencies(dbus,vbus,fbus,qcplus,pritns,ni,nk,nkm1)
-      endif
-
-      ! Apply deep CPS and condensation tendencies for non-microphysics schemes
+      ! Note: at end of condensation we do: if (.not.any(stcond == (/'MP_MY2','MP_P3 '/))) then 
+      ! tplus=t0,huplus=hu0,qcp=q0 i.e. go back to thermo state AFTER KTRSNT
+      ! must now re-apply masked(if climat .or.stratos) conv and cond tendencies
+      ! must NOT re-apply if shal == ktrsnt
       if (.not.any(stcond == (/'MP_MY2','MP_P3 '/))) then
          call apply_tendencies(dbus,vbus,fbus,tplus,tcond,ni,nk,nkm1)
          call apply_tendencies(dbus,vbus,fbus,huplus,hucond,ni,nk,nkm1)
          call apply_tendencies(dbus,vbus,fbus,qcplus,qcphytd,ni,nk,nkm1)
+         ! Apply BECHTOLD shallow convective tendencies
+         if (conv_shal == 'BECHTOLD') then
+            call apply_tendencies(dbus,vbus,fbus,tplus,tshal,ni,nk,nkm1)
+            call apply_tendencies(dbus,vbus,fbus,huplus,hushal,ni,nk,nkm1)
+            call apply_tendencies(dbus,vbus,fbus,qcplus,prctns,ni,nk,nkm1)
+            call apply_tendencies(dbus,vbus,fbus,qcplus,pritns,ni,nk,nkm1)
+         endif
       endif
 
       ! Add shallow convection tendencies to convection/condensation tendencies

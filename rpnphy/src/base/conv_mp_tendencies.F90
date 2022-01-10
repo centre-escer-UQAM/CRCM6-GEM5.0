@@ -32,14 +32,14 @@ contains
       integer, intent(in) :: nkm1                                          !Number of prognostic vertical levels
       real, dimension(:,:), pointer :: liq_tend                !Tendency for liquid condensate mixing ratio (kg/kg/s)
       real, dimension(:,:), pointer :: ice_tend                !Tendency for solid condensate mixing ratio (kg/kg/s)
-      real, dimension(:,:), intent(in) :: ttp                              !Time-plus dry air temperature (K)
-      real, dimension(:,:), intent(inout) :: qcp                           !Liquid condensate mixing ratio (kg/kg)
-      real, dimension(:,:), intent(inout) :: ncp                           !Liquid droplet number concentration (#/m3)
-      real, dimension(:,:), intent(inout) :: qip                           !Ice condensate mixing ratio (kg/kg)
-      real, dimension(:,:), intent(inout) :: nip                           !Ice number concentration (#/m3)
-      real, dimension(:,:), intent(inout) :: qti1p                         !Ice condensate mixing ratio (kg/kg)
-      real, dimension(:,:), intent(inout) :: nti1p                         !Ice number concentration (#/m3)
-      real, dimension(:), intent(in) :: tdmask                             !Tendency mask
+      real, dimension(:,:), pointer :: ttp                              !Time-plus dry air temperature (K)
+      real, dimension(:,:), pointer :: qcp                           !Liquid condensate mixing ratio (kg/kg)
+      real, dimension(:,:), pointer :: ncp                                 !Liquid droplet number concentration (#/m3)
+      real, dimension(:,:), pointer :: qip                           !Ice condensate mixing ratio (kg/kg)
+      real, dimension(:,:), pointer :: nip                           !Ice number concentration (#/m3)
+      real, dimension(:,:), pointer :: qti1p                         !Ice condensate mixing ratio (kg/kg)
+      real, dimension(:,:), pointer :: nti1p                         !Ice number concentration (#/m3)
+      real, dimension(:), pointer :: tdmask                             !Tendency mask
 
 #include <msg.h>
 #include "phymkptr.hf"
@@ -59,7 +59,7 @@ contains
       !Update ice and liquid independently if possible (deep == kfc .or. bkf and stcond == MY)
       IF_KFBE_MP: if (associated(liq_tend) .and. associated(ice_tend) .and. stcond(1:3) == 'MP_') then
 
-         IF_MP_MY2: if (stcond(1:6) == 'MP_MY2') then !note: this includes 'MP_MY2' and 'MP_MY2_OLD'
+         IF_MP_MY2: if (stcond(1:6) == 'MP_MY2') then !note: this includes 'MP_MY2'
 
             !cloud droplets (number):
             !#TODO: use apply tendencies for clarity? Conditional outside loop (where?)

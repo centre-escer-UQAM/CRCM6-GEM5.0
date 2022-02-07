@@ -102,7 +102,7 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    !*@/
    ! Last version Sylvie Leroyer (2018)
    ! Revisions
-   ! 001    F. Roberge (Feb 2022) Fix for zsnodp in case snow density for road or roaf = 0
+   ! 001    F. Roberge (Feb 2022) Implementation of a fix from S. Leroyer for zsnodp in case snow density for road or roof = 0
 
    include "tebcst.cdk"
 ! surface pointer and bus : definition
@@ -507,7 +507,7 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
         ! Will fail in case xrsnow_roof or xrsnow_road = undef = 0 (FR)
         !zsnodp (i) = xbld(i)      * (xwsnow_roof(i)/xrsnow_roof(i))  +   &
         !            (1.-xbld(i))  * (xwsnow_road(i)/xrsnow_road(i))
-        ! Here the TEB minimum value for snow density is used as a safety treshold (FR)
+        ! Here the TEB minimum value for snow density is used as a safety treshold. Fix from S.Leroyer (FR)
         zsnodp (i) =       xbld(i)  * (xwsnow_roof(i) / max(100.,xrsnow_roof(i))) +  &
                      (1. - xbld(i)) * (xwsnow_road(i) / max(100.,xrsnow_road(i)))
         zfv    (i) = psftq      (i) * xlvtt

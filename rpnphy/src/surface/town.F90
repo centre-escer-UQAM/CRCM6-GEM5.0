@@ -101,6 +101,8 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
    !@Author Aude Lemonsu (April 2004)
    !*@/
    ! Last version Sylvie Leroyer (2018)
+   ! Revisions
+   ! 001    F. Roberge (Feb 2022) Fix for zsnodp in case snow density for road or roaf = 0
 
    include "tebcst.cdk"
 ! surface pointer and bus : definition
@@ -502,8 +504,12 @@ subroutine town(bus, bussiz, ptsurf, ptsurfsiz, dt, trnch, kount, n, m, nk)
         ztsrad (i) = ptrad      (i)
         zqsurf (i) = xq_town    (i)
         zalvis (i) = pdir_alb   (i,1)
-        zsnodp (i) = xbld(i)      * (xwsnow_roof(i)/xrsnow_roof(i))  +   &
-                    (1.-xbld(i))  * (xwsnow_road(i)/xrsnow_road(i)) 
+        ! Will fail in case xrsnow_roof or xrsnow_road = undef = 0 (FR)
+        !zsnodp (i) = xbld(i)      * (xwsnow_roof(i)/xrsnow_roof(i))  +   &
+        !            (1.-xbld(i))  * (xwsnow_road(i)/xrsnow_road(i))
+        ! Here the TEB minimum value for snow density is used as a safety treshold (FR)
+        zsnodp (i) =       xbld(i)  * (xwsnow_roof(i) / max(100.,xrsnow_roof(i))) +  &
+                     (1. - xbld(i)) * (xwsnow_road(i) / max(100.,xrsnow_road(i)))
         zfv    (i) = psftq      (i) * xlvtt
 !  runoff -- aggregated with all other surface tiles. Convert to mm
         zrunofftot(i) = xrunoff(i) * dt 

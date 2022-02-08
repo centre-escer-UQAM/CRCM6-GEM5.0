@@ -23,7 +23,9 @@
 !__________________________________________________________________________________________!
 !                                                                                          !
 ! Version:       3.1.6.4                                                                   !
-! Last updated:  2021-09-10                                                                !
+! Last updated:  2021-09-10
+! Revisions:                                                                               !
+!  001 Roberge & Winger     - patch if 'lamc' < 75000 
 !__________________________________________________________________________________________!
 
  MODULE MODULE_MP_P3
@@ -2563,7 +2565,13 @@ END subroutine p3_init
        if (qc(i,k).ge.qsmall .and. t(i,k).le.269.15) then
 !         qchetc(iice) = pi*pi/3.*Dap*Nacnt*rhow*cdist1(i,k)*gamma(mu_c(i,k)+5.)/lamc(i,k)**4
 !         nchetc(iice) = 2.*pi*Dap*Nacnt*cdist1(i,k)*gamma(mu_c(i,k)+2.)/lamc(i,k)
-! for future: calculate gamma(mu_c+4) in one place since its used multiple times
+          ! for future: calculate gamma(mu_c+4) in one place since its used multiple times
+          ! Patch to prevent division by 0  in the calculation of dum
+          if (lamc(i,k) < 75000.) then
+             print *,'lamc(i,k) < 75000.'
+             lamc(i,k) = 75000.
+          endif
+          
           dum   = (1./lamc(i,k))**3
 !         qcheti(iice_dest) = cons6*cdist1(i,k)*gamma(7.+pgam(i,k))*exp(aimm*(273.15-t(i,k)))*dum**2
 !         ncheti(iice_dest) = cons5*cdist1(i,k)*gamma(pgam(i,k)+4.)*exp(aimm*(273.15-t(i,k)))*dum

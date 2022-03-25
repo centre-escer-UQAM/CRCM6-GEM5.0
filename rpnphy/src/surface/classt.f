@@ -614,9 +614,13 @@ C
      2                    TACCS,QACCS,ZOM,ZOH,FCS,ZRSLDM,
      3                    ZDSLM,ZDSLH,ILG,IL1,IL2,JL)
           ELSEIF(ISLFD.EQ.2)                                        THEN
-              CALL DIASURFZ(SU,SV,ST,SQ,ILG,UWIND,VWIND,TACCS,QACCS,
-     1                    ZOM,ZOH,ILMOX,ZRSLFM,HBLX,UEX,FTEMPX,FVAPX,
-     2                    ZDSLM,ZDSLH,RADJ,FCS,IL1,IL2,JL)
+!              CALL DIASURFZ(SU,SV,ST,SQ,ILG,UWIND,VWIND,TACCS,QACCS,
+!     1                    ZOM,ZOH,ILMOX,ZRSLFM,HBLX,UEX,FTEMPX,FVAPX,
+!     2                    ZDSLM,ZDSLH,RADJ,FCS,IL1,IL2,JL)
+              CALL DIASURFZ(SU,SV,ST,SQ,ILG,
+     1                      TPOTA,QA,UWIND,VWIND,TACCS,QACCS,ZOM,ZOH,
+     2                      ILMOX,ZRSLFM,ZRSLFH,HBLX,UEX,FTEMPX,FVAPX,
+     3                      ZDSLM,ZDSLH,RADJ,FCOR,FCS,IL1,IL2,JL)
           ENDIF
 C
           DO 175 I=IL1,IL2
@@ -779,9 +783,10 @@ C
      2                    TSURX,QSURX,ZOM,ZOH,FGS,ZRSLDM,
      3                    ZDSLM,ZDSLH,ILG,IL1,IL2,JL)
           ELSEIF(ISLFD.EQ.2)                                        THEN
-              CALL DIASURFZ(SU,SV,ST,SQ,ILG,UWIND,VWIND,TSURX,QSURX,
-     1                    ZOM,ZOH,ILMOX,ZRSLFM,HBLX,UEX,FTEMPX,FVAPX,
-     2                    ZDSLM,ZDSLH,RADJ,FGS,IL1,IL2,JL)
+              CALL DIASURFZ(SU,SV,ST,SQ,ILG,
+     1                      TPOTA,QA,UWIND,VWIND,TSURX,QSURX,ZOM,ZOH,
+     2                      ILMOX,ZRSLFM,ZRSLFH,HBLX,UEX,FTEMPX,FVAPX,
+     3                      ZDSLM,ZDSLH,RADJ,FCOR,FGS,IL1,IL2,JL)
           ENDIF
 C
           DO 275 I=IL1,IL2
@@ -932,9 +937,10 @@ C
      2                    TACCO,QACCO,ZOM,ZOH,FC,ZRSLDM,
      3                    ZDSLM,ZDSLH,ILG,IL1,IL2,JL)
           ELSEIF(ISLFD.EQ.2)                                        THEN
-              CALL DIASURFZ(SU,SV,ST,SQ,ILG,UWIND,VWIND,TACCO,QACCO,
-     1                    ZOM,ZOH,ILMOX,ZRSLFM,HBLX,UEX,FTEMPX,FVAPX,
-     2                    ZDSLM,ZDSLH,RADJ,FC,IL1,IL2,JL)
+              CALL DIASURFZ(SU,SV,ST,SQ,ILG,
+     1                      TPOTA,QA,UWIND,VWIND,TACCO,QACCO,ZOM,ZOH,
+     2                      ILMOX,ZRSLFM,ZRSLFH,HBLX,UEX,FTEMPX,FVAPX,
+     3                      ZDSLM,ZDSLH,RADJ,FCOR,FC,IL1,IL2,JL)
           ENDIF
 C
           DO 375 I=IL1,IL2
@@ -1085,9 +1091,10 @@ C
      2                    TSURX,QSURX,ZOM,ZOH,FG,ZRSLDM,
      3                    ZDSLM,ZDSLH,ILG,IL1,IL2,JL)
           ELSEIF(ISLFD.EQ.2)                                        THEN
-              CALL DIASURFZ(SU,SV,ST,SQ,ILG,UWIND,VWIND,TSURX,QSURX,
-     1                    ZOM,ZOH,ILMOX,ZRSLFM,HBLX,UEX,FTEMPX,FVAPX,
-     2                    ZDSLM,ZDSLH,RADJ,FG,IL1,IL2,JL)
+              CALL DIASURFZ(SU,SV,ST,SQ,ILG,
+     1                      TPOTA,QA,UWIND,VWIND,TSURX,QSURX,ZOM,ZOH,
+     2                      ILMOX,ZRSLFM,ZRSLFH,HBLX,UEX,FTEMPX,FVAPX,
+     3                      ZDSLM,ZDSLH,RADJ,FCOR,FG,IL1,IL2,JL)
           ENDIF
 C
           DO 475 I=IL1,IL2

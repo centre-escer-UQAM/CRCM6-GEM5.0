@@ -294,7 +294,7 @@ subroutine class_main (BUS, BUSSIZ, &
   real,pointer,dimension(:)   :: FFC, FCS, FG, FGS, ZFL, ZRAINRATE, ZSNOWRATE
   real,pointer,dimension(:)   :: ZSNOW
 
-  real,pointer,dimension(:)   :: ZFTEMP, ZFVAP, ZRIB, ZCDH, ZCDM, ZBM
+  real,pointer,dimension(:)   :: ZFTEMP, ZFVAP, ZRIB, ZCDH, ZCDM
 
   real,pointer,dimension(:)   :: ztdiagtyp , zqdiagtyp , zudiagtyp , zvdiagtyp
   real,pointer,dimension(:)   :: ztdiagtypv, zqdiagtypv, zudiagtypv, zvdiagtypv
@@ -685,7 +685,6 @@ subroutine class_main (BUS, BUSSIZ, &
   CMU       (1:N) => bus( x( BM       ,1,1 ) : )         ! homog. term for U,V diffu.
   CTU       (1:N) => bus( x( BT       ,1,indx_sfc ) : )  ! output Diagnosed product of drag coefficient and wind speed
                                                          ! over modelled area [m/s] (homog. term for T,Q diffu.)
-  ZBM       (1:N) => bus( x( BM       ,1,1 ) : )         ! output homog. term for U,V diffu.
   ZEMISR    (1:N) => bus( x( EMISR    ,1,1 ) : )         ! output surface emissivity for radiation scheme
   QSENS     (1:N) => bus( x( FC       ,1,indx_sfc ) : )  ! output surface sensible heat flux
   QEVAP     (1:N) => bus( x( FV       ,1,indx_sfc ) : )  ! output surface latent   heat flux
@@ -1150,7 +1149,6 @@ enddo
 !print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
 !print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
 !print*,'class_main CTU            :',minval(CTU),maxval(CTU),sum(CTU)/(N)
-!print*,'class_main ZBM            :',minval(ZBM),maxval(ZBM),sum(ZBM)/(N)
 !print*,'class_main EVAPO          :',minval(EVAPO),maxval(EVAPO),sum(EVAPO)/(N)
 !print*,'class_main FFC            :',minval(FFC),maxval(FFC),sum(FFC)/(N)
 !print*,'class_main QSENS          :',minval(QSENS),maxval(QSENS),sum(QSENS)/(N)
@@ -1786,7 +1784,8 @@ endif ! prints
 !   AND VERSION CHANGES
 !
           VMOD(I) = SQRT( MAX( VAMIN,UA(I)*UA(I)+VA(I)*VA(I) ) )
-          ZBM(I)  = VMOD(I) * ZCDM(I)   ! KW: TODO check if this might be correct
+          CMU(I)  = VMOD(I) * ZCDM(I)   ! Needed!
+             
 !
 !   ADD CALCULATION FOR Z0M & ZOT OUTSIDE CLASS TO FACILITATE CODE MAINTENANCE
 !   AND VERSION CHANGES
@@ -1844,7 +1843,6 @@ print*,'class_main QFLUX          :',minval(QFLUX),maxval(QFLUX),sum(QFLUX)/(N)
 print*,'class_main TFLUX          :',minval(TFLUX),maxval(TFLUX),sum(TFLUX)/(N)
 print*,'class_main CTU            :',minval(CTU),maxval(CTU),sum(CTU)/(N)
 print*,'class_main CMU            :',minval(CMU),maxval(CMU),sum(CMU)/(N)
-print*,'class_main ZBM            :',minval(ZBM),maxval(ZBM),sum(ZBM)/(N)
 print*,'class_main QSENS          :',minval(QSENS),maxval(QSENS),sum(QSENS)/(N)
 print*,'class_main QEVAP          :',minval(QEVAP),maxval(QEVAP),sum(QEVAP)/(N)
 print*,'class_main ZFRV           :',minval(ZFRV),maxval(ZFRV),sum(ZFRV)/(N)

@@ -1,138 +1,44 @@
-MIG: Model Infrastructure Group, RPN, MRD, STB, ECCC, GC, CA
-============================================================
+CRCM6/GEM5.0 README
 
-*Developed at the Recherche en Prevision Numerique (RPN), Meteorological Research
-Division (MRD), Science and Technology Branch (STB), Environment and Climate
-Change Canada (ECCC)*
-
-This repository includes the source code, utilities and scripts maintained by
-the Model Infrastructure Group (MIG). Its main product is the Global
-Environmental Multi-scale model (GEM).  Steps required to compile and run
-GEM (excluding some 3rd party dependencies) are described.
-
-  * The *official* version of the code is on the [ECCC gitlab server](https://gitlab.science.gc.ca/MIG/mig)
-  * Issue tracking is done on [CMC/GEM's Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?product=GEM&resolution=---)
-  * Documentation can be found on the [CMC's wiki](https://wiki.cmc.ec.gc.ca/wiki/Gem).
-
-*These are only available from within the ECCC or Science networks,
-and requires an ECCC or science.gc.ca login.*
+This README file briefly describes the CRCM6/GEM5.0 code.
 
 
-Getting the code
-----------------
+1) OVERVIEW OF THE CODE
 
-If not already done, you may clone the MIG repository and checkout the version you want to run/work on with the following command (example for version 5.0.0):
+The CRCM6/GEM5.0 code is based on multiple model codes, including:
 
-    MYVERSION=5.0.0  ## Change this to the desired version
+1.1) Version 5.0 of the Global Environmental Multiscale (GEM) model developed by the Atmospheric Numerical Prediction Research Section, Meteorological Research Division, of Environment and Climate Change Canada (ECCC). References describing various aspects of the model include: Côté et al. (1998), Girard et al. (2014) and McTaggart-Cowan et al. (2019). McTaggart-Cowan et al. (2019) provides a comprehensive description of the model.
 
-    ## There are 2 URL options:
+1.2) Version 3.6.2 of the Canadian Land Surface Scheme developed predominantly within ECCC with the exception of an organized community effort as part of the Canadian Climate Research Network (1994 – 1997; Verseghy, 2000) as well as ad-hoc collaborations with the broader research community. References describing various aspects of the model include: Verseghy (1991), Verseghy et al. (1993), Verseghy (2000) and Verseghy (2017).
 
-    ## Option 1: Main URL, GitLab.science account needed
-    MYURL=git@gitlab.science.gc.ca:MIG/mig
-
-    ## Option 2: HTTPS URL, "git push" not possible with this URL
-    # MYURL=https://gitlab.science.gc.ca/MIG/mig.git
-
-    MYTAG=mig_${MYVERSION}
-    git clone ${MYURL} ${MYTAG}
-    cd ${MYTAG}
-
-    ## Check if ${MYTAG} exists
-    taglist=":$(git tag -l | tr '\n' ':')"
-    if [[ "x$(echo ${taglist} | grep :${MYTAG}:)" == "x" ]] ; then
-        echo "===> ERROR: not such tag: ${MYTAG} <==="
-    fi
-
-    ## There are 2 branch options (existing or new branch):
-
-    ## Option 1: Continue on existing branch - ${MYTAG} is the HEAD of its branch
-    MYBRANCH=${MYTAG%.*}-branch
-    git checkout ${MYBRANCH}
-
-    ## Option 2: Develop on a new branch - ${MYTAG} is NOT the HEAD of any branch
-    # MYBRANCH=${MYTAG}-${USER}-branch
-    # git checkout -b ${MYBRANCH} ${MYTAG}
+1.3) The FLake model. References describing some aspects of the model and its implementation into the CRCM model include Mironov (2010) and Martynov et al. (2012).
 
 
-Building, Running and Modifying MIG/GEM
----------------------------------------
+2) OVERVIEW OF LICENCES
 
-  * Building instructions: [README\_building.md](README_building.md).
-  * Running instructions: [README\_running.md](README_running.md).
-  * Developing instructions: [README\_developing.md](README_developing.md).
-
-
-Documentation
--------------
-
-Further documentation can be found on the [CMC wiki](https://wiki.cmc.ec.gc.ca/wiki):
-
-  * [GEM wiki page](https://wiki.cmc.ec.gc.ca/wiki/Gem)
-      * [GEM change log page](https://wiki.cmc.ec.gc.ca/wiki/GEM/Change_Log)
-  * [RPNphy wiki page](https://wiki.cmc.ec.gc.ca/wiki/Rpnphy)
-      * [RPNphy change log page](https://wiki.cmc.ec.gc.ca/wiki/RPNPhy/Change_Log)
-  * [SCM wiki page](https://wiki.cmc.ec.gc.ca/wiki/SCM)
-  * [Modelutils wiki page](https://wiki.cmc.ec.gc.ca/wiki/Modelutils)
-  * [RPNpy wiki page](https://wiki.cmc.ec.gc.ca/wiki/Rpnpy)
-  * [RDE wiki page](https://wiki.cmc.ec.gc.ca/wiki/RDE)
+The CRCM6/GEM5.0 code is distributed under the following licenses:
+2.1) The GEM dynamics software is licensed under the LGPL version 2.1. This license permits UQAM to use, copy, modify and distribute the GEM dynamics software subject to compliance with the LGPL version 2.1 license.
+2.2) The GEM physics software is licensed under the Environment Canada - Atmospheric Science and Technology License/Disclaimer, version 3 (May 7, 2008). This license permits UQAM to use, copy, modify, improve and distribute the GEM physics software, and any derivative works thereof (including software outputs), and its supporting documentation for any purpose whatsoever, except for commercial sales.
+2.3) The CLASS model is now distributed as part of the Canadian Land Surface Scheme Including Biogeochemical Cycles (CLASSIC). CLASSIC is distributed under the Open Government License - Canada (http://data.gc.ca/eng/open-government-licence-canada) and the GNU General Public License version 2. Also note that some portions of xml-fortran (http://xml-fortran.sourceforge.net) have been used in the CLASSIC code. 
+2.4) The Flake model is freely available under the terms of the MIT license.
 
 
-Reporting Issues
-----------------
+3) REFERENCES
 
-If you identify specific bugs or problems in the code, you can report it by
-creating an issue in one of MIG's CMC bugzilla products.
+	•	Côté, J., Gravel, S., Méthot, A., Patoine, A., Roch, M., and Staniforth, A. (1998). The operational CMC-MRB global environmental multiscale (GEM) model. Part I: Design considerations and formulation. Mon. Weather Rev. 126, 1373–1395. doi:10.1175/1520-0493(1998)126<1373:TOCMGE>2.0.CO;2.
 
-  * [GEM Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=gem)
-  * [GEMdyn Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=gemdyn)
-  * [RPNphy Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=RPN-Phy)
-  * [RPNpy Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=RPN.py)
-  * [RDE Bugzilla](http://bugzilla.cmc.ec.gc.ca/buglist.cgi?cmdtype=runnamed&namedcmd=rde)
+	•	Girard, C., Plante, A., Desgagné, M., Mctaggart-Cowan, R., Côté, J., Charron, M., et al. (2014). Staggered vertical discretization of the canadian environmental multiscale (GEM) model using a coordinate of the log-hydrostatic-pressure type. Mon. Weather Rev. 142, 1183–1196. doi:10.1175/MWR-D-13-00255.1.
 
-For feedback on running and development guidelines use the contacts below.
+	•	Martynov A, Sushama L, Laprise R, et al (2012) Interactive lakes in the Canadian Regional Climate Model, version 5: The role of lakes in the regional climate of North America. Tellus, Ser A Dyn Meteorol Oceanogr 64:0–22. https://doi.org/10.3402/tellusa.v64i0.16226
 
+	•	Mironov D, Heise E, Kourzeneva E, et al (2010) Implementation of the lake parameterisation scheme FLake into the numerical weather prediction model COSMO. Boreal Environ Res 15:218–230
 
-See Also
---------
+	•	McTaggart-Cowan, R., Vaillancourt, P. A., Zadra, A., Chamberland, S., Charron, M., Corvec, S., et al. (2019a). Modernization of Atmospheric Physics Parameterization in Canadian NWP. J. Adv. Model. Earth Syst. 11, 3593–3635. doi:10.1029/2019MS001781.
 
-  * Main doc: [README.md](README.md).
-  * Building instructions: [README\_building.md](README_building.md)
-  * Running instructions: [README\_running.md](README_running.md)
-  * Developing instructions: [README\_developing.md](README_developing.md)
-  * Installing instructions: [README\_installing.md](README_installing.md)
-  * Naming Conventions: [README\_version\_convention.md](README_version_convention.md)
-  * [CMC wiki](https://wiki.cmc.ec.gc.ca/wiki)
-  * [CMC Bugzilla](http://bugzilla.cmc.ec.gc.ca)
+	•	Verseghy, D. L.: CLASS – A Canadian land surface scheme for GCMs. I. Soil model, Int. J. Climatol., 11(2), 111–133, 1991.
 
+	•	Verseghy, D. L., McFarlane, N. A. and Lazare, M.: CLASS – A Canadian land surface scheme for GCMs, II. Vegetation model and coupled runs, Int. J. Climatol., 13(4), 347–370, 1993.
 
-Contact
--------
+	•	Verseghy, D. L.: The Canadian land surface scheme (CLASS): Its history and future, Atmosphere-Ocean, 38(1), 1–13, 2000.
 
-For questions about using the Version Control System, and guidelines:
-<ec.service-gem.ec@canada.ca>, <stephane.chamberland@canada.ca>,  
-
-> **TODO:** add other MIG members after getting their permission (StephaneG?, ChantalP?, VivianL?, RonMcTC?) <@canada.ca>,
-
-
-Abbreviations
--------------
-
-*[CMC]: Centre Meteorologique Canadien  
-*[RPN]: Recherche en Previsions Numeriques (Section of MRD/STB/ECCC)  
-*[MRD]: Meteorological Research Division (division of STB/ECCC)  
-*[STB]: Science and Technology Branch (branch of ECCC)  
-*[ECCC]: Environment and Climate Change Canada  
-*[EC]: Environment and Climate Change Canada (now ECCC)  
-*[GC]: Government of Canada  
-*[SSC]: Shared Services Canada  
-
-*[SPS]: Surface Prediction System, driver of RPN physics surface processes  
-*[SCM]: Single Column Model, driver of RPN physics  
-*[GEM]: Global Environmental Multi-scale atmospheric model from RPN, ECCC  
-*[MIG]: Model Infrastructure Group at RPN, ECCC  
-
-*[SSM]: Simple Software Manager (a super simplified package manager for software at CMC/RPN, ECCC)  
-*[RDE]: Research Development Environment, a super simple code dev. env. at RPN  
-
-
-> **TODO**: automate existing or new branch selection
+	•	Verseghy, D.: CLASS – The Canadian land surface scheme, Climate Research Division, Science and Technology Branch, Environment Canada., 2017.
